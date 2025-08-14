@@ -284,7 +284,11 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
             });
 
             const photoData = await photoResponse.json();
-            photoURL = photoData.thumbnailUrl;
+            if (photoData.thumbnailUrl) {
+                photoURL = photoData.thumbnailUrl;
+            } else {
+                throw new Error('Falha ao obter URL da foto.');
+            }
         }
 
         const dataToSend = {
@@ -310,15 +314,13 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
             fetchData(); 
         } else {
             console.error(result.error);
-            alert('Erro ao salvar os dados. Verifique o console para mais detalhes.');
+            alert('Erro ao salvar os dados: ' + result.error); // Linha alterada
         }
 
     } catch (error) {
         console.error('Erro no envio do formulário:', error);
-        alert('Ocorreu um erro inesperado. Tente novamente.');
+        alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
-
 
 
