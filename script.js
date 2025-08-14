@@ -270,3 +270,55 @@ function displayMotivationalMessage(totalLoss, data) {
 
 // Inicia o aplicativo ao carregar a página
 document.addEventListener('DOMContentLoaded', fetchData);
+
+// Adiciona um listener para o envio do formulário
+document.getElementById('dataForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    const userName = new URLSearchParams(window.location.search).get('user');
+    formData.append('userName', userName);
+
+    // Envia a foto para o Apps Script primeiro
+    const photoFile = form.querySelector('#photo').files[0];
+    let photoURL = '';
+    if (photoFile) {
+        const photoFormData = new FormData();
+        photoFormData.append('file', photoFile);
+
+        const photoResponse = await fetch(DATA_URL + '?action=uploadImage', {
+            method: 'POST',
+            body: photoFormData
+        });
+
+        const photoData = await photoResponse.json();
+        photoURL = photoData.thumbnailUrl;
+    }
+
+    const dataToSend = {
+        userName: formData.get('userName'),
+        date: formData.get('date'),
+        weight: formData.get('weight'),
+        measurements: formData.get('measurements'),
+        photoURL: photoURL
+    };
+
+    const response = await fetch(DATA_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dataToSend)
+    });
+
+    const result = await response.json();
+    if (result.result === 'success') {
+        alert('Dados salvos com sucesso!');
+        form.reset(); // Limpa o formulário
+        fetchData(); // Recarrega os dados para atualizar a visualização
+    } else {
+        alert('Erro ao salvar os dados.');
+    }
+});
