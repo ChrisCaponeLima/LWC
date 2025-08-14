@@ -216,7 +216,10 @@ function formatDate(dateString) {
 
 // Extrai uma medida específica da string de medidas
 function extractMeasurement(measurementsString, measureName) {
-    if (!measurementsString) return null;
+    // Adiciona uma verificação para garantir que measurementsString é uma string
+    if (typeof measurementsString !== 'string' || !measurementsString) {
+        return null;
+    }
     const regex = new RegExp(`${measureName}:\\s*(\\d+)cm`);
     const match = measurementsString.match(regex);
     return match ? parseFloat(match[1]) : null;
@@ -245,3 +248,4 @@ function displayMotivationalMessage(totalLoss, data) {
 // Inicia o aplicativo ao carregar a página
 
 document.addEventListener('DOMContentLoaded', fetchData);
+
