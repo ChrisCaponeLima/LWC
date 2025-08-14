@@ -1,6 +1,9 @@
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
 const DATA_URL = 'https://script.google.com/macros/s/AKfycbypqSSXpJbqqqZdpZrNphfUjZN_XBCLGpLak45zu9cYV5Lfhsp6FBsBt8TG5mXv0lPy/exec'; 
 
+// **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
+const DATA_URL = 'SEU_URL_DO_GOOGLE_APPS_SCRIPT_AQUI'; 
+
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
 let weightChart, waistChart;
@@ -318,4 +321,5 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado. Tente novamente.');
     }
 });
+
 
