@@ -5,7 +5,7 @@ const DATA_URL = 'https://script.google.com/macros/s/AKfycbypqSSXpJbqqqZdpZrNphf
 
 // **NOVO**: Defina o nome do usuário que você quer visualizar
 // Garanta que este nome seja EXATAMENTE igual ao da planilha
-const CURRENT_USER_NAME = 'Seu Nome Aqui'; // <-- SUBSTITUA PELO NOME DO USUÁRIO
+const CURRENT_USER_NAME = 'Maria'; // <-- SUBSTITUA PELO NOME DO USUÁRIO
 
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
@@ -265,3 +265,4 @@ function displayMotivationalMessage(totalLoss, data) {
 
 // Inicia o aplicativo ao carregar a página
 document.addEventListener('DOMContentLoaded', fetchData);
+
