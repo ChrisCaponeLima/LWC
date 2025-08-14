@@ -261,9 +261,6 @@ document.addEventListener('DOMContentLoaded', fetchData);
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
-    const form = event.target;
-    const formData = new FormData(form);
-
     const userName = new URLSearchParams(window.location.search).get('user');
 
     if (!userName) {
@@ -271,10 +268,20 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
-    // Adiciona o nome do usuário e o tipo de ação ao FormData
-    formData.append('userName', userName);
+    // Criamos o FormData manualmente para garantir que todos os dados sejam enviados
+    const formData = new FormData();
     formData.append('action', 'saveFormData');
-
+    formData.append('userName', userName);
+    formData.append('date', document.getElementById('date').value);
+    formData.append('weight', document.getElementById('weight').value);
+    formData.append('measurements', document.getElementById('measurements').value);
+    
+    // Captura o arquivo de foto
+    const photoFile = document.getElementById('photo').files[0];
+    if (photoFile) {
+        formData.append('photo', photoFile);
+    }
+    
     try {
         const response = await fetch(DATA_URL, {
             method: 'POST',
@@ -284,7 +291,7 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         const result = await response.json();
         if (result.result === 'success') {
             alert('Dados salvos com sucesso!');
-            form.reset();
+            document.getElementById('dataForm').reset();
             fetchData(); 
         } else {
             console.error(result.error);
@@ -296,6 +303,4 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
-
 
