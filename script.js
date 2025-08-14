@@ -74,12 +74,14 @@ function displayKPIs(data) {
 
     if (!latestEntry || !firstEntry) return;
 
-    // Exibe peso atual
-    document.getElementById('current-weight').textContent = `${latestEntry.weight.toFixed(2)} kg`;
+    // NOVO: Trunca o peso para a primeira casa decimal antes de exibir
+    const currentWeightTruncated = Math.trunc(latestEntry.weight * 10) / 10;
+    document.getElementById('current-weight').textContent = `${currentWeightTruncated.toFixed(1)} kg`;
 
-    // Calcula e exibe a perda total de peso
+    // NOVO: Trunca a perda total de peso para a primeira casa decimal
     const totalLoss = firstEntry.weight - latestEntry.weight;
-    document.getElementById('total-loss').textContent = `${totalLoss.toFixed(2)} kg`;
+    const totalLossTruncated = Math.trunc(totalLoss * 10) / 10;
+    document.getElementById('total-loss').textContent = `${totalLossTruncated.toFixed(1)} kg`;
 
     // Calcula e exibe o status semanal de peso
     const weeklyStatusElement = document.getElementById('weekly-status');
@@ -276,4 +278,5 @@ function displayMotivationalMessage(totalLoss, data) {
 
 // Inicia o aplicativo ao carregar a página
 document.addEventListener('DOMContentLoaded', fetchData);
+
 
