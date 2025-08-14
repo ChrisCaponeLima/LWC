@@ -3,6 +3,10 @@
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
 const DATA_URL = 'https://script.google.com/macros/s/AKfycbypqSSXpJbqqqZdpZrNphfUjZN_XBCLGpLak45zu9cYV5Lfhsp6FBsBt8TG5mXv0lPy/exec'; 
 
+// **NOVO**: Defina o nome do usuário que você quer visualizar
+// Garanta que este nome seja EXATAMENTE igual ao da planilha
+const CURRENT_USER_NAME = 'Seu Nome Aqui'; // <-- SUBSTITUA PELO NOME DO USUÁRIO
+
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
 let weightChart, waistChart;
@@ -16,13 +20,27 @@ async function fetchData() {
             throw new Error('Erro ao buscar os dados da planilha.');
         }
         allData = await response.json();
-        allData = allData.filter(entry => entry.weight > 0 && entry.date); // Filtra entradas inválidas
-        allData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ordena por data
         
-        if (allData.length > 0) {
-            processAndDisplayData(allData);
+        // Filtra os dados para o usuário atual e remove entradas inválidas
+        const userData = allData
+            .filter(entry => entry.userName === CURRENT_USER_NAME && entry.weight > 0 && entry.date);
+        
+        userData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ordena por data
+        
+        if (userData.length > 0) {
+            processAndDisplayData(userData);
         } else {
-            document.getElementById('motivation-message').textContent = 'Nenhum dado encontrado. Por favor, adicione dados à sua planilha.';
+            document.getElementById('motivation-message').textContent = 'Nenhum dado encontrado para o usuário. Por favor, verifique o nome na planilha ou adicione dados.';
+            // Limpar gráficos e galerias caso não haja dados
+            if (weightChart) weightChart.destroy();
+            if (waistChart) waistChart.destroy();
+            document.getElementById('photo-grid').innerHTML = '';
+            document.getElementById('first-photo').src = 'https://via.placeholder.com/150';
+            document.getElementById('last-photo').src = 'https://via.placeholder.com/150';
+            document.getElementById('current-weight').textContent = '-- kg';
+            document.getElementById('total-loss').textContent = '-- kg';
+            document.getElementById('weekly-status').textContent = 'N/A';
+            document.getElementById('bmi').textContent = '--';
         }
     } catch (error) {
         console.error('Falha ao carregar os dados:', error);
@@ -56,17 +74,16 @@ function displayKPIs(data) {
     if (data.length > 1) {
         const previousWeight = data[data.length - 2].weight;
         const currentWeight = latestEntry.weight;
-        // CÓDIGO CORRIGIDO
         if (currentWeight < previousWeight) {
             weeklyStatusElement.textContent = 'Melhora 💪';
             weeklyStatusElement.className = 'status-improved';
         } else if (currentWeight > previousWeight) {
-            weeklyStatusElement.textContent = 'Aumentou 😟'; // <-- Corrigido para 'Aumentou' com emoji negativo
+            weeklyStatusElement.textContent = 'Aumentou 😟';
             weeklyStatusElement.className = 'status-decreased';
         } else {
             weeklyStatusElement.textContent = 'Estável 🧘';
             weeklyStatusElement.className = 'status-neutral';
-    }
+        }
     } else {
         weeklyStatusElement.textContent = 'Começando! 🚀';
     }
@@ -195,7 +212,8 @@ function filterData(period) {
     } else { // 'all'
         filteredData = allData;
     }
-
+    
+    // AQUI O FILTRO POR USUÁRIO FOI REMOVIDO, POIS JÁ O FAZEMOS AO CARREGAR
     if (filteredData.length > 0) {
         updateCharts(filteredData);
     } else {
@@ -216,7 +234,6 @@ function formatDate(dateString) {
 
 // Extrai uma medida específica da string de medidas
 function extractMeasurement(measurementsString, measureName) {
-    // Adiciona uma verificação para garantir que measurementsString é uma string
     if (typeof measurementsString !== 'string' || !measurementsString) {
         return null;
     }
@@ -229,23 +246,22 @@ function displayMotivationalMessage(totalLoss, data) {
     const motivationBox = document.getElementById('motivation-message');
     let message = 'Carregando mensagem...';
 
-    const latestWeight = data[data.length - 1].weight;
-    const firstWeight = data[0].weight;
-
-    if (data.length <= 2) {
+    if (data.length <= 1) {
         message = 'Ótimo começo! Cada jornada começa com o primeiro passo. 👟';
-    } else if (latestWeight < firstWeight) {
-        message = `Parabéns! Você já perdeu ${totalLoss.toFixed(1)} kg. Mantenha o foco! 👏`;
-    } else if (latestWeight === firstWeight) {
-        message = 'Seu peso está estável. Mantenha a consistência para resultados duradouros! 💪';
     } else {
-        message = 'Tudo bem ter dias difíceis. A consistência é a chave! Não desista. ✨';
+        const latestWeight = data[data.length - 1].weight;
+        const firstWeight = data[0].weight;
+
+        if (latestWeight < firstWeight) {
+            message = `Parabéns! Você já perdeu ${totalLoss.toFixed(1)} kg. Mantenha o foco! 👏`;
+        } else if (latestWeight === firstWeight) {
+            message = 'Seu peso está estável. Mantenha a consistência para resultados duradouros! 💪';
+        } else {
+            message = 'Tudo bem ter dias difíceis. A consistência é a chave! Não desista. ✨';
+        }
     }
     motivationBox.textContent = message;
 }
 
-
 // Inicia o aplicativo ao carregar a página
-
 document.addEventListener('DOMContentLoaded', fetchData);
-
