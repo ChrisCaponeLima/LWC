@@ -56,16 +56,17 @@ function displayKPIs(data) {
     if (data.length > 1) {
         const previousWeight = data[data.length - 2].weight;
         const currentWeight = latestEntry.weight;
+        // CÓDIGO CORRIGIDO
         if (currentWeight < previousWeight) {
             weeklyStatusElement.textContent = 'Melhora 💪';
             weeklyStatusElement.className = 'status-improved';
         } else if (currentWeight > previousWeight) {
-            weeklyStatusElement.textContent = 'Diminuiu 😔';
+            weeklyStatusElement.textContent = 'Aumentou 😟'; // <-- Corrigido para 'Aumentou' com emoji negativo
             weeklyStatusElement.className = 'status-decreased';
         } else {
             weeklyStatusElement.textContent = 'Estável 🧘';
             weeklyStatusElement.className = 'status-neutral';
-        }
+    }
     } else {
         weeklyStatusElement.textContent = 'Começando! 🚀';
     }
@@ -242,4 +243,5 @@ function displayMotivationalMessage(totalLoss, data) {
 
 
 // Inicia o aplicativo ao carregar a página
+
 document.addEventListener('DOMContentLoaded', fetchData);
