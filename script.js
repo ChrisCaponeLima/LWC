@@ -5,7 +5,7 @@ const DATA_URL = 'https://script.google.com/macros/s/AKfycbypqSSXpJbqqqZdpZrNphf
 
 // **NOVO**: Defina o nome do usuário que você quer visualizar
 // Garanta que este nome seja EXATAMENTE igual ao da planilha
-const CURRENT_USER_NAME = 'Maria'; // <-- SUBSTITUA PELO NOME DO USUÁRIO
+const CURRENT_USER_NAME = 'Seu Nome Aqui'; // <-- SUBSTITUA PELO NOME DO USUÁRIO
 
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
@@ -21,6 +21,14 @@ async function fetchData() {
         }
         allData = await response.json();
         
+        // CORREÇÃO: Converte valores de peso com vírgula para ponto
+        allData = allData.map(entry => {
+            if (typeof entry.weight === 'string' && entry.weight.includes(',')) {
+                entry.weight = parseFloat(entry.weight.replace(',', '.'));
+            }
+            return entry;
+        });
+
         // Filtra os dados para o usuário atual e remove entradas inválidas
         const userData = allData
             .filter(entry => entry.userName === CURRENT_USER_NAME && entry.weight > 0 && entry.date);
@@ -67,7 +75,7 @@ function displayKPIs(data) {
 
     // Calcula e exibe a perda total de peso
     const totalLoss = firstEntry.weight - latestEntry.weight;
-    document.getElementById('total-loss').textContent = `${totalLoss.toFixed(1)} kg`;
+    document.getElementById('total-loss').textContent = `${totalLoss.toFixed(2)} kg`;
 
     // Calcula e exibe o status semanal de peso
     const weeklyStatusElement = document.getElementById('weekly-status');
@@ -265,6 +273,7 @@ function displayMotivationalMessage(totalLoss, data) {
 
 // Inicia o aplicativo ao carregar a página
 document.addEventListener('DOMContentLoaded', fetchData);
+
 
 
 
