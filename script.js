@@ -63,7 +63,7 @@ function displayKPIs(data) {
     if (!latestEntry || !firstEntry) return;
 
     // Exibe peso atual
-    document.getElementById('current-weight').textContent = `${latestEntry.weight.toFixed(1)} kg`;
+    document.getElementById('current-weight').textContent = `${latestEntry.weight} kg`;
 
     // Calcula e exibe a perda total de peso
     const totalLoss = firstEntry.weight - latestEntry.weight;
@@ -265,4 +265,5 @@ function displayMotivationalMessage(totalLoss, data) {
 
 // Inicia o aplicativo ao carregar a página
 document.addEventListener('DOMContentLoaded', fetchData);
+
 
