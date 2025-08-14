@@ -15,7 +15,6 @@ async function fetchData() {
         }
         allData = await response.json();
         
-        // NOVO: Lê o nome do usuário da URL
         const params = new URLSearchParams(window.location.search);
         const currentUser = params.get('user');
 
@@ -51,7 +50,6 @@ async function fetchData() {
     }
 }
 
-//--- As funções abaixo foram movidas para dentro do código completo ---
 // Função principal para processar e exibir os dados
 function processAndDisplayData(data) {
     displayKPIs(data);
@@ -66,16 +64,13 @@ function displayKPIs(data) {
 
     if (!latestEntry || !firstEntry) return;
 
-    // NOVO: Trunca o peso para a primeira casa decimal antes de exibir
-    const currentWeightTruncated = Math.trunc(latestEntry.weight * 10) / 10;
-    document.getElementById('current-weight').textContent = `${currentWeightTruncated.toFixed(1)} kg`;
+    const currentWeightTruncated = Math.trunc(latestEntry.weight * 100) / 100;
+    document.getElementById('current-weight').textContent = `${currentWeightTruncated.toFixed(2)} kg`;
 
-    // NOVO: Trunca a perda total de peso para a primeira casa decimal
     const totalLoss = firstEntry.weight - latestEntry.weight;
-    const totalLossTruncated = Math.trunc(totalLoss * 10) / 10;
-    document.getElementById('total-loss').textContent = `${totalLossTruncated.toFixed(1)} kg`;
+    const totalLossTruncated = Math.trunc(totalLoss * 100) / 100;
+    document.getElementById('total-loss').textContent = `${totalLossTruncated.toFixed(2)} kg`;
 
-    // Calcula e exibe o status semanal de peso
     const weeklyStatusElement = document.getElementById('weekly-status');
     if (data.length > 1) {
         const previousWeight = data[data.length - 2].weight;
@@ -94,20 +89,17 @@ function displayKPIs(data) {
         weeklyStatusElement.textContent = 'Começando! 🚀';
     }
 
-    // Calcula e exibe o IMC
     const bmi = calculateBMI(latestEntry.weight, USER_HEIGHT_CM);
     document.getElementById('bmi').textContent = bmi.toFixed(2);
 
-    // Exibe mensagem motivacional
     displayMotivationalMessage(totalLoss, data);
 }
 
 // Exibe a galeria de fotos
 function displayPhotos(data) {
     const photoGrid = document.getElementById('photo-grid');
-    photoGrid.innerHTML = ''; // Limpa a galeria
+    photoGrid.innerHTML = '';
     
-    // Exibe as fotos de "Antes e Depois"
     const firstPhotoURL = data[0]?.photoURL;
     const lastPhotoURL = data[data.length - 1]?.photoURL;
     
@@ -116,7 +108,6 @@ function displayPhotos(data) {
     document.getElementById('last-photo').src = lastPhotoURL || 'https://via.placeholder.com/150';
     document.getElementById('last-photo').alt = 'Última foto';
 
-    // Cria a galeria completa
     data.forEach(entry => {
         if (entry.photoURL) {
             const img = document.createElement('img');
@@ -131,194 +122,4 @@ function displayPhotos(data) {
 function updateCharts(data) {
     const dates = data.map(entry => formatDate(entry.date));
     const weights = data.map(entry => entry.weight);
-    const waistMeasurements = data.map(entry => extractMeasurement(entry.measurements, 'Cintura'));
-
-    // Gráfico de Peso
-    const weightCtx = document.getElementById('weightChart').getContext('2d');
-    if (weightChart) weightChart.destroy(); // Destrói o gráfico antigo
-    weightChart = new Chart(weightCtx, {
-        type: 'line',
-        data: {
-            labels: dates,
-            datasets: [{
-                label: 'Peso (kg)',
-                data: weights,
-                borderColor: '#007bff',
-                tension: 0.1,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Evolução do Peso ao longo do tempo'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'Peso (kg)'
-                    }
-                }
-            }
-        }
-    });
-
-    // Gráfico de Cintura
-    const waistCtx = document.getElementById('waistChart').getContext('2d');
-    if (waistChart) waistChart.destroy(); // Destrói o gráfico antigo
-    waistChart = new Chart(waistCtx, {
-        type: 'line',
-        data: {
-            labels: dates,
-            datasets: [{
-                label: 'Cintura (cm)',
-                data: waistMeasurements,
-                borderColor: '#28a745',
-                tension: 0.1,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Evolução da Cintura ao longo do tempo'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'Cintura (cm)'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Função de filtro para os gráficos
-function filterData(period) {
-    let filteredData = [];
-    const now = new Date();
-
-    if (period === '3m') {
-        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
-        filteredData = allData.filter(entry => new Date(entry.date) >= threeMonthsAgo);
-    } else if (period === '6m') {
-        const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
-        filteredData = allData.filter(entry => new Date(entry.date) >= sixMonthsAgo);
-    } else { // 'all'
-        filteredData = allData;
-    }
-    
-    if (filteredData.length > 0) {
-        processAndDisplayData(filteredData);
-    } else {
-        alert('Nenhum dado disponível para este período.');
-    }
-}
-
-// Funções utilitárias
-function calculateBMI(weightKg, heightCm) {
-    const heightM = heightCm / 100;
-    return weightKg / (heightM * heightM);
-}
-
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('pt-BR', options);
-}
-
-// Extrai uma medida específica da string de medidas
-function extractMeasurement(measurementsString, measureName) {
-    if (typeof measurementsString !== 'string' || !measurementsString) {
-        return null;
-    }
-    const regex = new RegExp(`${measureName}:\\s*(\\d+)cm`);
-    const match = measurementsString.match(regex);
-    return match ? parseFloat(match[1]) : null;
-}
-
-function displayMotivationalMessage(totalLoss, data) {
-    const motivationBox = document.getElementById('motivation-message');
-    let message = 'Carregando mensagem...';
-
-    if (data.length <= 1) {
-        message = 'Ótimo começo! Cada jornada começa com o primeiro passo. 👟';
-    } else {
-        const latestWeight = data[data.length - 1].weight;
-        const firstWeight = data[0].weight;
-
-        if (latestWeight < firstWeight) {
-            message = `Parabéns! Você já perdeu ${totalLoss.toFixed(1)} kg. Mantenha o foco! 👏`;
-        } else if (latestWeight === firstWeight) {
-            message = 'Seu peso está estável. Mantenha a consistência para resultados duradouros! 💪';
-        } else {
-            message = 'Tudo bem ter dias difíceis. A consistência é a chave! Não desista. ✨';
-        }
-    }
-    motivationBox.textContent = message;
-}
-
-// Inicia o aplicativo ao carregar a página
-document.addEventListener('DOMContentLoaded', fetchData);
-
-// Adiciona um listener para o envio do formulário
-document.getElementById('dataForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
-
-    const userName = new URLSearchParams(window.location.search).get('user');
-    formData.append('userName', userName);
-
-    // Envia a foto para o Apps Script primeiro
-    const photoFile = form.querySelector('#photo').files[0];
-    let photoURL = '';
-    if (photoFile) {
-        const photoFormData = new FormData();
-        photoFormData.append('file', photoFile);
-
-        const photoResponse = await fetch(DATA_URL + '?action=uploadImage', {
-            method: 'POST',
-            body: photoFormData
-        });
-
-        const photoData = await photoResponse.json();
-        photoURL = photoData.thumbnailUrl;
-    }
-
-    const dataToSend = {
-        userName: formData.get('userName'),
-        date: formData.get('date'),
-        weight: formData.get('weight'),
-        measurements: formData.get('measurements'),
-        photoURL: photoURL
-    };
-
-    const response = await fetch(DATA_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dataToSend)
-    });
-
-    const result = await response.json();
-    if (result.result === 'success') {
-        alert('Dados salvos com sucesso!');
-        form.reset(); // Limpa o formulário
-        fetchData(); // Recarrega os dados para atualizar a visualização
-    } else {
-        alert('Erro ao salvar os dados.');
-    }
-});
+    const waistMeasurements = data.map(entry =>
