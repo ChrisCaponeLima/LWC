@@ -1,5 +1,3 @@
-
-
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
 const DATA_URL = 'https://script.google.com/macros/s/AKfycbypqSSXpJbqqqZdpZrNphfUjZN_XBCLGpLak45zu9cYV5Lfhsp6FBsBt8TG5mXv0lPy/exec'; 
 
@@ -61,11 +59,178 @@ async function fetchData() {
     }
 }
 
-// ... Restante do código (displayKPIs, displayPhotos, updateCharts, etc.)
-// ... (Copie o restante do seu script.js aqui)
+//--- As funções abaixo foram movidas para dentro do código completo ---
+// Função principal para processar e exibir os dados
+function processAndDisplayData(data) {
+    displayKPIs(data);
+    displayPhotos(data);
+    updateCharts(data);
+}
 
-// Inicia o aplicativo ao carregar a página
-document.addEventListener('DOMContentLoaded', fetchData);
+// Exibe os KPIs no painel de controle
+function displayKPIs(data) {
+    const latestEntry = data[data.length - 1];
+    const firstEntry = data[0];
+
+    if (!latestEntry || !firstEntry) return;
+
+    // Exibe peso atual
+    document.getElementById('current-weight').textContent = `${latestEntry.weight.toFixed(1)} kg`;
+
+    // Calcula e exibe a perda total de peso
+    const totalLoss = firstEntry.weight - latestEntry.weight;
+    document.getElementById('total-loss').textContent = `${totalLoss.toFixed(1)} kg`;
+
+    // Calcula e exibe o status semanal de peso
+    const weeklyStatusElement = document.getElementById('weekly-status');
+    if (data.length > 1) {
+        const previousWeight = data[data.length - 2].weight;
+        const currentWeight = latestEntry.weight;
+        if (currentWeight < previousWeight) {
+            weeklyStatusElement.textContent = 'Melhora 💪';
+            weeklyStatusElement.className = 'status-improved';
+        } else if (currentWeight > previousWeight) {
+            weeklyStatusElement.textContent = 'Aumentou 😟';
+            weeklyStatusElement.className = 'status-decreased';
+        } else {
+            weeklyStatusElement.textContent = 'Estável 🧘';
+            weeklyStatusElement.className = 'status-neutral';
+        }
+    } else {
+        weeklyStatusElement.textContent = 'Começando! 🚀';
+    }
+
+    // Calcula e exibe o IMC
+    const bmi = calculateBMI(latestEntry.weight, USER_HEIGHT_CM);
+    document.getElementById('bmi').textContent = bmi.toFixed(2);
+
+    // Exibe mensagem motivacional
+    displayMotivationalMessage(totalLoss, data);
+}
+
+// Exibe a galeria de fotos
+function displayPhotos(data) {
+    const photoGrid = document.getElementById('photo-grid');
+    photoGrid.innerHTML = ''; // Limpa a galeria
+    
+    // Exibe as fotos de "Antes e Depois"
+    const firstPhotoURL = data[0]?.photoURL;
+    const lastPhotoURL = data[data.length - 1]?.photoURL;
+    
+    document.getElementById('first-photo').src = firstPhotoURL || 'https://via.placeholder.com/150';
+    document.getElementById('first-photo').alt = 'Primeira foto';
+    document.getElementById('last-photo').src = lastPhotoURL || 'https://via.placeholder.com/150';
+    document.getElementById('last-photo').alt = 'Última foto';
+
+    // Cria a galeria completa
+    data.forEach(entry => {
+        if (entry.photoURL) {
+            const img = document.createElement('img');
+            img.src = entry.photoURL;
+            img.alt = `Foto de ${entry.date}`;
+            photoGrid.appendChild(img);
+        }
+    });
+}
+
+// Atualiza os gráficos
+function updateCharts(data) {
+    const dates = data.map(entry => formatDate(entry.date));
+    const weights = data.map(entry => entry.weight);
+    const waistMeasurements = data.map(entry => extractMeasurement(entry.measurements, 'Cintura'));
+
+    // Gráfico de Peso
+    const weightCtx = document.getElementById('weightChart').getContext('2d');
+    if (weightChart) weightChart.destroy(); // Destrói o gráfico antigo
+    weightChart = new Chart(weightCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Peso (kg)',
+                data: weights,
+                borderColor: '#007bff',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Evolução do Peso ao longo do tempo'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Peso (kg)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico de Cintura
+    const waistCtx = document.getElementById('waistChart').getContext('2d');
+    if (waistChart) waistChart.destroy(); // Destrói o gráfico antigo
+    waistChart = new Chart(waistCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Cintura (cm)',
+                data: waistMeasurements,
+                borderColor: '#28a745',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Evolução da Cintura ao longo do tempo'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Cintura (cm)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Função de filtro para os gráficos
+function filterData(period) {
+    let filteredData = [];
+    const now = new Date();
+
+    if (period === '3m') {
+        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+        filteredData = allData.filter(entry => new Date(entry.date) >= threeMonthsAgo);
+    } else if (period === '6m') {
+        const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
+        filteredData = allData.filter(entry => new Date(entry.date) >= sixMonthsAgo);
+    } else { // 'all'
+        filteredData = allData;
+    }
+    
+    if (filteredData.length > 0) {
+        processAndDisplayData(filteredData);
+    } else {
+        alert('Nenhum dado disponível para este período.');
+    }
+}
 
 // Funções utilitárias
 function calculateBMI(weightKg, heightCm) {
@@ -109,7 +274,5 @@ function displayMotivationalMessage(totalLoss, data) {
     motivationBox.textContent = message;
 }
 
-
-
-
-
+// Inicia o aplicativo ao carregar a página
+document.addEventListener('DOMContentLoaded', fetchData);
