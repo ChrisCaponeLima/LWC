@@ -53,7 +53,7 @@ async function fetchData() {
 // Função principal para processar e exibir os dados
 function processAndDisplayData(data) {
     displayKPIs(data);
-    // displayPhotos(data); // Removido para o teste
+    displayPhotos(data);
     updateCharts(data);
 }
 
@@ -95,11 +95,27 @@ function displayKPIs(data) {
     displayMotivationalMessage(totalLoss, data);
 }
 
-// Exibe a galeria de fotos (aqui a lógica foi removida para o teste)
+// Exibe a galeria de fotos
 function displayPhotos(data) {
-    document.getElementById('photo-grid').innerHTML = '';
-    document.getElementById('first-photo').src = 'https://via.placeholder.com/150';
-    document.getElementById('last-photo').src = 'https://via.placeholder.com/150';
+    const photoGrid = document.getElementById('photo-grid');
+    photoGrid.innerHTML = '';
+    
+    const firstPhotoURL = data[0]?.photoURL;
+    const lastPhotoURL = data[data.length - 1]?.photoURL;
+    
+    document.getElementById('first-photo').src = firstPhotoURL || 'https://via.placeholder.com/150';
+    document.getElementById('first-photo').alt = 'Primeira foto';
+    document.getElementById('last-photo').src = lastPhotoURL || 'https://via.placeholder.com/150';
+    document.getElementById('last-photo').alt = 'Última foto';
+
+    data.forEach(entry => {
+        if (entry.photoURL) {
+            const img = document.createElement('img');
+            img.src = entry.photoURL;
+            img.alt = `Foto de ${entry.date}`;
+            photoGrid.appendChild(img);
+        }
+    });
 }
 
 // Atualiza os gráficos
@@ -242,6 +258,18 @@ function displayMotivationalMessage(totalLoss, data) {
 
 document.addEventListener('DOMContentLoaded', fetchData);
 
+// Lógica para mostrar/esconder o formulário
+document.getElementById('toggleFormBtn').addEventListener('click', function() {
+    const formContainer = document.getElementById('formContainer');
+    if (formContainer.style.display === 'none') {
+        formContainer.style.display = 'block';
+        this.textContent = 'Fechar Formulário';
+    } else {
+        formContainer.style.display = 'none';
+        this.textContent = 'Adicionar Novo Registro';
+    }
+});
+
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
@@ -258,6 +286,12 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
     formData.append('date', document.getElementById('date').value);
     formData.append('weight', document.getElementById('weight').value);
     formData.append('measurements', document.getElementById('measurements').value);
+    formData.append('event', document.getElementById('event').value);
+    formData.append('weeklyAction', document.getElementById('weeklyAction').value);
+    formData.append('workoutDays', document.getElementById('workoutDays').value);
+    formData.append('observations', document.getElementById('observations').value);
+    
+    // A lógica da foto será adicionada depois
     
     try {
         const response = await fetch(DATA_URL, {
