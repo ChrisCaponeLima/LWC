@@ -54,7 +54,30 @@
         </section>
 
         <hr>
-
+        <section id="data-entry" class="container mt-5">
+          <h2>Adicionar Novo Registro</h2>
+          <form id="dataForm" class="row g-3">
+            <div class="col-md-6">
+              <label for="date" class="form-label">Data</label>
+              <input type="date" class="form-control" id="date" required>
+            </div>
+            <div class="col-md-6">
+              <label for="weight" class="form-label">Peso (kg)</label>
+              <input type="number" step="0.01" class="form-control" id="weight" required>
+            </div>
+            <div class="col-12">
+              <label for="measurements" class="form-label">Medidas (Ex: Cintura: 80cm)</label>
+              <input type="text" class="form-control" id="measurements" placeholder="Cintura: 80cm, Peito: 95cm">
+            </div>
+            <div class="col-12">
+              <label for="photo" class="form-label">Foto</label>
+              <input type="file" class="form-control" id="photo" accept="image/*">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">Salvar Registro</button>
+            </div>
+          </form>
+        </section>
         <section id="photo-gallery" class="card">
             <h2>Galeria de Fotos 📸</h2>
             <div class="before-after-container">
@@ -76,4 +99,5 @@
     </div>
     <script src="script.js"></script>
 </body>
+
 </html>
