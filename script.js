@@ -280,6 +280,7 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
+    const form = event.target;
     const formData = new FormData();
     formData.append('action', 'saveFormData');
     formData.append('userName', userName);
@@ -302,7 +303,14 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         const result = await response.json();
         if (result.result === 'success') {
             alert('Dados salvos com sucesso!');
-            document.getElementById('dataForm').reset();
+            form.reset(); // Limpa o formulário
+            
+            // Fecha o formulário e altera o texto do botão
+            const formContainer = document.getElementById('formContainer');
+            const toggleBtn = document.getElementById('toggleFormBtn');
+            formContainer.style.display = 'none';
+            toggleBtn.textContent = 'Adicionar Novo Registro';
+            
             fetchData(); 
         } else {
             console.error(result.error);
@@ -314,4 +322,3 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
