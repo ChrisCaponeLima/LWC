@@ -292,7 +292,11 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
     formData.append('workoutDays', document.getElementById('workoutDays').value);
     formData.append('observations', document.getElementById('observations').value);
     
-    // A lógica da foto será adicionada depois
+    // Adiciona o arquivo de foto, se um foi selecionado
+    const photoFile = document.getElementById('photo').files[0];
+    if (photoFile) {
+        formData.append('photo', photoFile);
+    }
     
     try {
         const response = await fetch(DATA_URL, {
@@ -303,7 +307,7 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         const result = await response.json();
         if (result.result === 'success') {
             alert('Dados salvos com sucesso!');
-            form.reset(); // Limpa o formulário
+            form.reset();
             
             // Fecha o formulário e altera o texto do botão
             const formContainer = document.getElementById('formContainer');
@@ -322,3 +326,4 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
+
