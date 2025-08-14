@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progresso Fitness</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Meu Progresso Fitness</h1>
+        </header>
+
+        <section id="dashboard" class="card">
+            <h2>Painel de Controle 📊</h2>
+            <div class="kpis">
+                <div class="kpi-item">
+                    <h3>Peso Atual</h3>
+                    <p id="current-weight">-- kg</p>
+                </div>
+                <div class="kpi-item">
+                    <h3>Perda Total</h3>
+                    <p id="total-loss">-- kg</p>
+                </div>
+                <div class="kpi-item">
+                    <h3>Status Semanal</h3>
+                    <p id="weekly-status" class="status-neutral">Carregando...</p>
+                </div>
+                <div class="kpi-item">
+                    <h3>IMC</h3>
+                    <p id="bmi">--</p>
+                </div>
+            </div>
+            <div id="motivation-message" class="motivation-box">Carregando mensagem...</div>
+        </section>
+        
+        <hr>
+
+        <section id="graphs" class="card">
+            <h2>Gráficos de Progresso 📈</h2>
+            <div class="filter-controls">
+                <button onclick="filterData('all')">Todo o Período</button>
+                <button onclick="filterData('6m')">Últimos 6 Meses</button>
+                <button onclick="filterData('3m')">Últimos 3 Meses</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="weightChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="waistChart"></canvas>
+            </div>
+        </section>
+
+        <hr>
+
+        <section id="photo-gallery" class="card">
+            <h2>Galeria de Fotos 📸</h2>
+            <div class="before-after-container">
+                <h3>Antes e Depois</h3>
+                <div class="before-after-photos">
+                    <div class="photo-item">
+                        <p>Antes</p>
+                        <img id="first-photo" src="" alt="Primeira foto">
+                    </div>
+                    <div class="photo-item">
+                        <p>Depois</p>
+                        <img id="last-photo" src="" alt="Última foto">
+                    </div>
+                </div>
+            </div>
+            <div class="photo-grid" id="photo-grid">
+                </div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
