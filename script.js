@@ -271,40 +271,14 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
+    // Adiciona o nome do usuário e o tipo de ação ao FormData
+    formData.append('userName', userName);
+    formData.append('action', 'saveFormData');
+
     try {
-        const photoFile = form.querySelector('#photo').files[0];
-        let photoURL = '';
-        if (photoFile) {
-            const photoFormData = new FormData();
-            photoFormData.append('file', photoFile);
-            
-            const photoResponse = await fetch(DATA_URL + '?action=uploadImage', {
-                method: 'POST',
-                body: photoFormData
-            });
-
-            const photoData = await photoResponse.json();
-            if (photoData.thumbnailUrl) {
-                photoURL = photoData.thumbnailUrl;
-            } else {
-                throw new Error('Falha ao obter URL da foto.');
-            }
-        }
-
-        const dataToSend = {
-            userName: userName,
-            date: formData.get('date'),
-            weight: formData.get('weight'),
-            measurements: formData.get('measurements'),
-            photoURL: photoURL
-        };
-
         const response = await fetch(DATA_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dataToSend)
+            body: formData
         });
 
         const result = await response.json();
@@ -314,7 +288,7 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
             fetchData(); 
         } else {
             console.error(result.error);
-            alert('Erro ao salvar os dados: ' + result.error); // Linha alterada
+            alert('Erro ao salvar os dados: ' + result.error);
         }
 
     } catch (error) {
@@ -322,7 +296,6 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
 
 
 
