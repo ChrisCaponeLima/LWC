@@ -15,14 +15,6 @@ async function fetchData() {
         }
         allData = await response.json();
         
-        // CORREÇÃO: Converte valores de peso com vírgula para ponto
-        allData = allData.map(entry => {
-            if (typeof entry.weight === 'string' && entry.weight.includes(',')) {
-                entry.weight = parseFloat(entry.weight.replace(',', '.'));
-            }
-            return entry;
-        });
-
         // NOVO: Lê o nome do usuário da URL
         const params = new URLSearchParams(window.location.search);
         const currentUser = params.get('user');
@@ -278,5 +270,3 @@ function displayMotivationalMessage(totalLoss, data) {
 
 // Inicia o aplicativo ao carregar a página
 document.addEventListener('DOMContentLoaded', fetchData);
-
-
