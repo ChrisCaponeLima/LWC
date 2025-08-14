@@ -1,6 +1,9 @@
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
 const DATA_URL = 'https://script.google.com/macros/s/AKfycbypqSSXpJbqqqZdpZrNphfUjZN_XBCLGpLak45zu9cYV5Lfhsp6FBsBt8TG5mXv0lPy/exec'; 
 
+// **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
+const DATA_URL = 'SEU_URL_DO_GOOGLE_APPS_SCRIPT_AQUI'; 
+
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
 let weightChart, waistChart;
@@ -122,4 +125,199 @@ function displayPhotos(data) {
 function updateCharts(data) {
     const dates = data.map(entry => formatDate(entry.date));
     const weights = data.map(entry => entry.weight);
-    const waistMeasurements = data.map(entry =>
+    const waistMeasurements = data.map(entry => extractMeasurement(entry.measurements, 'Cintura'));
+
+    const weightCtx = document.getElementById('weightChart').getContext('2d');
+    if (weightChart) weightChart.destroy();
+    weightChart = new Chart(weightCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Peso (kg)',
+                data: weights,
+                borderColor: '#007bff',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Evolução do Peso ao longo do tempo'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Peso (kg)'
+                    }
+                }
+            }
+        }
+    });
+
+    const waistCtx = document.getElementById('waistChart').getContext('2d');
+    if (waistChart) waistChart.destroy();
+    waistChart = new Chart(waistCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Cintura (cm)',
+                data: waistMeasurements,
+                borderColor: '#28a745',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Evolução da Cintura ao longo do tempo'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Cintura (cm)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Função de filtro para os gráficos
+function filterData(period) {
+    let filteredData = [];
+    const now = new Date();
+
+    if (period === '3m') {
+        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+        filteredData = allData.filter(entry => new Date(entry.date) >= threeMonthsAgo);
+    } else if (period === '6m') {
+        const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
+        filteredData = allData.filter(entry => new Date(entry.date) >= sixMonthsAgo);
+    } else {
+        filteredData = allData;
+    }
+    
+    if (filteredData.length > 0) {
+        processAndDisplayData(filteredData);
+    } else {
+        alert('Nenhum dado disponível para este período.');
+    }
+}
+
+// Funções utilitárias
+function calculateBMI(weightKg, heightCm) {
+    const heightM = heightCm / 100;
+    return weightKg / (heightM * heightM);
+}
+
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('pt-BR', options);
+}
+
+function extractMeasurement(measurementsString, measureName) {
+    if (typeof measurementsString !== 'string' || !measurementsString) {
+        return null;
+    }
+    const regex = new RegExp(`${measureName}:\\s*(\\d+)cm`);
+    const match = measurementsString.match(regex);
+    return match ? parseFloat(match[1]) : null;
+}
+
+function displayMotivationalMessage(totalLoss, data) {
+    const motivationBox = document.getElementById('motivation-message');
+    let message = 'Carregando mensagem...';
+
+    if (data.length <= 1) {
+        message = 'Ótimo começo! Cada jornada começa com o primeiro passo. 👟';
+    } else {
+        const latestWeight = data[data.length - 1].weight;
+        const firstWeight = data[0].weight;
+
+        if (latestWeight < firstWeight) {
+            message = `Parabéns! Você já perdeu ${totalLoss.toFixed(2)} kg. Mantenha o foco! 👏`;
+        } else if (latestWeight === firstWeight) {
+            message = 'Seu peso está estável. Mantenha a consistência para resultados duradouros! 💪';
+        } else {
+            message = 'Tudo bem ter dias difíceis. A consistência é a chave! Não desista. ✨';
+        }
+    }
+    motivationBox.textContent = message;
+}
+
+document.addEventListener('DOMContentLoaded', fetchData);
+
+document.getElementById('dataForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    const userName = new URLSearchParams(window.location.search).get('user');
+
+    if (!userName) {
+        alert('Erro: O nome de usuário não foi encontrado na URL.');
+        return;
+    }
+
+    try {
+        const photoFile = form.querySelector('#photo').files[0];
+        let photoURL = '';
+        if (photoFile) {
+            const photoFormData = new FormData();
+            photoFormData.append('file', photoFile);
+            
+            const photoResponse = await fetch(DATA_URL + '?action=uploadImage', {
+                method: 'POST',
+                body: photoFormData
+            });
+
+            const photoData = await photoResponse.json();
+            photoURL = photoData.thumbnailUrl;
+        }
+
+        const dataToSend = {
+            userName: userName,
+            date: formData.get('date'),
+            weight: formData.get('weight'),
+            measurements: formData.get('measurements'),
+            photoURL: photoURL
+        };
+
+        const response = await fetch(DATA_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dataToSend)
+        });
+
+        const result = await response.json();
+        if (result.result === 'success') {
+            alert('Dados salvos com sucesso!');
+            form.reset();
+            fetchData(); 
+        } else {
+            console.error(result.error);
+            alert('Erro ao salvar os dados. Verifique o console para mais detalhes.');
+        }
+
+    } catch (error) {
+        console.error('Erro no envio do formulário:', error);
+        alert('Ocorreu um erro inesperado. Tente novamente.');
+    }
+});
