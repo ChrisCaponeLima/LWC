@@ -53,7 +53,7 @@ async function fetchData() {
 // Função principal para processar e exibir os dados
 function processAndDisplayData(data) {
     displayKPIs(data);
-    displayPhotos(data);
+    // displayPhotos(data); // Removido para o teste
     updateCharts(data);
 }
 
@@ -95,27 +95,11 @@ function displayKPIs(data) {
     displayMotivationalMessage(totalLoss, data);
 }
 
-// Exibe a galeria de fotos
+// Exibe a galeria de fotos (aqui a lógica foi removida para o teste)
 function displayPhotos(data) {
-    const photoGrid = document.getElementById('photo-grid');
-    photoGrid.innerHTML = '';
-    
-    const firstPhotoURL = data[0]?.photoURL;
-    const lastPhotoURL = data[data.length - 1]?.photoURL;
-    
-    document.getElementById('first-photo').src = firstPhotoURL || 'https://via.placeholder.com/150';
-    document.getElementById('first-photo').alt = 'Primeira foto';
-    document.getElementById('last-photo').src = lastPhotoURL || 'https://via.placeholder.com/150';
-    document.getElementById('last-photo').alt = 'Última foto';
-
-    data.forEach(entry => {
-        if (entry.photoURL) {
-            const img = document.createElement('img');
-            img.src = entry.photoURL;
-            img.alt = `Foto de ${entry.date}`;
-            photoGrid.appendChild(img);
-        }
-    });
+    document.getElementById('photo-grid').innerHTML = '';
+    document.getElementById('first-photo').src = 'https://via.placeholder.com/150';
+    document.getElementById('last-photo').src = 'https://via.placeholder.com/150';
 }
 
 // Atualiza os gráficos
@@ -268,19 +252,12 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
-    // Criamos o FormData manualmente para garantir que todos os dados sejam enviados
     const formData = new FormData();
     formData.append('action', 'saveFormData');
     formData.append('userName', userName);
     formData.append('date', document.getElementById('date').value);
     formData.append('weight', document.getElementById('weight').value);
     formData.append('measurements', document.getElementById('measurements').value);
-    
-    // Captura o arquivo de foto
-    const photoFile = document.getElementById('photo').files[0];
-    if (photoFile) {
-        formData.append('photo', photoFile);
-    }
     
     try {
         const response = await fetch(DATA_URL, {
@@ -303,4 +280,3 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
