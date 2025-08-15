@@ -1,5 +1,5 @@
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
-const DATA_URL = 'https://script.google.com/macros/s/AKfycbziXL_g3nFImnFwvnxS7J0IDmxoD_yWWc7T9PdvjYpDGNtiDSno3QHkfN0pxg0OVsVY/exec'; 
+const DATA_URL = 'https://script.google.com/macros/s/AKfycbwI7dNab9LNvNtTH_K-i2pY9nMiu3VMXxGtT4Q7Q8_0jkaLvGUvQdsS0xQVyMICAdAx/exec';
 
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
@@ -273,7 +273,6 @@ document.getElementById('toggleFormBtn').addEventListener('click', function() {
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
-    const form = event.target;
     const userName = new URLSearchParams(window.location.search).get('user');
 
     if (!userName) {
@@ -281,9 +280,23 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
-    const formData = new FormData(form);
+    const form = event.target;
+    const formData = new FormData();
     formData.append('action', 'saveFormData');
     formData.append('userName', userName);
+    formData.append('date', document.getElementById('date').value);
+    formData.append('weight', document.getElementById('weight').value);
+    formData.append('measurements', document.getElementById('measurements').value);
+    formData.append('event', document.getElementById('event').value);
+    formData.append('weeklyAction', document.getElementById('weeklyAction').value);
+    formData.append('workoutDays', document.getElementById('workoutDays').value);
+    formData.append('observations', document.getElementById('observations').value);
+    
+    // Adiciona o arquivo de foto, se um foi selecionado
+    const photoFile = document.getElementById('photo').files[0];
+    if (photoFile) {
+        formData.append('photo', photoFile);
+    }
     
     try {
         const response = await fetch(DATA_URL, {
