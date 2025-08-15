@@ -270,7 +270,6 @@ document.getElementById('toggleFormBtn').addEventListener('click', function() {
     }
 });
 
-// A nova lógica de envio do formulário
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
@@ -282,42 +281,14 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
-    const formData = {
-        action: 'saveFormData',
-        userName: userName,
-        date: document.getElementById('date').value,
-        weight: document.getElementById('weight').value,
-        measurements: document.getElementById('measurements').value,
-        event: document.getElementById('event').value,
-        weeklyAction: document.getElementById('weeklyAction').value,
-        workoutDays: document.getElementById('workoutDays').value,
-        observations: document.getElementById('observations').value,
-        photoFile: null, // Campo para o arquivo Base64
-        photoName: null, // Nome do arquivo
-    };
-
-    const photoInput = document.getElementById('photo');
-    if (photoInput.files.length > 0) {
-        const file = photoInput.files[0];
-        formData.photoName = file.name;
-        // Lê o arquivo como uma string Base64
-        await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                formData.photoFile = reader.result.split(',')[1];
-                resolve();
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
+    const formData = new FormData(form);
+    formData.append('action', 'saveFormData');
+    formData.append('userName', userName);
+    
     try {
         const response = await fetch(DATA_URL, {
             method: 'POST',
-            body: JSON.stringify(formData),
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            body: formData
         });
 
         const result = await response.json();
@@ -325,6 +296,7 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
             alert('Dados salvos com sucesso!');
             form.reset();
             
+            // Fecha o formulário e altera o texto do botão
             const formContainer = document.getElementById('formContainer');
             const toggleBtn = document.getElementById('toggleFormBtn');
             formContainer.style.display = 'none';
@@ -341,5 +313,3 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
-
