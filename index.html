@@ -1,145 +1,122 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evolução Corporal</title>
+    <title>LWC - LIMA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <header class="bg-primary text-white p-3 text-center">
-        <h1>Minha Evolução Corporal</h1>
-    </header>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">LWC - LIMA</h1>
 
-    <main class="container my-4">
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Peso Atual</h5>
-                        <p class="card-text display-4" id="current-weight">-- kg</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Perda Total</h5>
-                        <p class="card-text display-4" id="total-loss">-- kg</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Status da Semana</h5>
-                        <p class="card-text display-4" id="weekly-status">--</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">IMC</h5>
-                        <p class="card-text display-4" id="bmi">--</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="alert alert-info text-center" role="alert" id="motivation-message">
-            Carregando dados...
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Evolução do Peso</h5>
-                        <canvas id="weightChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Evolução da Cintura</h5>
-                        <canvas id="waistChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4">
+        <div class="card mb-4 text-center">
             <div class="card-body">
-                <h5 class="card-title text-center">Fotos de Evolução</h5>
-                <div class="row text-center mb-3">
-                    <div class="col-6">
-                        <p>Primeira Foto</p>
-                        <img id="first-photo" class="img-fluid rounded" alt="Primeira foto">
+                <h5 class="card-title" id="motivation-message">Carregando dados...</h5>
+                <div class="row mt-3 kpi-container">
+                    <div class="col-md-3">
+                        <div class="kpi-box">
+                            <h6 class="kpi-label">Peso Atual</h6>
+                            <p class="kpi-value" id="current-weight">-- kg</p>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <p>Última Foto</p>
-                        <img id="last-photo" class="img-fluid rounded" alt="Última foto">
+                    <div class="col-md-3">
+                        <div class="kpi-box">
+                            <h6 class="kpi-label">Perda Total</h6>
+                            <p class="kpi-value" id="total-loss">-- kg</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kpi-box">
+                            <h6 class="kpi-label">Status Semanal</h6>
+                            <p class="kpi-value" id="weekly-status">N/A</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kpi-box">
+                            <h6 class="kpi-label">IMC</h6>
+                            <p class="kpi-value" id="bmi">--</p>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex flex-wrap justify-content-center" id="photo-grid">
-                    </div>
             </div>
         </div>
-    </main>
 
-    <footer class="bg-light p-4 text-center mt-auto">
-        <div class="container">
-            <button id="toggleFormBtn" class="btn btn-secondary mb-3">Adicionar Novo Registro</button>
-            
-            <div id="formContainer" style="display: none;">
-                <h4 class="mb-3">Registro Diário</h4>
-                <form id="dataForm" class="row g-3" enctype="multipart/form-data">
+        <button id="toggleFormBtn" class="btn btn-primary mb-4 w-100">Adicionar Novo Registro</button>
+        
+        <div id="formContainer" style="display: none;">
+            <div class="card p-4 mb-4">
+                <form id="dataForm" class="row g-3">
                     <div class="col-md-6">
                         <label for="date" class="form-label">Data</label>
                         <input type="date" class="form-control" id="date" name="date" required>
                     </div>
                     <div class="col-md-6">
-                        <label for="event" class="form-label">Evento</label>
-                        <input type="text" class="form-control" id="event" name="event" placeholder="Ex: Início">
-                    </div>
-                    <div class="col-md-6">
                         <label for="weight" class="form-label">Peso (kg)</label>
                         <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
                     </div>
+                    <div class="col-12">
+                        <label for="measurements" class="form-label">Medidas (Ex: Cintura: 85cm, Braço: 30cm)</label>
+                        <input type="text" class="form-control" id="measurements" name="measurements">
+                    </div>
+                    <div class="col-12">
+                        <label for="event" class="form-label">Evento</label>
+                        <input type="text" class="form-control" id="event" name="event">
+                    </div>
                     <div class="col-md-6">
                         <label for="weeklyAction" class="form-label">Ação Semanal</label>
-                        <input type="text" class="form-control" id="weeklyAction" name="weeklyAction" placeholder="Ex: Corrida">
+                        <input type="text" class="form-control" id="weeklyAction" name="weeklyAction">
                     </div>
-                    <div class="col-12">
-                        <label for="measurements" class="form-label">Medidas (Ex: Cintura: 80cm)</label>
-                        <input type="text" class="form-control" id="measurements" name="measurements" placeholder="Cintura: 80cm, Peito: 95cm">
-                    </div>
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <label for="workoutDays" class="form-label">Dias de Treino</label>
-                        <input type="number" class="form-control" id="workoutDays" name="workoutDays" placeholder="Ex: 5">
+                        <input type="text" class="form-control" id="workoutDays" name="workoutDays">
                     </div>
                     <div class="col-12">
                         <label for="observations" class="form-label">Observações</label>
-                        <textarea class="form-control" id="observations" name="observations" rows="3" placeholder="Ex: Sentindo-me mais disposto."></textarea>
+                        <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
                     </div>
                     <div class="col-12">
                         <label for="photo" class="form-label">Foto</label>
-                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                        <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
                     </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Salvar Registro</button>
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn btn-success w-50">Salvar Registro</button>
                     </div>
                 </form>
             </div>
         </div>
-    </footer>
 
+        <h2 class="text-center mb-3">Fotos de Evolução</h2>
+        <div class="row justify-content-center mb-4">
+            <div class="col-6 col-md-4 text-center">
+                <h6>Primeira Foto</h6>
+                <img id="first-photo" src="https://via.placeholder.com/150" alt="Primeira foto" class="img-fluid rounded border">
+            </div>
+            <div class="col-6 col-md-4 text-center">
+                <h6>Última Foto</h6>
+                <img id="last-photo" src="https://via.placeholder.com/150" alt="Última foto" class="img-fluid rounded border">
+            </div>
+        </div>
+        <div id="photo-grid" class="photo-grid mb-5"></div>
+
+        <h2 class="text-center mb-3">Gráficos de Evolução</h2>
+        <div class="btn-group d-flex justify-content-center mb-4" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="filterData('3m')">Últimos 3 Meses</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterData('6m')">Últimos 6 Meses</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterData('all')">Ver Tudo</button>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <canvas id="weightChart"></canvas>
+            </div>
+            <div class="col-md-6 mb-4">
+                <canvas id="waistChart"></canvas>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
-
