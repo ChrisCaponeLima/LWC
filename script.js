@@ -273,6 +273,7 @@ document.getElementById('toggleFormBtn').addEventListener('click', function() {
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
+    const form = event.target;
     const userName = new URLSearchParams(window.location.search).get('user');
 
     if (!userName) {
@@ -280,23 +281,12 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
-    const form = event.target;
-    const formData = new FormData();
+    // Cria um objeto FormData a partir do formulário diretamente
+    const formData = new FormData(form);
+    
+    // Adiciona o nome de usuário e a ação
     formData.append('action', 'saveFormData');
     formData.append('userName', userName);
-    formData.append('date', document.getElementById('date').value);
-    formData.append('weight', document.getElementById('weight').value);
-    formData.append('measurements', document.getElementById('measurements').value);
-    formData.append('event', document.getElementById('event').value);
-    formData.append('weeklyAction', document.getElementById('weeklyAction').value);
-    formData.append('workoutDays', document.getElementById('workoutDays').value);
-    formData.append('observations', document.getElementById('observations').value);
-    
-    // Adiciona o arquivo de foto, se um foi selecionado
-    const photoFile = document.getElementById('photo').files[0];
-    if (photoFile) {
-        formData.append('photo', photoFile);
-    }
     
     try {
         const response = await fetch(DATA_URL, {
@@ -326,7 +316,6 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
-
 
 
 
