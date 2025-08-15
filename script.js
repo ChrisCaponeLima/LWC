@@ -1,5 +1,5 @@
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
-const DATA_URL = 'https://script.google.com/macros/s/AKfycbzADN7asJSmglCEm2FC7apFO3Jau5HfaATijU_TSwmWSVhvpCGam2C8U7x7J_7xQZVX/exec'; 
+const DATA_URL = 'https://script.google.com/macros/s/AKfycbziXL_g3nFImnFwvnxS7J0IDmxoD_yWWc7T9PdvjYpDGNtiDSno3QHkfN0pxg0OVsVY/exec'; 
 
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
@@ -341,4 +341,5 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
+
 
