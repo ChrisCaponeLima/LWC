@@ -326,3 +326,4 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
+
