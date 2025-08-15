@@ -270,9 +270,11 @@ document.getElementById('toggleFormBtn').addEventListener('click', function() {
     }
 });
 
+// A nova lógica de envio do formulário, mais robusta
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
+    const form = event.target;
     const userName = new URLSearchParams(window.location.search).get('user');
 
     if (!userName) {
@@ -280,28 +282,36 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         return;
     }
 
-    const form = event.target;
-    const formData = new FormData();
-    formData.append('action', 'saveFormData');
-    formData.append('userName', userName);
-    formData.append('date', document.getElementById('date').value);
-    formData.append('weight', document.getElementById('weight').value);
-    formData.append('measurements', document.getElementById('measurements').value);
-    formData.append('event', document.getElementById('event').value);
-    formData.append('weeklyAction', document.getElementById('weeklyAction').value);
-    formData.append('workoutDays', document.getElementById('workoutDays').value);
-    formData.append('observations', document.getElementById('observations').value);
+    const formData = new FormData(form);
     
-    // Adiciona o arquivo de foto, se um foi selecionado
-    const photoFile = document.getElementById('photo').files[0];
-    if (photoFile) {
-        formData.append('photo', photoFile);
+    // Convertendo FormData para um objeto JSON para evitar problemas de compatibilidade
+    const formObject = Object.fromEntries(formData.entries());
+    formObject.action = 'saveFormData';
+    formObject.userName = userName;
+    
+    // Se um arquivo de foto foi selecionado, adicione-o ao objeto como Base64
+    const photoInput = document.getElementById('photo');
+    if (photoInput.files.length > 0) {
+        const file = photoInput.files[0];
+        await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                formObject.photoFile = reader.result.split(',')[1];
+                formObject.photoName = file.name;
+                resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
-    
+
     try {
         const response = await fetch(DATA_URL, {
             method: 'POST',
-            body: formData
+            body: JSON.stringify(formObject),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         const result = await response.json();
