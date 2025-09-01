@@ -1,5 +1,5 @@
 // **IMPORTANTE**: Substitua o URL abaixo pelo seu URL de Web app do Google Apps Script
-const DATA_URL = 'https://script.google.com/macros/s/AKfycbwI7dNab9LNvNtTH_K-i2pY9nMiu3VMXxGtT4Q7Q8_0jkaLvGUvQdsS0xQVyMICAdAx/exec';
+const DATA_URL = 'https://lwc-ten.vercel.app';
 
 // Variáveis para armazenar os dados e os gráficos
 let allData = [];
@@ -336,4 +336,5 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         alert('Ocorreu um erro inesperado: ' + error.message);
     }
 });
+
 
