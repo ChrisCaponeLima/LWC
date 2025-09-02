@@ -51,19 +51,74 @@ document.addEventListener('DOMContentLoaded', () => {
         showTable();
     });
 
-    // Função para carregar usuários (simulação de API)
-    function loadUsers() {
+    // Função para carregar usuários da API
+    async function loadUsers() {
         usersTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Carregando usuários...</td></tr>';
         
-        // Simulação de dados
-        const users = [
-            { id: 1, name: 'João Silva', email: 'joao.silva@exemplo.com', role: 'admin', photo_perfil_url: 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png' },
-            { id: 2, name: 'Maria Souza', email: 'maria.souza@exemplo.com', role: 'user', photo_perfil_url: 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png' },
-        ];
-
-        setTimeout(() => {
+        try {
+            const response = await fetch('/api/users');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar usuários.');
+            }
+            const users = await response.json();
             renderUsers(users);
-        }, 1000); // Simula um delay da rede
+        } catch (error) {
+            usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${error.message}</td></tr>`;
+        }
+    }
+
+    // Lida com o envio do formulário
+    userForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = userIdInput.value;
+        const formData = new FormData(userForm);
+        const data = Object.fromEntries(formData.entries());
+
+        // Se estiver editando, adicione o ID aos dados
+        if (id) {
+            data.id = id;
+        }
+
+        try {
+            const response = await fetch('/api/users', {
+                method: id ? 'PUT' : 'POST', // Usa PUT para editar, POST para criar
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao ${id ? 'atualizar' : 'criar'} usuário.`);
+            }
+
+            alert(`Usuário ${id ? 'atualizado' : 'criado'} com sucesso!`);
+            showTable(); // Volta para a tabela e recarrega a lista
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
+    // Lida com o clique em Excluir
+    async function handleDelete(id) {
+        if (confirm(`Tem certeza que deseja excluir o usuário com ID: ${id}?`)) {
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id }),
+                });
+                if (!response.ok) {
+                    throw new Error('Erro ao excluir usuário.');
+                }
+                alert('Usuário excluído com sucesso!');
+                loadUsers();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
     }
 
     // Função para renderizar a tabela
