@@ -16,19 +16,18 @@
         <h1 class="h1-title" id="pageTitle">Gerenciar Usuários</h1>
     </header>
 
-    <div class="container main-content d-flex justify-content-center align-items-center">
-        <div class="form-card user-card">
+    <div class="container main-content">
+        <div class="form-card" id="userFormCard" style="display:none;">
             <h2 class="h2-title text-center" id="formTitle">Adicionar Novo Usuário</h2>
             <form id="userForm" class="row g-3">
-                
+                <input type="hidden" id="userId">
                 <div class="col-12 text-center mb-3">
                     <div class="profile-picture-container user-photo-upload">
                         <img id="profile-preview" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
                     </div>
                     <label for="profile-photo" class="form-label mt-2">Escolher Foto</label>
-                    <input class="form-control" type="file" id="profile-photo" name="profile-photo" accept="image/*" class="d-none">
+                    <input class="form-control" type="file" id="profile-photo" name="profile-photo" accept="image/*">
                 </div>
-
                 <div class="col-12">
                     <label for="name" class="form-label">Nome</label>
                     <input type="text" class="form-control" id="name" name="name" required>
@@ -50,70 +49,31 @@
                 </div>
                 <div class="col-12 text-center mt-4">
                     <button type="submit" class="btn-success">Salvar Usuário</button>
+                    <button type="button" class="btn-cancel" id="cancelBtn">Cancelar</button>
                 </div>
             </form>
         </div>
-    </div>
-    
-    <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('userForm');
-            const formTitle = document.getElementById('formTitle');
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get('id');
 
-            // Pré-visualização da foto
-            const photoInput = document.getElementById('profile-photo');
-            const photoPreview = document.getElementById('profile-preview');
-
-            photoInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        photoPreview.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            if (userId) {
-                formTitle.textContent = "Editar Usuário";
-                // TODO: Lógica de fetch para carregar os dados do usuário a ser editado
-                // e preencher o formulário, incluindo a foto.
-                // fetch(`/api/users/${userId}`)
-                //     .then(response => response.json())
-                //     .then(user => {
-                //         document.getElementById('name').value = user.name;
-                //         document.getElementById('email').value = user.email;
-                //         document.getElementById('birthdate').value = user.birthdate;
-                //         document.getElementById('role').value = user.role;
-                //         if (user.photo_perfil_url) {
-                //             photoPreview.src = user.photo_perfil_url;
-                //         }
-                //     });
-            }
-
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                const formData = new FormData(form);
-
-                if (userId) {
-                    // TODO: Lógica de UPDATE: Enviar dados para o endpoint de atualização de usuário
-                    // Incluindo o arquivo da foto no FormData para upload.
-                    alert(`Atualizando usuário ${userId}...`);
-                } else {
-                    // TODO: Lógica de CREATE: Enviar dados para o endpoint de criação de usuário
-                    // O arquivo da foto deve ser enviado como parte do FormData para o servidor.
-                    alert('Criando novo usuário...');
-                }
-
-                // TODO: Redirecionar para uma página de sucesso ou lista de usuários
-                // window.location.href = 'users.html'; 
-            });
-        });
-    </script>
-</body>
-</html>
+        <div class="card-list" id="userListCard">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h2-title">Lista de Usuários</h2>
+                <button class="btn-control" id="addUserBtn">
+                    <img src="https://api.iconify.design/solar:add-square-bold-duotone.svg" alt="Adicionar" class="button-icon">
+                    Adicionar Usuário
+                </button>
+            </div>
+            <div id="usersTableContainer" class="table-responsive">
+                <table class="table user-table">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>Cargo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center">Carregando usuários...</td>
+                        </tr>
