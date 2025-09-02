@@ -29,11 +29,10 @@ export default async function handler(req, res) {
             // Rota POST /api/users - Cria um novo usuário
             case 'POST':
                 const { name, email, birthdate, role } = req.body;
-                // Converte a string vazia de birthdate para NULL, se necessário
                 const finalBirthdate = birthdate === '' ? null : birthdate;
                 await client.query(
-                    'INSERT INTO users (name, email, birthdate, role, photo_perfil_url) VALUES ($1, $2, $3, $4, $5)',
-                    [name, email, finalBirthdate, role, null] // Envia null para a foto
+                    'INSERT INTO users (name, email, birthdate, role) VALUES ($1, $2, $3, $4)',
+                    [name, email, finalBirthdate, role]
                 );
                 res.status(201).json({ message: 'Usuário criado com sucesso!' });
                 break;
@@ -43,8 +42,8 @@ export default async function handler(req, res) {
                 const { id, name: updatedName, email: updatedEmail, birthdate: updatedBirthdate, role: updatedRole } = req.body;
                 const finalUpdatedBirthdate = updatedBirthdate === '' ? null : updatedBirthdate;
                 await client.query(
-                    'UPDATE users SET name = $1, email = $2, birthdate = $3, role = $4, photo_perfil_url = $5 WHERE id = $6',
-                    [updatedName, updatedEmail, finalUpdatedBirthdate, updatedRole, null, id] // Envia null para a foto, corrigido
+                    'UPDATE users SET name = $1, email = $2, birthdate = $3, role = $4 WHERE id = $5',
+                    [updatedName, updatedEmail, finalUpdatedBirthdate, updatedRole, id]
                 );
                 res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
                 break;
