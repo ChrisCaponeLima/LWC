@@ -196,20 +196,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Lida com o envio do formulário
-    userForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const id = userIdInput.value;
-        const formData = new FormData(userForm);
-        
-        if (id) {
-            // TODO: Lógica de UPDATE
-            alert(`Atualizando usuário com ID: ${id}.`);
-        } else {
-            // TODO: Lógica de CREATE
-            alert("Criando novo usuário.");
+userForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = userIdInput.value;
+    const formData = new FormData(userForm);
+    const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        birthdate: formData.get('birthdate'),
+        role: formData.get('role')
+    };
+
+    if (id) {
+        data.id = id;
+    }
+
+    try {
+        const response = await fetch('/api/users', {
+            method: id ? 'PUT' : 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro ao ${id ? 'atualizar' : 'criar'} usuário.`);
         }
-        showTable(); // Volta para a tabela após salvar
-    });
+
+        alert(`Usuário ${id ? 'atualizado' : 'criado'} com sucesso!`);
+        showTable();
+    } catch (error) {
+        alert(error.message);
+    }
+});
 
     // Inicia carregando os usuários ao carregar a página
     showTable();

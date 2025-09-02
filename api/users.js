@@ -26,12 +26,12 @@ export default async function handler(req, res) {
                 res.status(200).json(result.rows);
                 break;
 
-            // Rota POST /api/users - Cria um novo usuário
+             // Rota POST /api/users - Cria um novo usuário
             case 'POST':
-                const { name, email, birthdate, role, photo_perfil_url } = req.body;
+                const { name, email, birthdate, role } = req.body;
                 await client.query(
-                    'INSERT INTO users (name, email, birthdate, role, photo_perfil_url) VALUES ($1, $2, $3, $4, $5)',
-                    [name, email, birthdate, role, photo_perfil_url]
+                    'INSERT INTO users (name, email, birthdate, role) VALUES ($1, $2, $3, $4)',
+                    [name, email, birthdate, role]
                 );
                 res.status(201).json({ message: 'Usuário criado com sucesso!' });
                 break;
