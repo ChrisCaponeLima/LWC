@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         switch (req.method) {
             // Rota GET /api/users - Lista todos os usuários
             case 'GET':
-                const result = await client.query('SELECT id, name, email, birthdate, role FROM users ORDER BY name');
+                const result = await client.query('SELECT id, username, email, birthdate, role FROM users ORDER BY username');
                 res.status(200).json(result.rows);
                 break;
 
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
                 const { name, email, birthdate, role } = req.body;
                 const finalBirthdate = birthdate === '' ? null : birthdate;
                 await client.query(
-                    'INSERT INTO users (name, email, birthdate, role) VALUES ($1, $2, $3, $4)',
+                    'INSERT INTO users (username, email, birthdate, role) VALUES ($1, $2, $3, $4)',
                     [name, email, finalBirthdate, role]
                 );
                 res.status(201).json({ message: 'Usuário criado com sucesso!' });
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
                 const { id, name: updatedName, email: updatedEmail, birthdate: updatedBirthdate, role: updatedRole } = req.body;
                 const finalUpdatedBirthdate = updatedBirthdate === '' ? null : updatedBirthdate;
                 await client.query(
-                    'UPDATE users SET name = $1, email = $2, birthdate = $3, role = $4 WHERE id = $5',
+                    'UPDATE users SET username = $1, email = $2, birthdate = $3, role = $4 WHERE id = $5',
                     [updatedName, updatedEmail, finalUpdatedBirthdate, updatedRole, id]
                 );
                 res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
