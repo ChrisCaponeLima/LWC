@@ -233,3 +233,89 @@ body {
     background-color: var(--color-primary-blue);
     color: var(--color-white);
 }
+
+/* --- Estilos para a Página de Perfil --- */
+
+.profile-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.profile-header {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.profile-picture-container {
+    width: 150px;
+    height: 150px;
+    background-color: var(--color-gray-light);
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 1rem;
+}
+
+.profile-picture-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-picture-container img[src*="solar:user-circle"] {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+    color: var(--color-gray-dark);
+}
+
+.h2-profile-name {
+    font-size: 20pt;
+    font-weight: 700;
+    margin: 0;
+}
+
+.profile-email {
+    font-size: 14pt;
+    opacity: 0.8;
+}
+
+.btn-control .control-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 0.5rem;
+}
+
+.profile-section-wrapper {
+    width: 100%;
+    position: relative;
+}
+
+.profile-section {
+    width: 100%;
+    transition: transform 0.3s ease-in-out;
+}
+
+.back-button {
+    position: absolute;
+    top: 1.5rem;
+    left: 1rem;
+    font-size: 14pt;
+    color: var(--color-primary-blue);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.back-button-info {
+    font-size: 12pt;
+    color: var(--color-primary-blue);
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    display: block;
+    text-align: left;
+}
