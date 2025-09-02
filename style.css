@@ -241,16 +241,18 @@ body {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    padding-top: 2rem; /* Espaçamento do header */
 }
 
-.profile-header {
-    margin-top: 2rem;
+.profile-header-main {
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 400px; /* Limita a largura para centralizar */
 }
 
 .profile-picture-container {
-    width: 150px;
-    height: 150px;
+    width: 120px; /* Menor para se ajustar à imagem */
+    height: 120px;
     background-color: var(--color-gray-light);
     border-radius: 50%;
     overflow: hidden;
@@ -258,6 +260,8 @@ body {
     justify-content: center;
     align-items: center;
     margin: 0 auto 1rem;
+    border: 3px solid var(--color-gray-light); /* Borda sutil */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .profile-picture-container img {
@@ -276,28 +280,97 @@ body {
 .h2-profile-name {
     font-size: 20pt;
     font-weight: 700;
-    margin: 0;
+    margin: 0.5rem 0 0.2rem;
+    color: var(--color-gray-dark);
 }
 
 .profile-email {
     font-size: 14pt;
-    opacity: 0.8;
+    opacity: 0.7;
+    color: var(--color-gray-dark);
 }
 
-.btn-control .control-icon {
+.profile-actions {
+    width: 100%;
+    max-width: 400px; /* Limita a largura dos cards de ação */
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem; /* Espaçamento entre os cards de ação */
+    margin-top: 1.5rem;
+}
+
+.profile-action-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--color-gray-light);
+    padding: 1rem 1.2rem;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--color-gray-dark);
+    font-size: 16pt;
+    font-weight: 500;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.profile-action-card:hover {
+    background-color: #e0e0e5; /* Um cinza um pouco mais escuro ao passar o mouse */
+    color: var(--color-gray-dark); /* Mantém a cor do texto */
+}
+
+.action-icon-text {
+    display: flex;
+    align-items: center;
+}
+
+.action-card-icon {
     width: 24px;
     height: 24px;
-    margin-right: 0.5rem;
+    margin-right: 1rem;
+    color: var(--color-gray-dark); /* Cor do ícone */
 }
+
+.arrow-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-gray-dark); /* Cor da seta */
+}
+
+.btn-logout {
+    width: 100%;
+    max-width: 400px;
+    padding: 1rem;
+    font-size: 16pt;
+    font-weight: 500;
+    background-color: var(--color-primary-blue);
+    color: var(--color-white);
+    border: none;
+    border-radius: 12px; /* Aumenta o border-radius para combinar com os cards */
+    transition: background-color 0.3s;
+    margin-top: 1.5rem; /* Espaçamento em relação aos cards acima */
+}
+
+.btn-logout:hover {
+    background-color: #55a8cf; /* Tom mais escuro do azul */
+}
+
 
 .profile-section-wrapper {
     width: 100%;
     position: relative;
+    /* Ajusta o espaçamento quando a seção está visível */
+    padding: 1rem 0; 
 }
 
-.profile-section {
-    width: 100%;
-    transition: transform 0.3s ease-in-out;
+/* Esconde as seções secundárias por padrão */
+#myInfoSection,
+#changePasswordSection {
+    display: none;
+    padding: 1rem; /* Padding interno para o conteúdo da seção */
+    background-color: var(--color-white); /* Fundo branco para as seções */
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-top: 1rem;
 }
 
 .back-button {
@@ -311,11 +384,16 @@ body {
 }
 
 .back-button-info {
-    font-size: 12pt;
+    font-size: 14pt; /* Aumenta um pouco o tamanho */
     color: var(--color-primary-blue);
     text-decoration: none;
     font-weight: 500;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem; /* Mais espaçamento */
     display: block;
     text-align: left;
+    transition: color 0.2s;
+}
+
+.back-button-info:hover {
+    color: #55a8cf;
 }
