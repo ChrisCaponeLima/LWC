@@ -20,6 +20,15 @@
         <div class="form-card user-card">
             <h2 class="h2-title text-center" id="formTitle">Adicionar Novo Usuário</h2>
             <form id="userForm" class="row g-3">
+                
+                <div class="col-12 text-center mb-3">
+                    <div class="profile-picture-container user-photo-upload">
+                        <img id="profile-preview" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
+                    </div>
+                    <label for="profile-photo" class="form-label mt-2">Escolher Foto</label>
+                    <input class="form-control" type="file" id="profile-photo" name="profile-photo" accept="image/*" class="d-none">
+                </div>
+
                 <div class="col-12">
                     <label for="name" class="form-label">Nome</label>
                     <input type="text" class="form-control" id="name" name="name" required>
@@ -54,9 +63,25 @@
             const urlParams = new URLSearchParams(window.location.search);
             const userId = urlParams.get('id');
 
+            // Pré-visualização da foto
+            const photoInput = document.getElementById('profile-photo');
+            const photoPreview = document.getElementById('profile-preview');
+
+            photoInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        photoPreview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
             if (userId) {
                 formTitle.textContent = "Editar Usuário";
                 // TODO: Lógica de fetch para carregar os dados do usuário a ser editado
+                // e preencher o formulário, incluindo a foto.
                 // fetch(`/api/users/${userId}`)
                 //     .then(response => response.json())
                 //     .then(user => {
@@ -64,6 +89,9 @@
                 //         document.getElementById('email').value = user.email;
                 //         document.getElementById('birthdate').value = user.birthdate;
                 //         document.getElementById('role').value = user.role;
+                //         if (user.photo_perfil_url) {
+                //             photoPreview.src = user.photo_perfil_url;
+                //         }
                 //     });
             }
 
@@ -71,13 +99,14 @@
                 e.preventDefault();
                 
                 const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
 
                 if (userId) {
                     // TODO: Lógica de UPDATE: Enviar dados para o endpoint de atualização de usuário
+                    // Incluindo o arquivo da foto no FormData para upload.
                     alert(`Atualizando usuário ${userId}...`);
                 } else {
                     // TODO: Lógica de CREATE: Enviar dados para o endpoint de criação de usuário
+                    // O arquivo da foto deve ser enviado como parte do FormData para o servidor.
                     alert('Criando novo usuário...');
                 }
 
