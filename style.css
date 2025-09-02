@@ -1,7 +1,7 @@
 /* Definição de Cores e Tipografia */
 :root {
     /* Paleta Primária */
-    --color-primary-blue: #007AFF;
+    --color-primary-blue: #6dc1f3; /* Novo tom de azul */
     --color-gray-light: #F2F2F7;
     --color-white: #FFFFFF;
     --color-gray-dark: #3A3A3C;
@@ -128,7 +128,7 @@ body {
 }
 
 .btn-control:hover {
-    background-color: #005bb5;
+    background-color: #55a8cf; /* Tom mais escuro do novo azul */
 }
 
 .btn-success {
