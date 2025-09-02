@@ -5,6 +5,7 @@ const selectionBox = document.getElementById('selection-box');
 const blurButton = document.getElementById('blur-button');
 const censorButton = document.getElementById('censor-button');
 const downloadButton = document.getElementById('download-button');
+const resetButton = document.getElementById('reset-button'); // Novo botão
 
 let isSelecting = false;
 let startX, startY;
@@ -83,6 +84,18 @@ censorButton.addEventListener('click', () => {
     applyEffect('censor');
 });
 
+// Reseta a imagem para a versão original
+resetButton.addEventListener('click', () => {
+    if (originalImage.src) {
+        ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+        ctx.drawImage(originalImage, 0, 0);
+        currentImage.src = imageCanvas.toDataURL(); // Reseta o estado atual
+        downloadButton.style.display = 'none';
+        selectionBox.style.display = 'none';
+        alert('Imagem redefinida com sucesso.');
+    }
+});
+
 function applyEffect(effectType) {
     const rect = selectionBox.getBoundingClientRect();
     const canvasRect = imageCanvas.getBoundingClientRect();
@@ -92,13 +105,10 @@ function applyEffect(effectType) {
         return;
     }
 
-    // A principal mudança está aqui:
-    // 1. Cria uma nova imagem a partir do estado atual do canvas.
     let tempImage = new Image();
     tempImage.src = currentImage.src;
 
     tempImage.onload = () => {
-        // 2. Redesenha o estado atual no canvas.
         ctx.drawImage(tempImage, 0, 0, imageCanvas.width, imageCanvas.height);
 
         const scaleX = imageCanvas.width / canvasRect.width;
@@ -109,7 +119,6 @@ function applyEffect(effectType) {
         const height = rect.height * scaleY;
 
         if (effectType === 'blur') {
-            // Código do desfoque (mantido)
             const imageData = ctx.getImageData(x, y, width, height);
             const data = imageData.data;
             const radius = 10;
@@ -136,16 +145,14 @@ function applyEffect(effectType) {
             ctx.putImageData(imageData, x, y);
 
         } else if (effectType === 'censor') {
-            // Código da tarja preta (mantido)
             ctx.fillStyle = 'black';
             ctx.fillRect(x, y, width, height);
         }
 
-        // 3. Salva o novo estado da imagem.
         currentImage.src = imageCanvas.toDataURL();
         
         downloadButton.href = currentImage.src;
         downloadButton.style.display = 'inline-block';
-        selectionBox.style.display = 'none'; // Esconde a caixa de seleção
+        selectionBox.style.display = 'none';
     };
 }
