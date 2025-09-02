@@ -195,11 +195,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Lida com o envio do formulário
+    // user_management.js (TRECHO ATUALIZADO)
+
+// Lida com o envio do formulário
 userForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = userIdInput.value;
     const formData = new FormData(userForm);
+    
+    // Constrói o objeto de dados a ser enviado
     const data = {
         name: formData.get('name'),
         email: formData.get('email'),
@@ -211,9 +215,14 @@ userForm.addEventListener('submit', async (e) => {
         data.id = id;
     }
 
+    console.log("Enviando dados:", data); // Ajuda na depuração
+
     try {
-        const response = await fetch('/api/users', {
-            method: id ? 'PUT' : 'POST',
+        const url = '/api/users';
+        const method = id ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -221,7 +230,8 @@ userForm.addEventListener('submit', async (e) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Erro ao ${id ? 'atualizar' : 'criar'} usuário.`);
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Erro ao ${id ? 'atualizar' : 'criar'} usuário.`);
         }
 
         alert(`Usuário ${id ? 'atualizado' : 'criado'} com sucesso!`);
