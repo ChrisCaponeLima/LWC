@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         switch (req.method) {
             // Rota GET /api/users - Lista todos os usuários
             case 'GET':
-                const result = await client.query('SELECT id, name, email, birthdate, role, photo_perfil_url FROM users ORDER BY name');
+                const result = await client.query('SELECT id, name, email, birthdate, role FROM users ORDER BY name');
                 res.status(200).json(result.rows);
                 break;
 
