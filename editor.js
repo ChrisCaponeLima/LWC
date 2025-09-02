@@ -22,6 +22,7 @@ imageUpload.addEventListener('change', (e) => {
                 imageCanvas.width = originalImage.width;
                 imageCanvas.height = originalImage.height;
                 ctx.drawImage(originalImage, 0, 0);
+                // Salva a imagem original como o estado atual
                 currentImage.src = imageCanvas.toDataURL();
                 selectionBox.style.display = 'none';
                 downloadButton.style.display = 'none';
@@ -86,53 +87,65 @@ function applyEffect(effectType) {
     const rect = selectionBox.getBoundingClientRect();
     const canvasRect = imageCanvas.getBoundingClientRect();
 
-    if (rect.width === 0 || rect.height === 0 || !originalImage.src) {
+    if (rect.width === 0 || rect.height === 0 || !currentImage.src) {
         alert('Por favor, selecione uma área na imagem primeiro.');
         return;
     }
 
-    // Desenha a imagem original no canvas antes de aplicar o novo efeito.
-    ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height);
+    // A principal mudança está aqui:
+    // 1. Cria uma nova imagem a partir do estado atual do canvas.
+    let tempImage = new Image();
+    tempImage.src = currentImage.src;
 
-    const scaleX = imageCanvas.width / canvasRect.width;
-    const scaleY = imageCanvas.height / canvasRect.height;
-    const x = (rect.left - canvasRect.left) * scaleX;
-    const y = (rect.top - canvasRect.top) * scaleY;
-    const width = rect.width * scaleX;
-    const height = rect.height * scaleY;
+    tempImage.onload = () => {
+        // 2. Redesenha o estado atual no canvas.
+        ctx.drawImage(tempImage, 0, 0, imageCanvas.width, imageCanvas.height);
 
-    if (effectType === 'blur') {
-        const imageData = ctx.getImageData(x, y, width, height);
-        const data = imageData.data;
-        const radius = 10; // O "nível" do desfoque
-        
-        for (let i = 0; i < data.length; i += 4) {
-            let r = 0, g = 0, b = 0, count = 0;
-            for (let dx = -radius; dx <= radius; dx++) {
-                for (let dy = -radius; dy <= radius; dy++) {
-                    const pixelX = Math.min(width - 1, Math.max(0, (i/4 % width) + dx));
-                    const pixelY = Math.min(height - 1, Math.max(0, Math.floor(i/4 / width) + dy));
-                    const newIndex = (pixelY * width + pixelX) * 4;
-                    if (newIndex >= 0 && newIndex < data.length) {
-                        r += data[newIndex];
-                        g += data[newIndex + 1];
-                        b += data[newIndex + 2];
-                        count++;
+        const scaleX = imageCanvas.width / canvasRect.width;
+        const scaleY = imageCanvas.height / canvasRect.height;
+        const x = (rect.left - canvasRect.left) * scaleX;
+        const y = (rect.top - canvasRect.top) * scaleY;
+        const width = rect.width * scaleX;
+        const height = rect.height * scaleY;
+
+        if (effectType === 'blur') {
+            // Código do desfoque (mantido)
+            const imageData = ctx.getImageData(x, y, width, height);
+            const data = imageData.data;
+            const radius = 10;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = 0, g = 0, b = 0, count = 0;
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        const pixelX = Math.min(width - 1, Math.max(0, (i/4 % width) + dx));
+                        const pixelY = Math.min(height - 1, Math.max(0, Math.floor(i/4 / width) + dy));
+                        const newIndex = (pixelY * width + pixelX) * 4;
+                        if (newIndex >= 0 && newIndex < data.length) {
+                            r += data[newIndex];
+                            g += data[newIndex + 1];
+                            b += data[newIndex + 2];
+                            count++;
+                        }
                     }
                 }
+                data[i] = r / count;
+                data[i + 1] = g / count;
+                data[i + 2] = b / count;
             }
-            data[i] = r / count;
-            data[i + 1] = g / count;
-            data[i + 2] = b / count;
+            ctx.putImageData(imageData, x, y);
+
+        } else if (effectType === 'censor') {
+            // Código da tarja preta (mantido)
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x, y, width, height);
         }
-        ctx.putImageData(imageData, x, y);
 
-    } else if (effectType === 'censor') {
-        ctx.fillStyle = 'black'; // Cor da tarja
-        ctx.fillRect(x, y, width, height);
-    }
-
-    downloadButton.href = imageCanvas.toDataURL('image/png');
-    downloadButton.style.display = 'inline-block';
-    selectionBox.style.display = 'none'; // Esconde a caixa de seleção
+        // 3. Salva o novo estado da imagem.
+        currentImage.src = imageCanvas.toDataURL();
+        
+        downloadButton.href = currentImage.src;
+        downloadButton.style.display = 'inline-block';
+        selectionBox.style.display = 'none'; // Esconde a caixa de seleção
+    };
 }
