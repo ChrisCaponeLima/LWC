@@ -24,10 +24,10 @@ export default async function handler(req, res) {
             // Rota GET /api/users/[id] - Busca um único usuário por ID
             // Rota GET /api/users - Lista todos os usuários
             case 'GET':
-                // Extrai o último item da URL para verificar se é um ID
+                // Verifica se há um ID na URL da requisição
                 const pathSegments = req.url.split('/');
                 const potentialId = pathSegments[pathSegments.length - 1];
-
+                
                 if (!isNaN(potentialId) && potentialId !== '') {
                     // Rota para buscar um único usuário
                     const result = await client.query('SELECT id, username, email, birthdate, role, photo_perfil_url FROM users WHERE id = $1', [potentialId]);
