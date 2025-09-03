@@ -1,6 +1,7 @@
 // api/users.js
 
-const { Pool } = require('pg');
+import pg from 'pg';
+const { Pool } = pg;
 
 // Configuração da conexão com o banco de dados usando variáveis de ambiente
 const pool = new Pool({
