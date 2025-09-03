@@ -1,5 +1,6 @@
 import pg from 'pg';
-const { Pool } = pg;
+import formidable from 'formidable';
+import cloudinary from 'cloudinary';
 
 // Configuração da conexão com o banco de dados usando variáveis de ambiente
 const pool = new Pool({
@@ -13,50 +14,68 @@ const pool = new Pool({
     }
 });
 
-// Manipulador de requisições
+// Configuração do Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Exporta uma função padrão para Vercel
 export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-        switch (req.method) {
-            // Rota GET /api/users - Lista todos os usuários
-            case 'GET':
-                const result = await client.query('SELECT id, username, email, birthdate, role FROM users ORDER BY username');
-                res.status(200).json(result.rows);
-                break;
+        if (req.method === 'POST' || req.method === 'PUT') {
+            const form = new formidable.IncomingForm();
 
-            // Rota POST /api/users - Cria um novo usuário
-            case 'POST':
-                const { name, email, birthdate, role } = req.body;
-                const finalBirthdate = birthdate === '' ? null : birthdate;
-                await client.query(
-                    'INSERT INTO users (username, email, birthdate, role) VALUES ($1, $2, $3, $4)',
-                    [name, email, finalBirthdate, role]
-                );
-                res.status(201).json({ message: 'Usuário criado com sucesso!' });
-                break;
+            form.parse(req, async (err, fields, files) => {
+                if (err) {
+                    console.error('Erro ao processar formulário:', err);
+                    return res.status(500).json({ message: 'Erro ao processar formulário.' });
+                }
 
-            // Rota PUT /api/users - Atualiza um usuário
-            case 'PUT':
-                const { id, name: updatedName, email: updatedEmail, birthdate: updatedBirthdate, role: updatedRole } = req.body;
-                const finalUpdatedBirthdate = updatedBirthdate === '' ? null : updatedBirthdate;
-                await client.query(
-                    'UPDATE users SET username = $1, email = $2, birthdate = $3, role = $4 WHERE id = $5',
-                    [updatedName, updatedEmail, finalUpdatedBirthdate, updatedRole, id]
-                );
-                res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
-                break;
+                const { name, email, birthdate, role, id } = fields;
+                const finalBirthdate = birthdate[0] === '' ? null : birthdate[0];
 
-            // Rota DELETE /api/users - Exclui um usuário
-            case 'DELETE':
-                const { id: deleteId } = req.body;
-                await client.query('DELETE FROM users WHERE id = $1', [deleteId]);
-                res.status(200).json({ message: 'Usuário excluído com sucesso!' });
-                break;
+                let photo_perfil_url = null;
+                const photoFile = files.photo_perfil_url ? files.photo_perfil_url[0] : null;
 
-            default:
-                res.status(405).json({ message: 'Método não permitido' });
-                break;
+                if (photoFile) {
+                    try {
+                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                        photo_perfil_url = result.secure_url;
+                    } catch (uploadError) {
+                        console.error('Erro ao fazer upload da foto:', uploadError);
+                        return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
+                    }
+                }
+
+                if (req.method === 'POST') {
+                    // Criação de usuário
+                    await client.query(
+                        'INSERT INTO users (username, email, birthdate, role, photo_perfil_url) VALUES ($1, $2, $3, $4, $5)',
+                        [name[0], email[0], finalBirthdate, role[0], photo_perfil_url]
+                    );
+                    res.status(201).json({ message: 'Usuário criado com sucesso!' });
+                } else {
+                    // Atualização de usuário
+                    await client.query(
+                        'UPDATE users SET username = $1, email = $2, birthdate = $3, role = $4, photo_perfil_url = $5 WHERE id = $6',
+                        [name[0], email[0], finalBirthdate, role[0], photo_perfil_url, id[0]]
+                    );
+                    res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
+                }
+            });
+        } else if (req.method === 'DELETE') {
+            const { id: deleteId } = req.body;
+            await client.query('DELETE FROM users WHERE id = $1', [deleteId]);
+            res.status(200).json({ message: 'Usuário excluído com sucesso!' });
+        } else if (req.method === 'GET') {
+            const result = await client.query('SELECT id, username, email, birthdate, role, photo_perfil_url FROM users ORDER BY username');
+            res.status(200).json(result.rows);
+        } else {
+            res.status(405).json({ message: 'Método não permitido' });
         }
     } catch (error) {
         console.error('Erro na requisição da API:', error);
@@ -65,3 +84,10 @@ export default async function handler(req, res) {
         client.release();
     }
 }
+
+// Desabilita o parser de corpo padrão do Vercel
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};

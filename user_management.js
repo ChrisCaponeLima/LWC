@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleEdit(id) {
         try {
             showForm(true);
-            const response = await fetch(`/api/users/${id}`); // Assumindo que você tem uma rota para um usuário específico
+            const response = await fetch(`/api/users/${id}`);
             if (!response.ok) {
                 throw new Error('Erro ao carregar dados do usuário.');
             }
@@ -161,15 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = userIdInput.value;
         const formData = new FormData(userForm);
         
-        const data = {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            birthdate: formData.get('birthdate'),
-            role: formData.get('role')
-        };
-
+        // Adiciona o ID ao FormData para que o PUT possa usar
         if (id) {
-            data.id = id;
+            formData.append('id', id);
         }
 
         try {
@@ -178,10 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const response = await fetch(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
+                body: formData,
             });
 
             if (!response.ok) {
