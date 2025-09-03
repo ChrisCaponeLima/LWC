@@ -18,32 +18,26 @@
 
     <div class="container profile-page">
         <div class="profile-section" id="mainProfile">
-            <div class="profile-header-main">
+            <div class="profile-header">
                 <div class="profile-picture-container">
                     <img id="profilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
-                    </div>
+                </div>
                 <h2 id="userName" class="h2-profile-name">Nome do Usuário</h2>
                 <p id="userEmail" class="profile-email">email@exemplo.com</p>
             </div>
 
-            <div class="profile-actions">
-                <a href="#myInfoSection" class="profile-action-card" id="showInfoBtn">
-                    <div class="action-icon-text">
-                        <img src="https://api.iconify.design/solar:user-bold-duotone.svg" class="action-card-icon" alt="Ícone de Informações">
-                        <span>Minhas Informações</span>
-                    </div>
-                    <img src="https://api.iconify.design/solar:alt-arrow-right-bold.svg" class="arrow-icon" alt="Seta">
+            <div class="card-control-container">
+                <a href="#myInfoSection" class="btn-control" id="showInfoBtn">
+                    <img src="https://api.iconify.design/solar:user-bold-duotone.svg" class="control-icon" alt="Ícone de Informações">
+                    Minhas Informações >
                 </a>
+            </div>
 
-                <a href="#changePasswordSection" class="profile-action-card" id="showPasswordBtn">
-                    <div class="action-icon-text">
-                        <img src="https://api.iconify.design/solar:lock-bold-duotone.svg" class="action-card-icon" alt="Ícone de Senha">
-                        <span>Mudar Minha Senha</span>
-                    </div>
-                    <img src="https://api.iconify.design/solar:alt-arrow-right-bold.svg" class="arrow-icon" alt="Seta">
+            <div class="card-control-container">
+                <a href="#changePasswordSection" class="btn-control" id="showPasswordBtn">
+                    <img src="https://api.iconify.design/solar:lock-bold-duotone.svg" class="control-icon" alt="Ícone de Senha">
+                    Mudar Minha Senha >
                 </a>
-
-                <button class="btn-logout" id="logoutButton">Logout</button>
             </div>
         </div>
 
@@ -71,4 +65,68 @@
                     <div class="card-basic">
                         <img src="https://api.iconify.design/solar:dumbbell-bold-duotone.svg" alt="Ícone de Treino" class="icon">
                         <div class="kpi-info">
-                            <span class="kpi-label">Dias
+                            <span class="kpi-label">Dias de Treino</span>
+                            <span class="kpi-value" id="user-workout-days">--</span>
+                        </div>
+                    </div>
+                    <div class="card-basic">
+                        <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Medidas" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Aniversário</span>
+                            <span class="kpi-value" id="user-birthdate">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-chart">
+                    <h3 class="chart-title">Calendário de Registros</h3>
+                    <div id="calendar-placeholder">
+                        <p>Calendário a ser implementado com JavaScript.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section" id="changePasswordSection" style="display: none;">
+                <h2 class="h2-title">Mudar Minha Senha</h2>
+                <a href="#" class="back-button-info" onclick="history.back()">
+                    < Voltar
+                </a>
+                <div class="form-card">
+                    <form id="changePasswordForm">
+                        <div class="col-12 mb-3">
+                            <label for="currentPassword" class="form-label">Senha Atual</label>
+                            <input type="password" class="form-control" id="currentPassword" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="newPassword" class="form-label">Nova Senha</label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="confirmNewPassword" class="form-label">Confirmar Nova Senha</label>
+                            <input type="password" class="form-control" id="confirmNewPassword" required>
+                        </div>
+                        <div class="col-12 text-center">
+                            <button type="submit" class="btn-success">Atualizar Senha</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+    <script>
+        // JavaScript para as transições de página
+        document.getElementById('showInfoBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('myInfoSection').style.display = 'block';
+            document.getElementById('mainProfile').style.display = 'none';
+        });
+
+        document.getElementById('showPasswordBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('changePasswordSection').style.display = 'block';
+            document.getElementById('mainProfile').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
