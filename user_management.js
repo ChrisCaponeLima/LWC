@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userIdInput.value = user.id;
             document.getElementById('name').value = user.username;
             document.getElementById('email').value = user.email;
-            document.getElementById('birthdate').value = user.birthdate;
+            document.getElementById('birthdate').value = user.birthdate ? user.birthdate.substring(0, 10) : '';
             document.getElementById('role').value = user.role;
             if (user.photo_perfil_url) {
                 photoPreview.src = user.photo_perfil_url;
