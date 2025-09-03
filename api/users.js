@@ -1,6 +1,7 @@
 import pg from 'pg';
 import { Pool } from 'pg';
-import { IncomingForm } from 'formidable';
+import formidable from 'formidable';
+const { IncomingForm } = formidable;
 import cloudinary from 'cloudinary';
 
 // Configuração da conexão com o banco de dados usando variáveis de ambiente
