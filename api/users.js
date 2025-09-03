@@ -36,10 +36,10 @@ export default async function handler(req, res) {
                 }
 
                 const { name, email, birthdate, role, id } = fields;
-                const finalBirthdate = birthdate[0] === '' ? null : birthdate[0];
+                const finalBirthdate = birthdate && birthdate.length > 0 && birthdate[0] !== '' ? birthdate[0] : null;
 
                 let photo_perfil_url = null;
-                const photoFile = files.photo_perfil_url ? files.photo_perfil_url[0] : null;
+                const photoFile = files.photo_perfil_url && files.photo_perfil_url.length > 0 ? files.photo_perfil_url[0] : null;
 
                 if (photoFile) {
                     try {
@@ -60,10 +60,25 @@ export default async function handler(req, res) {
                     res.status(201).json({ message: 'Usuário criado com sucesso!' });
                 } else {
                     // Atualização de usuário
-                    await client.query(
-                        'UPDATE users SET username = $1, email = $2, birthdate = $3, role = $4, photo_perfil_url = $5 WHERE id = $6',
-                        [name[0], email[0], finalBirthdate, role[0], photo_perfil_url, id[0]]
-                    );
+                    const fieldsToUpdate = [
+                        'username = $1',
+                        'email = $2',
+                        'birthdate = $3',
+                        'role = $4'
+                    ];
+                    const values = [name[0], email[0], finalBirthdate, role[0]];
+                    let paramCount = 5;
+
+                    if (photo_perfil_url) {
+                        fieldsToUpdate.push(`photo_perfil_url = $${paramCount}`);
+                        values.push(photo_perfil_url);
+                    }
+
+                    values.push(id[0]);
+                    
+                    const query = `UPDATE users SET ${fieldsToUpdate.join(', ')} WHERE id = $${values.length}`;
+
+                    await client.query(query, values);
                     res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
                 }
             });
