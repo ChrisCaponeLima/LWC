@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
                 let photo_perfil_url = null;
                 // Lógica mais robusta para encontrar o arquivo, mesmo que a estrutura mude
-                const photoFile = files.photo_perfil_url ? Array.isArray(files.photo_perfil_url) ? files.photo_perfil_url[0] : files.photo_perfil_url : null;
+                const photoFile = files['profile-photo'] && files['profile-photo'].length > 0 ? files['profile-photo'][0] : null;
                 
                 if (photoFile) {
                     try {
