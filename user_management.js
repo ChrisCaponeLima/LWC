@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td data-label="Foto">
                     <img src="${user.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg'}" alt="Foto de Perfil" class="user-photo-sm">
                 </td>
-                <td data-label="Nome">${user.name}</td>
+                <td data-label="Nome">${user.username}</td>
                 <td data-label="E-mail">${user.email}</td>
                 <td data-label="Cargo">${user.role}</td>
                 <td data-label="Ações">
