@@ -1,0 +1,5 @@
+ Ignorar a pasta de dependências principal
+node_modules/
+
+# Ignorar a pasta de dependências dentro da pasta api
+api/node_modules/
