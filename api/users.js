@@ -35,20 +35,29 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
+                // O CONSOLE.LOG ABAIXO VAI NOS AJUDAR A VER O QUE ACONTECE
+                console.log('--- Conteúdo do Objeto Files ---');
+                console.log(files);
+                console.log('------------------------------');
+
                 const { name, email, birthdate, role, id } = fields;
                 const finalBirthdate = birthdate && birthdate.length > 0 && birthdate[0] !== '' ? birthdate[0] : null;
 
                 let photo_perfil_url = null;
-                const photoFile = files.photo_perfil_url && files.photo_perfil_url.length > 0 ? files.photo_perfil_url[0] : null;
-
+                // Lógica mais robusta para encontrar o arquivo, mesmo que a estrutura mude
+                const photoFile = files.photo_perfil_url ? Array.isArray(files.photo_perfil_url) ? files.photo_perfil_url[0] : files.photo_perfil_url : null;
+                
                 if (photoFile) {
                     try {
                         const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                         photo_perfil_url = result.secure_url;
+                        console.log('Upload para Cloudinary bem-sucedido. URL:', photo_perfil_url);
                     } catch (uploadError) {
                         console.error('Erro ao fazer upload da foto:', uploadError);
                         return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                     }
+                } else {
+                    console.log('Nenhum arquivo de foto encontrado para upload.');
                 }
 
                 if (req.method === 'POST') {
