@@ -1,7 +1,5 @@
-import pg from 'pg';
 import { Pool } from 'pg';
 import { IncomingForm } from 'formidable';
-const { IncomingForm } = formidable;
 import cloudinary from 'cloudinary';
 
 // Configuração da conexão com o banco de dados usando variáveis de ambiente
@@ -23,13 +21,13 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Exporta uma função padrão para Vercel
+// Manipulador de requisições
 export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
         if (req.method === 'POST' || req.method === 'PUT') {
-            const form = new formidable.IncomingForm();
+            const form = new IncomingForm();
 
             form.parse(req, async (err, fields, files) => {
                 if (err) {
