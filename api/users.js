@@ -49,7 +49,8 @@ export default async function handler(req, res) {
                 
                 if (photoFile) {
                     try {
-                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                        //const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos", type: 'private' });
                         photo_perfil_url = result.secure_url;
                         console.log('Upload para Cloudinary bem-sucedido. URL:', photo_perfil_url);
                     } catch (uploadError) {
