@@ -21,20 +21,22 @@ export default async function handler(req, res) {
     try {
         switch (req.method) {
             // Rota GET /api/users/[id] - Busca um único usuário por ID
+            // Rota GET /api/users - Lista todos os usuários
             case 'GET':
-                // Verifica se há um ID na URL da requisição
-                const path = req.url.split('/');
-                const id = path[path.length - 1];
+                // Extrai o último item da URL para verificar se é um ID
+                const pathSegments = req.url.split('/');
+                const potentialId = pathSegments[pathSegments.length - 1];
 
-                if (id && !isNaN(id)) {
-                    const result = await client.query('SELECT id, username, email, birthdate, role FROM users WHERE id = $1', [id]);
+                if (!isNaN(potentialId) && potentialId !== '') {
+                    // Rota para buscar um único usuário
+                    const result = await client.query('SELECT id, username, email, birthdate, role, photo_perfil_url FROM users WHERE id = $1', [potentialId]);
                     if (result.rows.length > 0) {
                         res.status(200).json(result.rows[0]);
                     } else {
                         res.status(404).json({ message: 'Usuário não encontrado' });
                     }
                 } else {
-                    // Se não houver ID na URL, a rota continua a listar todos os usuários
+                    // Rota para listar todos os usuários
                     const result = await client.query('SELECT id, username, email, birthdate, role FROM users ORDER BY username');
                     res.status(200).json(result.rows);
                 }
@@ -72,7 +74,6 @@ export default async function handler(req, res) {
             default:
                 res.status(405).json({ message: 'Método não permitido' });
                 break;
-            
         }
     } catch (error) {
         console.error('Erro na requisição da API:', error);

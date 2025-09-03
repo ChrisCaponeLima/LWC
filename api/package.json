@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Vercel Serverless Functions for LWC project",
   "main": "index.js",
+  "type": "module",
   "dependencies": {
     "@vercel/postgres": "^0.8.0",
     "@vercel/blob": "^0.23.0",
