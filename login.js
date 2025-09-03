@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('role', data.role);
+                localStorage.setItem('userPhotoUrl', data.photoUrl || ''); // Salva a URL da foto
                 window.location.href = 'index.html'; // Redireciona para o dashboard
             } else {
                 // Autenticação falhou

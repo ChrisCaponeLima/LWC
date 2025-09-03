@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-        const result = await client.query('SELECT id, username, password_hash, role FROM users WHERE username = $1', [username]);
+        const result = await client.query('SELECT id, username, password_hash, role, photo_perfil_url FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
 
         if (!user) {
@@ -36,7 +36,8 @@ export default async function handler(req, res) {
                 message: 'Login bem-sucedido.',
                 userId: user.id,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                photoUrl: user.photo_perfil_url
             });
         } else {
             res.status(401).json({ message: 'Credenciais inválidas.' });

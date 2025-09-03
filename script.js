@@ -1,12 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
     const userId = localStorage.getItem('userId');
     const username = localStorage.getItem('username');
+    const userPhotoUrl = localStorage.getItem('userPhotoUrl'); // Pega a URL da foto
     const dataForm = document.getElementById('dataForm');
+    const toggleFormBtn = document.getElementById('toggleFormBtn');
+    const formContainer = document.getElementById('formContainer');
     
     if (!userId) {
         window.location.href = 'login.html';
         return;
     }
+
+    // Exibir nome e foto do usuário no cabeçalho
+    const userProfileName = document.getElementById('userProfileName');
+    const userProfilePhoto = document.getElementById('userProfilePhoto');
+    if (userProfileName && username) {
+        userProfileName.textContent = username;
+    }
+    if (userProfilePhoto && userPhotoUrl) {
+        userProfilePhoto.src = userPhotoUrl;
+    }
+
+    // Funcionalidade de abrir/fechar o formulário
+    toggleFormBtn.addEventListener('click', () => {
+        if (formContainer.style.display === 'none') {
+            formContainer.style.display = 'block';
+            toggleFormBtn.textContent = 'Fechar Formulário';
+        } else {
+            formContainer.style.display = 'none';
+            toggleFormBtn.textContent = 'Adicionar Novo Registro';
+        }
+    });
 
     // Função de Logout
     const logoutBtn = document.getElementById('logoutBtn');
@@ -23,17 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
         motivationMessage.textContent = `Bem-vindo, ${username}! Carregando seus dados...`;
     }
 
-    // Funções de Gráfico
-    let weightChart, waistChart;
-    const ctxWeight = document.getElementById('weightChart').getContext('2d');
-    const ctxWaist = document.getElementById('waistChart').getContext('2d');
+    // Funções de Gráfico (manter o seu código existente)
+    // ...
 
-    // Funções de Análise e Exibição de Dados (Mesmas que você já tinha)
-    function calculateBMI(weight, height) { /* ... */ }
-    function getWeeklyStatus(records) { /* ... */ }
-    function renderPhotos(photos) { /* ... */ }
-    function filterData(period) { /* ... */ }
-    
     // Fetch inicial dos dados
     async function fetchData() {
         try {
@@ -52,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dataForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         const formData = new FormData(this);
-        formData.append('userId', userId); // Adiciona o ID do usuário ao formulário
+        formData.append('userId', userId);
         
         try {
             const response = await fetch('/api/records', {
@@ -63,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 alert('Registro salvo com sucesso!');
                 dataForm.reset();
-                fetchData(); // Recarrega os dados para atualizar a página
+                fetchData();
             } else {
                 alert('Erro ao salvar o registro.');
             }
@@ -73,5 +89,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    fetchData(); // Chama a função na inicialização
+    fetchData();
 });
