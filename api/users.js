@@ -1,4 +1,5 @@
 import pg from 'pg';
+import { Pool } from 'pg';
 import formidable from 'formidable';
 import cloudinary from 'cloudinary';
 
