@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { Pool } from 'pg';
-import formidable from 'formidable';
+import { IncomingForm } from 'formidable';
 const { IncomingForm } = formidable;
 import cloudinary from 'cloudinary';
 
