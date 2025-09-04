@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const measurementsContainer = document.getElementById('measurements-container');
     const addMeasurementBtn = document.getElementById('add-measurement-btn');
     const photoGrid = document.getElementById('photo-grid');
+    const cardColors = ['#E0F2FE', '#E6E1FF', '#EDE5D6', '#E3F0E4', '#FFF0EB', '#F8EBFD'];
     let availableMeasurements = [];
     
     if (!userId) {
@@ -51,8 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         motivationMessage.textContent = `Bem-vindo, ${username}! Carregando seus dados...`;
     }
 
-    // Funções de Gráfico (manter o seu código existente)
-    // ...
+    // Função para aplicar as cores aos cards
+    function applyCardColors() {
+        const cards = document.querySelectorAll('.kpi-grid .card-basic');
+        cards.forEach((card, index) => {
+            card.style.backgroundColor = cardColors[index % cardColors.length];
+        });
+    }
 
     // Função para renderizar as fotos de evolução
     function renderEvolutionPhotos(records) {
@@ -61,10 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (record.photo_url) {
                 const photoItem = document.createElement('div');
                 photoItem.className = 'photo-item';
+                const date = new Date(record.record_date).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' });
                 photoItem.innerHTML = `
                     <a href="${record.photo_url}" target="_blank">
                         <img src="${record.photo_url}" alt="Foto de Evolução">
                     </a>
+                    <p>${date}</p>
                 `;
                 photoGrid.appendChild(photoItem);
             }
@@ -117,8 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/records?userId=${userId}`);
             const records = await response.json();
             
-            // Renderizar as fotos após buscar os dados
-            renderEvolutionPhotos(records);
+            applyCardColors(); // Aplica as cores aos cards
+            renderEvolutionPhotos(records); // Renderiza as fotos após buscar os dados
 
             // ... sua lógica de processamento dos dados ...
             
