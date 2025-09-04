@@ -12,8 +12,11 @@
 </head>
 <body>
     <header class="app-header">
-        <a href="index.html" class="back-button">< Voltar</a>
         <h1 class="h1-title">Meu Perfil</h1>
+        <div class="user-profile-menu dropdown">
+            <strong id="userProfileName" class="me-2">John Doe</strong>
+            <img id="userProfilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="user-photo-sm">
+        </div>
     </header>
 
     <div class="container profile-page">
@@ -22,119 +25,92 @@
                 <div class="profile-picture-container">
                     <img id="profilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
                 </div>
-                <h2 id="userName" class="h2-profile-name">Nome do Usuário</h2>
-                <p id="userEmail" class="profile-email">email@exemplo.com</p>
+                <h2 class="h2-profile-name"><strong id="userName">Nome do Usuário</strong></h2>
+                <p class="profile-email" id="userEmail">email@exemplo.com</p>
             </div>
-
-            <div class="card-control-container">
-                <a href="#myInfoSection" class="btn-control" id="showInfoBtn">
-                    <img src="https://api.iconify.design/solar:user-bold-duotone.svg" class="control-icon" alt="Ícone de Informações">
-                    Minhas Informações >
-                </a>
-            </div>
-
-            <div class="card-control-container">
-                <a href="#changePasswordSection" class="btn-control" id="showPasswordBtn">
-                    <img src="https://api.iconify.design/solar:lock-bold-duotone.svg" class="control-icon" alt="Ícone de Senha">
-                    Mudar Minha Senha >
-                </a>
-            </div>
-        </div>
-        
-        <div class="profile-section-wrapper">
-            <div class="profile-section" id="myInfoSection" style="display: none;">
+            
+            <div class="section-header">
                 <h2 class="h2-title">Minhas Informações</h2>
-                <a href="#" class="back-button-info" id="backToMain">
-                    < Voltar
+                <a href="#" class="edit-profile-icon" id="editProfileBtn">
+                    <img src="https://api.iconify.design/solar:settings-bold.svg" alt="Editar" class="icon-sm">
                 </a>
-                
-                <div class="form-card mt-3">
-                    <form id="profileForm" class="row g-3" enctype="multipart/form-data">
-                        <div class="col-12 text-center mb-3">
-                            <label for="profile-photo-upload" class="photo-upload-label">
-                                <img id="profilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="profile-photo-lg">
-                                <br>
-                                Mudar Foto
-                            </label>
-                            <input type="file" id="profile-photo-upload" style="display: none;" accept="image/*">
-                        </div>
-                        <div class="col-12">
-                            <label for="profile-username" class="form-label">Nome Completo</label>
-                            <input type="text" class="form-control" id="profile-username" required>
-                        </div>
-                        <div class="col-12">
-                            <label for="profile-email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="profile-email" readonly>
-                        </div>
-                        <div class="col-12">
-                            <label for="height" class="form-label">Altura (cm)</label>
-                            <input type="number" step="1" class="form-control" id="height" name="height">
-                        </div>
-                        <div class="col-12">
-                            <label for="profile-password" class="form-label">Nova Senha</label>
-                            <input type="password" class="form-control" id="profile-password" placeholder="Deixe em branco para não alterar">
-                        </div>
-                        <div class="col-12 text-center">
-                            <button type="submit" class="btn-success">Salvar Alterações</button>
-                        </div>
-                    </form>
+            </div>
+            
+            <div id="infoDisplay" class="kpi-grid">
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:weight-bold-duotone.svg" alt="Ícone de Peso" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Peso Inicial</span>
+                        <span class="kpi-value" id="initial-weight">-- kg</span>
+                    </div>
+                </div>
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Altura" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Altura</span>
+                        <span class="kpi-value" id="user-height">-- cm</span>
+                    </div>
+                </div>
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:heart-bold-duotone.svg" alt="Ícone de Coração" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">IMC</span>
+                        <span class="kpi-value" id="user-bmi">--</span>
+                    </div>
+                </div>
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Peso Ideal</span>
+                        <span class="kpi-value" id="ideal-weight">-- kg</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="profile-section" id="changePasswordSection" style="display: none;">
-                <h2 class="h2-title">Mudar Minha Senha</h2>
-                <a href="#" class="back-button-info" id="backToMainFromPassword">
-                    < Voltar
-                </a>
-                <div class="form-card">
-                    <form id="changePasswordForm">
-                        <div class="col-12 mb-3">
-                            <label for="currentPassword" class="form-label">Senha Atual</label>
-                            <input type="password" class="form-control" id="currentPassword" required>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <label for="newPassword" class="form-label">Nova Senha</label>
-                            <input type="password" class="form-control" id="newPassword" required>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <label for="confirmNewPassword" class="form-label">Confirmar Nova Senha</label>
-                            <input type="password" class="form-control" id="confirmNewPassword" required>
-                        </div>
-                        <div class="col-12 text-center">
-                            <button type="submit" class="btn-success">Atualizar Senha</button>
-                        </div>
-                    </form>
+            <div id="infoForm" class="form-card" style="display: none;">
+                <h3 class="h3-title">Editar Dados</h3>
+                <form id="profileForm" class="row g-3" enctype="multipart/form-data">
+                    <div class="col-12 text-center mb-3">
+                        <label for="profile-photo-upload" class="photo-upload-label">
+                            <img id="profilePhotoForm" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="profile-photo-lg">
+                            <br>
+                            Mudar Foto
+                        </label>
+                        <input type="file" id="profile-photo-upload" style="display: none;" accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <label for="profile-username" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="profile-username" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="profile-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="profile-email" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label for="height" class="form-label">Altura (cm)</label>
+                        <input type="number" step="1" class="form-control" id="height" name="height">
+                    </div>
+                    <div class="col-12">
+                        <label for="profile-password" class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control" id="profile-password" placeholder="Deixe em branco para não alterar">
+                    </div>
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn-success">Salvar Alterações</button>
+                    </div>
+                </form>
+                <div class="d-grid gap-2">
+                    <button id="cancelEditBtn" class="btn btn-secondary mt-3">Cancelar</button>
                 </div>
             </div>
+
+            <div class="section-header">
+                <h2 class="h2-title">Registros</h2>
+            </div>
+            <div id="photo-grid" class="photo-grid-gallery"></div>
         </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="profile.js"></script>
-    <script>
-        document.getElementById('showInfoBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('myInfoSection').style.display = 'block';
-            document.getElementById('mainProfile').style.display = 'none';
-        });
-
-        document.getElementById('showPasswordBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('changePasswordSection').style.display = 'block';
-            document.getElementById('mainProfile').style.display = 'none';
-        });
-
-        document.getElementById('backToMain').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('myInfoSection').style.display = 'none';
-            document.getElementById('mainProfile').style.display = 'block';
-        });
-
-        document.getElementById('backToMainFromPassword').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('changePasswordSection').style.display = 'none';
-            document.getElementById('mainProfile').style.display = 'block';
-        });
-    </script>
 </body>
 </html>
