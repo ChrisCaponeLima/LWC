@@ -35,13 +35,13 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                const { date, weight, measurements, event, weeklyAction, workoutDays, observations, userId } = fields;
+                const { date, weight, event, weeklyAction, workoutDays, observations, userId, measurements } = fields;
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
 
                 if (!userId || userId.length === 0) {
                     return res.status(401).json({ message: 'ID de usuário não fornecido.' });
                 }
-                
+
                 let photo_url = null;
                 if (photoFile) {
                     try {
@@ -53,10 +53,22 @@ export default async function handler(req, res) {
                     }
                 }
 
-                await client.query(
-                    'INSERT INTO records (user_id, date, weight, measurements, event, weekly_action, workout_days, observations, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                    [userId[0], date[0], weight[0], measurements[0], event[0], weeklyAction[0], workoutDays[0], observations[0], photo_url]
+                await client.query('BEGIN');
+
+                const recordInsertResult = await client.query(
+                    'INSERT INTO records (user_id, record_date, weight, event, weekly_action, workout_days, observations, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+                    [userId[0], date[0], weight[0], event[0], weeklyAction[0], workoutDays[0], observations[0], photo_url]
                 );
+
+                const newRecordId = recordInsertResult.rows[0].id;
+                const parsedMeasurements = JSON.parse(measurements[0]);
+
+                if (parsedMeasurements && parsedMeasurements.length > 0) {
+                    const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
+                    await client.query(`INSERT INTO record_measurements (record_id, measurement_id, value) VALUES ${values}`);
+                }
+
+                await client.query('COMMIT');
                 res.status(201).json({ message: 'Registro salvo com sucesso!' });
             });
         } else if (req.method === 'GET') {
@@ -64,13 +76,40 @@ export default async function handler(req, res) {
             if (!userId) {
                 return res.status(401).json({ message: 'ID de usuário não fornecido.' });
             }
-            const result = await client.query('SELECT * FROM records WHERE user_id = $1 ORDER BY date ASC', [userId]);
+
+            const result = await client.query(`
+                SELECT
+                    r.id,
+                    r.record_date,
+                    r.weight,
+                    r.event,
+                    r.weekly_action,
+                    r.workout_days,
+                    r.observations,
+                    r.photo_url,
+                    JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'id', m.id,
+                            'name', m.name,
+                            'unit', m.unit,
+                            'value', rm.value
+                        )
+                    ) AS measurements
+                FROM records r
+                LEFT JOIN record_measurements rm ON r.id = rm.record_id
+                LEFT JOIN measurements m ON rm.measurement_id = m.id
+                WHERE r.user_id = $1
+                GROUP BY r.id
+                ORDER BY r.record_date ASC
+            `, [userId]);
+
             res.status(200).json(result.rows);
         } else {
             res.status(405).json({ message: 'Método não permitido' });
         }
     } catch (error) {
         console.error('Erro na requisição da API:', error);
+        await client.query('ROLLBACK');
         res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
     } finally {
         client.release();
