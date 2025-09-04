@@ -37,11 +37,12 @@ export default async function handler(req, res) {
 
                 const { date, weight, event, weeklyAction, workoutDays, observations, userId, measurements } = fields;
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+                const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
 
                 if (!userId || userId.length === 0) {
                     return res.status(401).json({ message: 'ID de usuário não fornecido.' });
                 }
-
+                
                 let photo_url = null;
                 if (photoFile) {
                     try {
@@ -53,11 +54,22 @@ export default async function handler(req, res) {
                     }
                 }
 
+                let forma_url = null;
+                if (formaFile) {
+                    try {
+                        const result = await cloudinary.uploader.upload(formaFile.filepath, { folder: "record_forma" });
+                        forma_url = result.secure_url;
+                    } catch (uploadError) {
+                        console.error('Erro ao fazer upload da foto de forma:', uploadError);
+                        return res.status(500).json({ message: 'Erro ao fazer upload da foto de forma.' });
+                    }
+                }
+
                 await client.query('BEGIN');
 
                 const recordInsertResult = await client.query(
-                    'INSERT INTO records (user_id, record_date, weight, event, weekly_action, workout_days, observations, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-                    [userId[0], date[0], weight[0], event[0], weeklyAction[0], workoutDays[0], observations[0], photo_url]
+                    'INSERT INTO records (user_id, record_date, weight, event, weekly_action, workout_days, observations, photo_url, forma_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+                    [userId[0], date[0], weight[0], event[0], weeklyAction[0], workoutDays[0], observations[0], photo_url, forma_url]
                 );
 
                 const newRecordId = recordInsertResult.rows[0].id;
@@ -76,7 +88,7 @@ export default async function handler(req, res) {
             if (!userId) {
                 return res.status(401).json({ message: 'ID de usuário não fornecido.' });
             }
-
+            
             const result = await client.query(`
                 SELECT
                     r.id,
@@ -87,13 +99,17 @@ export default async function handler(req, res) {
                     r.workout_days,
                     r.observations,
                     r.photo_url,
-                    JSON_AGG(
-                        JSON_BUILD_OBJECT(
-                            'id', m.id,
-                            'name', m.name,
-                            'unit', m.unit,
-                            'value', rm.value
-                        )
+                    r.forma_url,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', m.id,
+                                'name', m.name,
+                                'unit', m.unit,
+                                'value', rm.value
+                            )
+                        ) FILTER (WHERE rm.record_id IS NOT NULL),
+                        '[]'
                     ) AS measurements
                 FROM records r
                 LEFT JOIN record_measurements rm ON r.id = rm.record_id
@@ -102,7 +118,7 @@ export default async function handler(req, res) {
                 GROUP BY r.id
                 ORDER BY r.record_date ASC
             `, [userId]);
-
+            
             res.status(200).json(result.rows);
         } else {
             res.status(405).json({ message: 'Método não permitido' });

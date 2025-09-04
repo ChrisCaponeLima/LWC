@@ -8,8 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const measurementsContainer = document.getElementById('measurements-container');
     const addMeasurementBtn = document.getElementById('add-measurement-btn');
     const photoGrid = document.getElementById('photo-grid');
+    const formaGrid = document.getElementById('forma-grid');
+    const weightChartElement = document.getElementById('weightChart');
+    const waistChartElement = document.getElementById('waistChart');
     const cardColors = ['#E0F2FE', '#E6E1FF', '#EDE5D6', '#E3F0E4', '#FFF0EB', '#F8EBFD'];
     let availableMeasurements = [];
+    let myWeightChart, myWaistChart;
     
     if (!userId) {
         window.location.href = 'login.html';
@@ -61,21 +65,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Função para renderizar as fotos de evolução
-    function renderEvolutionPhotos(records) {
-        photoGrid.innerHTML = '';
+    function renderPhotos(records, gridElement, photoUrlKey) {
+        gridElement.innerHTML = '';
         records.forEach(record => {
-            if (record.photo_url) {
+            if (record[photoUrlKey]) {
                 const photoItem = document.createElement('div');
                 photoItem.className = 'photo-item';
                 const date = new Date(record.record_date).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' });
                 photoItem.innerHTML = `
-                    <a href="${record.photo_url}" target="_blank">
-                        <img src="${record.photo_url}" alt="Foto de Evolução">
+                    <a href="${record[photoUrlKey]}" target="_blank">
+                        <img src="${record[photoUrlKey]}" alt="Foto de Evolução">
                     </a>
                     <p>${date}</p>
                 `;
-                photoGrid.appendChild(photoItem);
+                gridElement.appendChild(photoItem);
             }
+        });
+    }
+
+    // Função para renderizar os gráficos de peso e cintura
+    function renderCharts(records) {
+        const dates = records.map(record => new Date(record.record_date).toLocaleDateString('pt-BR'));
+        const weights = records.map(record => parseFloat(record.weight));
+        const waistMeasurements = records.map(record => {
+            const waist = record.measurements.find(m => m.name === 'Cintura');
+            return waist ? parseFloat(waist.value) : null;
+        });
+
+        // Gráfico de Peso
+        if (myWeightChart) {
+            myWeightChart.destroy();
+        }
+        myWeightChart = new Chart(weightChartElement, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Peso (kg)',
+                    data: weights,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true, tension: 0.4 }
+        });
+
+        // Gráfico de Cintura
+        if (myWaistChart) {
+            myWaistChart.destroy();
+        }
+        myWaistChart = new Chart(waistChartElement, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Cintura (cm)',
+                    data: waistMeasurements,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true, tension: 0.4 }
         });
     }
 
@@ -125,10 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/records?userId=${userId}`);
             const records = await response.json();
             
-            applyCardColors(); // Aplica as cores aos cards
-            renderEvolutionPhotos(records); // Renderiza as fotos após buscar os dados
-
-            // ... sua lógica de processamento dos dados ...
+            applyCardColors(); 
+            renderPhotos(records, photoGrid, 'photo_url');
+            renderPhotos(records, formaGrid, 'forma_url');
+            renderCharts(records);
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
@@ -152,6 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const photoFile = this.querySelector('#photo').files[0];
         if (photoFile) {
             formData.append('photo', photoFile);
+        }
+        const formaFile = this.querySelector('#forma').files[0];
+        if (formaFile) {
+            formData.append('forma', formaFile);
         }
 
         // Coleta os dados das medidas dinâmicas

@@ -101,8 +101,12 @@
                         <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
                     </div>
                     <div class="col-12">
-                        <label for="photo" class="form-label">Foto</label>
+                        <label for="photo" class="form-label">Foto de Evolução</label>
                         <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <label for="forma" class="form-label">Foto de Forma</label>
+                        <input class="form-control" type="file" id="forma" name="forma" accept="image/*">
                     </div>
                     <div class="col-12 text-center">
                         <button type="submit" class="btn-success">Salvar Registro</button>
@@ -114,7 +118,6 @@
         <div class="section-header">
             <h2 class="h2-title">Fotos de Evolução</h2>
         </div>
-        
         <p>
             <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse">
                 Visualizar Fotos de Evolução
@@ -123,6 +126,19 @@
         <div class="collapse" id="photoGalleryCollapse">
             <div id="photo-grid" class="photo-grid-gallery"></div>
         </div>
+        
+        <div class="section-header">
+            <h2 class="h2-title">Fotos de Forma</h2>
+        </div>
+        <p>
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse">
+                Visualizar Fotos de Forma
+            </button>
+        </p>
+        <div class="collapse" id="formaGalleryCollapse">
+            <div id="forma-grid" class="photo-grid-gallery"></div>
+        </div>
+
 
         <div class="section-header">
             <h2 class="h2-title">Gráficos de Evolução</h2>
