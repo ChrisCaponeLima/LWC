@@ -7,8 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const formContainer = document.getElementById('formContainer');
     const measurementsContainer = document.getElementById('measurements-container');
     const addMeasurementBtn = document.getElementById('add-measurement-btn');
+    const photoGrid = document.getElementById('photo-grid');
     let availableMeasurements = [];
-
+    
     if (!userId) {
         window.location.href = 'login.html';
         return;
@@ -52,6 +53,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Funções de Gráfico (manter o seu código existente)
     // ...
+
+    // Função para renderizar as fotos de evolução
+    function renderEvolutionPhotos(records) {
+        photoGrid.innerHTML = '';
+        records.forEach(record => {
+            if (record.photo_url) {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item';
+                photoItem.innerHTML = `
+                    <a href="${record.photo_url}" target="_blank">
+                        <img src="${record.photo_url}" alt="Foto de Evolução">
+                    </a>
+                `;
+                photoGrid.appendChild(photoItem);
+            }
+        });
+    }
 
     // Função para carregar as medidas e popular o dropdown
     async function loadMeasurements() {
@@ -98,20 +116,23 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/api/records?userId=${userId}`);
             const records = await response.json();
+            
+            // Renderizar as fotos após buscar os dados
+            renderEvolutionPhotos(records);
 
             // ... sua lógica de processamento dos dados ...
-
+            
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             motivationMessage.textContent = 'Erro ao carregar dados. Tente novamente mais tarde.';
         }
     }
-
+    
     // Submissão do formulário
     dataForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         const formData = new FormData();
-
+        
         // Coleta os dados estáticos
         formData.append('userId', userId);
         formData.append('date', this.querySelector('#date').value);
@@ -138,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         formData.append('measurements', JSON.stringify(measurements));
-
+        
         try {
             const response = await fetch('/api/records', {
                 method: 'POST',
@@ -149,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Registro salvo com sucesso!');
                 dataForm.reset();
                 fetchData();
-                // Opcional: remover os campos de medida dinâmicos
                 document.querySelectorAll('.measurement-row').forEach(row => row.remove());
                 addMeasurementField();
             } else {
