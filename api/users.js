@@ -1,8 +1,9 @@
 import { Pool } from 'pg';
 import { IncomingForm } from 'formidable';
 import cloudinary from 'cloudinary';
+import bcrypt from 'bcryptjs';
 
-// Configuração da conexão com o banco de dados usando variáveis de ambiente
+// Configuração da conexão com o banco de dados
 const pool = new Pool({
     user: process.env.PGUSER,
     host: process.env.PGHOST,
@@ -21,86 +22,84 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Manipulador de requisições
 export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-        if (req.method === 'POST' || req.method === 'PUT') {
+        if (req.method === 'POST') {
             const form = new IncomingForm();
 
             form.parse(req, async (err, fields, files) => {
                 if (err) {
-                    console.error('Erro ao processar formulário:', err);
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // O CONSOLE.LOG ABAIXO VAI NOS AJUDAR A VER O QUE ACONTECE
-                console.log('--- Conteúdo do Objeto Files ---');
-                console.log(files);
-                console.log('------------------------------');
+                const { user_id, user_name, user_email, password, height } = fields;
+                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
 
-                const { name, email, birthdate, role, id } = fields;
-                const finalBirthdate = birthdate && birthdate.length > 0 && birthdate[0] !== '' ? birthdate[0] : null;
-
-                let photo_perfil_url = null;
-                // Lógica mais robusta para encontrar o arquivo, mesmo que a estrutura mude
-                const photoFile = files['profile-photo'] && files['profile-photo'].length > 0 ? files['profile-photo'][0] : null;
-                
+                let photo_url = null;
                 if (photoFile) {
                     try {
-                        //const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
-                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos", type: 'private' });
-                        photo_perfil_url = result.secure_url;
-                        console.log('Upload para Cloudinary bem-sucedido. URL:', photo_perfil_url);
+                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                        photo_url = result.secure_url;
                     } catch (uploadError) {
                         console.error('Erro ao fazer upload da foto:', uploadError);
                         return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                     }
-                } else {
-                    console.log('Nenhum arquivo de foto encontrado para upload.');
                 }
 
-                if (req.method === 'POST') {
-                    // Criação de usuário
-                    await client.query(
-                        'INSERT INTO users (username, email, birthdate, role, photo_perfil_url) VALUES ($1, $2, $3, $4, $5)',
-                        [name[0], email[0], finalBirthdate, role[0], photo_perfil_url]
-                    );
-                    res.status(201).json({ message: 'Usuário criado com sucesso!' });
-                } else {
-                    // Atualização de usuário
-                    const fieldsToUpdate = [
-                        'username = $1',
-                        'email = $2',
-                        'birthdate = $3',
-                        'role = $4'
-                    ];
-                    const values = [name[0], email[0], finalBirthdate, role[0]];
-                    let paramCount = 5;
+                if (user_id) { // Atualiza usuário existente
+                    const updateFields = [];
+                    const updateValues = [];
+                    let paramIndex = 1;
 
-                    if (photo_perfil_url) {
-                        fieldsToUpdate.push(`photo_perfil_url = $${paramCount}`);
-                        values.push(photo_perfil_url);
+                    if (user_name) { updateFields.push(`user_name = $${paramIndex++}`); updateValues.push(user_name[0]); }
+                    if (user_email) { updateFields.push(`user_email = $${paramIndex++}`); updateValues.push(user_email[0]); }
+                    if (password && password[0]) {
+                        const hashedPassword = await bcrypt.hash(password[0], 10);
+                        updateFields.push(`password = $${paramIndex++}`);
+                        updateValues.push(hashedPassword);
                     }
-
-                    values.push(id[0]);
+                    if (photo_url) { updateFields.push(`photo_url = $${paramIndex++}`); updateValues.push(photo_url); }
+                    if (height) { updateFields.push(`height_cm = $${paramIndex++}`); updateValues.push(parseInt(height[0])); }
                     
-                    const query = `UPDATE users SET ${fieldsToUpdate.join(', ')} WHERE id = $${values.length}`;
+                    updateValues.push(user_id[0]);
 
-                    await client.query(query, values);
-                    res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
+                    if (updateFields.length > 0) {
+                        const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`;
+                        await client.query(query, updateValues);
+                    }
+                    res.status(200).json({ message: 'Dados atualizados com sucesso.' });
+
+                } else { // Cria novo usuário (login)
+                    const hashedPassword = await bcrypt.hash(password[0], 10);
+                    const result = await client.query(
+                        'INSERT INTO users (user_name, user_email, password, photo_url, height_cm) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+                        [user_name[0], user_email[0], hashedPassword, photo_url, parseInt(height[0])]
+                    );
+                    const newUserId = result.rows[0].id;
+                    res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
                 }
             });
-        } else if (req.method === 'DELETE') {
-            const { id: deleteId } = req.body;
-            await client.query('DELETE FROM users WHERE id = $1', [deleteId]);
-            res.status(200).json({ message: 'Usuário excluído com sucesso!' });
+
         } else if (req.method === 'GET') {
-            const result = await client.query('SELECT id, username, email, birthdate, role, photo_perfil_url FROM users ORDER BY username');
-            res.status(200).json(result.rows);
+            const { id } = req.query;
+            if (!id) {
+                return res.status(400).json({ message: 'ID de usuário é obrigatório.' });
+            }
+
+            const result = await client.query(
+                'SELECT id, user_name, user_email, photo_url, height_cm FROM users WHERE id = $1',
+                [id]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'Usuário não encontrado.' });
+            }
+            res.status(200).json(result.rows[0]);
+
         } else {
-            res.status(405).json({ message: 'Método não permitido' });
+            res.status(405).json({ message: 'Método não permitido.' });
         }
     } catch (error) {
         console.error('Erro na requisição da API:', error);
@@ -110,7 +109,6 @@ export default async function handler(req, res) {
     }
 }
 
-// Desabilita o parser de corpo padrão do Vercel
 export const config = {
   api: {
     bodyParser: false,

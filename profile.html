@@ -40,54 +40,50 @@
                 </a>
             </div>
         </div>
-
+        
         <div class="profile-section-wrapper">
             <div class="profile-section" id="myInfoSection" style="display: none;">
                 <h2 class="h2-title">Minhas Informações</h2>
-                <a href="#" class="back-button-info" onclick="history.back()">
+                <a href="#" class="back-button-info" id="backToMain">
                     < Voltar
                 </a>
-                <div class="kpi-grid">
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Medidas" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Medidas</span>
-                            <span class="kpi-value" id="user-measurements">--</span>
+                
+                <div class="form-card mt-3">
+                    <form id="profileForm" class="row g-3" enctype="multipart/form-data">
+                        <div class="col-12 text-center mb-3">
+                            <label for="profile-photo-upload" class="photo-upload-label">
+                                <img id="profilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="profile-photo-lg">
+                                <br>
+                                Mudar Foto
+                            </label>
+                            <input type="file" id="profile-photo-upload" style="display: none;" accept="image/*">
                         </div>
-                    </div>
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:weight-bold-duotone.svg" alt="Ícone de Peso" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Peso Inicial</span>
-                            <span class="kpi-value" id="user-initial-weight">-- kg</span>
+                        <div class="col-12">
+                            <label for="profile-username" class="form-label">Nome Completo</label>
+                            <input type="text" class="form-control" id="profile-username" required>
                         </div>
-                    </div>
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:dumbbell-bold-duotone.svg" alt="Ícone de Treino" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Dias de Treino</span>
-                            <span class="kpi-value" id="user-workout-days">--</span>
+                        <div class="col-12">
+                            <label for="profile-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="profile-email" readonly>
                         </div>
-                    </div>
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Medidas" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Aniversário</span>
-                            <span class="kpi-value" id="user-birthdate">--</span>
+                        <div class="col-12">
+                            <label for="height" class="form-label">Altura (cm)</label>
+                            <input type="number" step="1" class="form-control" id="height" name="height">
                         </div>
-                    </div>
-                </div>
-                <div class="card-chart">
-                    <h3 class="chart-title">Calendário de Registros</h3>
-                    <div id="calendar-placeholder">
-                        <p>Calendário a ser implementado com JavaScript.</p>
-                    </div>
+                        <div class="col-12">
+                            <label for="profile-password" class="form-label">Nova Senha</label>
+                            <input type="password" class="form-control" id="profile-password" placeholder="Deixe em branco para não alterar">
+                        </div>
+                        <div class="col-12 text-center">
+                            <button type="submit" class="btn-success">Salvar Alterações</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
             <div class="profile-section" id="changePasswordSection" style="display: none;">
                 <h2 class="h2-title">Mudar Minha Senha</h2>
-                <a href="#" class="back-button-info" onclick="history.back()">
+                <a href="#" class="back-button-info" id="backToMainFromPassword">
                     < Voltar
                 </a>
                 <div class="form-card">
@@ -113,9 +109,9 @@
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="profile.js"></script>
     <script>
-        // JavaScript para as transições de página
         document.getElementById('showInfoBtn').addEventListener('click', function(e) {
             e.preventDefault();
             document.getElementById('myInfoSection').style.display = 'block';
@@ -126,6 +122,18 @@
             e.preventDefault();
             document.getElementById('changePasswordSection').style.display = 'block';
             document.getElementById('mainProfile').style.display = 'none';
+        });
+
+        document.getElementById('backToMain').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('myInfoSection').style.display = 'none';
+            document.getElementById('mainProfile').style.display = 'block';
+        });
+
+        document.getElementById('backToMainFromPassword').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('changePasswordSection').style.display = 'none';
+            document.getElementById('mainProfile').style.display = 'block';
         });
     </script>
 </body>

@@ -2,6 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const userId = localStorage.getItem('userId');
     const username = localStorage.getItem('username');
     const userPhotoUrl = localStorage.getItem('userPhotoUrl');
+    // A altura agora é carregada do localStorage, que é preenchido pelo profile.js
+    const userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null; 
+
     const dataForm = document.getElementById('dataForm');
     const toggleFormBtn = document.getElementById('toggleFormBtn');
     const formContainer = document.getElementById('formContainer');
@@ -11,6 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const formaGrid = document.getElementById('forma-grid');
     const weightChartElement = document.getElementById('weightChart');
     const waistChartElement = document.getElementById('waistChart');
+
+    // Elementos dos KPIs
+    const currentWeightElem = document.getElementById('current-weight');
+    const totalLossElem = document.getElementById('total-loss');
+    const weeklyStatusElem = document.getElementById('weekly-status');
+    const bmiElem = document.getElementById('bmi');
+
     const cardColors = ['#E0F2FE', '#E6E1FF', '#EDE5D6', '#E3F0E4', '#FFF0EB', '#F8EBFD'];
     let availableMeasurements = [];
     let myWeightChart, myWaistChart;
@@ -83,11 +93,84 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Função para calcular e exibir os KPIs
+    function updateKPIs(records) {
+        if (records.length === 0) {
+            currentWeightElem.textContent = '-- kg';
+            totalLossElem.textContent = '-- kg';
+            weeklyStatusElem.textContent = 'N/A';
+            bmiElem.textContent = '--';
+            return;
+        }
+
+        // Ordena os registros pela data para pegar o mais recente
+        const sortedRecords = [...records].sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
+
+        const latestRecord = sortedRecords[0];
+        const firstRecord = sortedRecords[sortedRecords.length - 1];
+
+        // Peso Atual
+        currentWeightElem.textContent = `${parseFloat(latestRecord.weight).toFixed(2)} kg`;
+
+        // Perda Total
+        if (firstRecord && latestRecord.weight < firstRecord.weight) {
+            const totalLoss = firstRecord.weight - latestRecord.weight;
+            totalLossElem.textContent = `${totalLoss.toFixed(2)} kg`;
+            totalLossElem.style.color = '#28a745'; // Verde para perda
+        } else if (firstRecord && latestRecord.weight > firstRecord.weight) {
+             const totalGain = latestRecord.weight - firstRecord.weight;
+             totalLossElem.textContent = `+${totalGain.toFixed(2)} kg`;
+             totalLossElem.style.color = '#dc3545'; // Vermelho para ganho
+        } else {
+            totalLossElem.textContent = '0.00 kg';
+        }
+
+        // Status Semanal (Exemplo simples: verifica se o peso mudou na última semana)
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const recordsLastWeek = sortedRecords.filter(r => new Date(r.record_date) >= oneWeekAgo);
+
+        if (recordsLastWeek.length > 1) {
+            const latestWeight = parseFloat(recordsLastWeek[0].weight);
+            const previousWeight = parseFloat(recordsLastWeek[1].weight); // Penúltimo peso na última semana
+
+            if (latestWeight < previousWeight) {
+                weeklyStatusElem.textContent = 'Emagrecendo';
+                weeklyStatusElem.style.color = '#28a745';
+            } else if (latestWeight > previousWeight) {
+                weeklyStatusElem.textContent = 'Engordando';
+                weeklyStatusElem.style.color = '#dc3545';
+            } else {
+                weeklyStatusElem.textContent = 'Estável';
+                weeklyStatusElem.style.color = '#6c757d';
+            }
+        } else {
+            weeklyStatusElem.textContent = 'Poucos dados';
+            weeklyStatusElem.style.color = '#ffc107';
+        }
+
+
+        // IMC (depende da altura do usuário)
+        if (userHeightCm && userHeightCm > 0) {
+            const heightMeters = userHeightCm / 100;
+            const bmi = parseFloat(latestRecord.weight) / (heightMeters * heightMeters);
+            bmiElem.textContent = bmi.toFixed(2);
+            // Adicione lógica de cores para diferentes categorias de IMC se desejar
+        } else {
+            bmiElem.textContent = '-- (Altura N/A)';
+            bmiElem.style.color = '#ffc107';
+        }
+    }
+
+
     // Função para renderizar os gráficos de peso e cintura
     function renderCharts(records) {
-        const dates = records.map(record => new Date(record.record_date).toLocaleDateString('pt-BR'));
-        const weights = records.map(record => parseFloat(record.weight));
-        const waistMeasurements = records.map(record => {
+        // Ordena os registros pela data para garantir a ordem correta no gráfico
+        const sortedRecords = [...records].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
+
+        const dates = sortedRecords.map(record => new Date(record.record_date).toLocaleDateString('pt-BR'));
+        const weights = sortedRecords.map(record => parseFloat(record.weight));
+        const waistMeasurements = sortedRecords.map(record => {
             const waist = record.measurements.find(m => m.name === 'Cintura');
             return waist ? parseFloat(waist.value) : null;
         });
@@ -105,7 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     data: weights,
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    borderWidth: 2
+                    borderWidth: 2,
+                    fill: true
                 }]
             },
             options: { responsive: true, tension: 0.4 }
@@ -124,7 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     data: waistMeasurements,
                     borderColor: '#28a745',
                     backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    borderWidth: 2
+                    borderWidth: 2,
+                    fill: true
                 }]
             },
             options: { responsive: true, tension: 0.4 }
@@ -178,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const records = await response.json();
             
             applyCardColors(); 
+            updateKPIs(records); // Atualiza os KPIs
             renderPhotos(records, photoGrid, 'photo_url');
             renderPhotos(records, formaGrid, 'forma_url');
             renderCharts(records);
