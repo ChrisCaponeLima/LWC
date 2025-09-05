@@ -8,66 +8,6 @@
     --card-bg: #FFFFFF;
     --border-color: #EAEAEA;
     --shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-light);
-    color: var(--dark-grey);
-    padding-bottom: 80px;
-}
-
-.container {
-    padding: 1rem;
-}
-
-.app-header {
-    background-color: var(--card-bg); /* Alterado para fundo branco */
-    color: var(--dark-grey); /* Alterado para texto escuro */
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center; 
-    box-shadow: var(--shadow);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.h1-title {
-    font-size: 1.3rem; 
-    font-weight: 700;
-    margin: 0;
-}
-
-.back-button {
-    color: var(--dark-grey); /* Alterado para texto escuro */
-    text-decoration: none;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.user-profile-menu {
-    display: flex;
-    align-items: center;
-}
-
-.user-photo-sm {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;:root {
-    --primary-blue: #007AFF;
-    --dark-grey: #3A3A3C;
-    --success-green: #34C759;
-    --warning-orange: #FF9500;
-    --danger-red: #FF3B30;
-    --bg-light: #F2F2F7;
-    --card-bg: #FFFFFF;
-    --border-color: #EAEAEA;
-    --shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
     
     /* Novas cores dos cards */
     --card-blue-bg: #E0F2FE;
@@ -78,7 +18,7 @@ body {
     --card-orange-font: #F3934F;
     --card-green-bg: #E3F0E4;
     --card-green-font: #1DA01C;
-    --card-terracotta-bg: #FFF0EB;
+    --card-terracotta-bg: #FFF0EB; /* Nova cor para o card de clima */
     --card-terracotta-font: #F2350E;
     --card-pink-bg: #F8EBFD;
     --card-pink-font: #D7B4B6;
@@ -95,18 +35,18 @@ body {
 
 /* Nova estrutura de borda */
 .white-border-wrapper {
-    background-color: var(--card-bg); /* Fundo da borda 1px */
+    background-color: var(--card-bg);
     padding: 1px;
 }
 
 .grey-border-wrapper {
-    background-color: var(--card-gelo-bg); /* Fundo da borda 3px */
+    background-color: var(--card-gelo-bg);
     padding: 3px;
 }
 
 .container {
     padding: 1rem;
-    background-color: var(--bg-light); /* Garante que o fundo da tela seja cinza */
+    background-color: var(--bg-light);
 }
 
 .app-header {
@@ -125,7 +65,7 @@ body {
     font-size: 1.3rem; 
     font-weight: 700;
     margin: 0;
-    color: var(--dark-grey); /* Corrigido: Título agora é escuro */
+    color: var(--dark-grey);
 }
 
 .back-button {
@@ -138,7 +78,7 @@ body {
 }
 
 .user-profile-menu strong, .user-profile-menu a {
-    color: var(--dark-grey) !important; /* Corrigido: Nome do usuário agora é escuro */
+    color: var(--dark-grey) !important;
 }
 
 .user-photo-sm {
@@ -198,8 +138,18 @@ body {
 .h2-title {
     font-size: 1rem;
     font-weight: 700;
-    margin-top: 1rem; /* Espaço acima do título */
-    margin-bottom: 1rem; /* Espaço abaixo do título */
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Novo estilo para o status de carregamento */
+.loading-status {
+    font-size: 0.8rem;
+    font-style: italic;
+    font-weight: normal;
+    margin-top: -0.5rem;
+    margin-bottom: 1rem;
+    color: #6C757D;
 }
 
 .edit-profile-icon .icon-sm {
@@ -241,13 +191,13 @@ body {
 }
 
 .kpi-label {
-    font-size: 0.65rem; /* Fonte diminuída */
+    font-size: 0.65rem;
     text-transform: uppercase;
     font-weight: 500;
 }
 
 .kpi-value {
-    font-size: 0.9rem; /* Fonte diminuída */
+    font-size: 0.9rem;
     font-weight: 700;
 }
 
@@ -284,6 +234,14 @@ body {
 .card-green .kpi-info .kpi-label { color: var(--card-green-font); }
 .card-green .kpi-info .kpi-value { color: var(--card-green-font); }
 
+.card-terracotta { /* Novo card de cor */
+    background-color: var(--card-terracotta-bg);
+    color: var(--card-terracotta-font);
+}
+.card-terracotta .icon { color: var(--card-terracotta-font); }
+.card-terracotta .kpi-info .kpi-label { color: var(--card-terracotta-font); }
+.card-terracotta .kpi-info .kpi-value { color: var(--card-terracotta-font); }
+
 /* Adaptação para o card featured */
 .card-featured {
     background-color: var(--card-bg);
@@ -317,217 +275,6 @@ body {
 .control-icon {
     width: 24px;
     height: 24px;
-}
-
-.card-chart {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: var(--shadow);
-}
-
-.photo-grid-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
-}
-
-.photo-item {
-    text-align: center;
-}
-
-.photo-item img {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    border: 2px solid var(--border-color);
-    transition: border-color 0.2s ease-in-out;
-}
-
-.photo-item img:hover {
-    border-color: var(--primary-blue);
-}
-
-.photo-item p {
-    font-size: 0.75rem;
-    margin-top: 5px;
-}
-
-.form-card {
-    background-color: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    margin-bottom: 2rem;
-}
-
-.btn-success {
-    background-color: var(--success-green);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    width: 100%;
-}
-
-.btn-secondary {
-    background-color: #6C757D;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    width: 100%;
-}
-
-.btn-filter {
-    background-color: #EAEAEA;
-    color: #3A3A3C;
-    border: none;
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-}
-    border: 2px solid var(--dark-grey); /* Alterado para borda escura */
-}
-
-.profile-page {
-    padding-top: 2rem;
-}
-
-.profile-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.profile-picture-container {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-bottom: 1rem;
-    box-shadow: var(--shadow);
-}
-
-.profile-picture-container img, .profile-photo-lg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.h2-profile-name {
-    font-size: 1.5rem;
-    margin-bottom: 0.25rem;
-}
-
-.profile-email {
-    font-size: 1rem;
-    color: #6C757D;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-}
-
-.h2-title {
-    font-size: 1rem; 
-    font-weight: 700;
-    margin: 0;
-}
-
-.edit-profile-icon .icon-sm {
-    width: 24px;
-    height: 24px;
-    color: var(--primary-blue);
-}
-
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.card-basic {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    box-shadow: var(--shadow);
-    transition: transform 0.2s ease-in-out;
-}
-
-.card-basic:hover {
-    transform: translateY(-3px);
-}
-
-.icon {
-    width: 36px;
-    height: 36px;
-    color: var(--dark-grey);
-}
-
-.kpi-info {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}
-
-.kpi-label {
-    font-size: 0.75rem;
-    color: #6C757D;
-    text-transform: uppercase;
-    font-weight: 500;
-}
-
-.kpi-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-}
-
-.btn-control {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 1rem;
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    color: var(--dark-grey);
-    text-decoration: none;
-    font-weight: 500;
-    box-shadow: var(--shadow);
-    transition: transform 0.2s ease-in-out;
-}
-
-.btn-control:hover {
-    transform: translateY(-3px);
-}
-
-.control-icon {
-    width: 24px;
-    height: 24px;
-}
-
-.card-featured {
-    background-color: var(--card-bg); /* Alterado para fundo branco */
-    color: var(--dark-grey); /* Alterado para texto escuro */
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
-    margin-bottom: 1.5rem;
 }
 
 .card-chart {

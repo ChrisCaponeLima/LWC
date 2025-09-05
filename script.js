@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userId = localStorage.getItem('userId');
     const username = localStorage.getItem('username');
     const userPhotoUrl = localStorage.getItem('userPhotoUrl');
-    // A altura agora é carregada do localStorage, que é preenchido pelo profile.js
     const userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null; 
 
     const dataForm = document.getElementById('dataForm');
@@ -21,7 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const weeklyStatusElem = document.getElementById('weekly-status');
     const bmiElem = document.getElementById('bmi');
 
-    const cardColors = ['#E0F2FE', '#E6E1FF', '#EDE5D6', '#E3F0E4', '#FFF0EB', '#F8EBFD'];
+    // Elementos da nova saudação
+    const greetingMessageElem = document.getElementById('greeting-message');
+    const loadingStatusTextElem = document.getElementById('loading-status-text');
+    
+    // Novo elemento do clima
+    const weatherDataElem = document.getElementById('weather-data');
+
     let availableMeasurements = [];
     let myWeightChart, myWaistChart;
     
@@ -39,10 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userProfilePhoto && userPhotoUrl) {
         userProfilePhoto.src = userPhotoUrl;
     }
+    
+    // Função para obter a saudação baseada na hora do dia
+    function getGreeting() {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Bom dia';
+        if (hour < 18) return 'Boa tarde';
+        return 'Boa noite';
+    }
 
     // Funcionalidade de abrir/fechar o formulário
     toggleFormBtn.addEventListener('click', () => {
-        if (formContainer.style.display === 'none') {
+        if (formContainer.style.display === 'none' || formContainer.style.display === '') {
             formContainer.style.display = 'block';
             toggleFormBtn.textContent = 'Fechar Formulário';
         } else {
@@ -57,20 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', () => {
             localStorage.clear();
             window.location.href = 'login.html';
-        });
-    }
-
-    // Exibir mensagem de boas-vindas
-    const motivationMessage = document.getElementById('motivation-message');
-    if (motivationMessage) {
-        motivationMessage.textContent = `Bem-vindo, ${username}! Carregando seus dados...`;
-    }
-
-    // Função para aplicar as cores aos cards
-    function applyCardColors() {
-        const cards = document.querySelectorAll('.kpi-grid .card-basic');
-        cards.forEach((card, index) => {
-            card.style.backgroundColor = cardColors[index % cardColors.length];
         });
     }
 
@@ -103,36 +102,31 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Ordena os registros pela data para pegar o mais recente
         const sortedRecords = [...records].sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
-
         const latestRecord = sortedRecords[0];
         const firstRecord = sortedRecords[sortedRecords.length - 1];
 
-        // Peso Atual
         currentWeightElem.textContent = `${parseFloat(latestRecord.weight).toFixed(2)} kg`;
 
-        // Perda Total
         if (firstRecord && latestRecord.weight < firstRecord.weight) {
             const totalLoss = firstRecord.weight - latestRecord.weight;
             totalLossElem.textContent = `${totalLoss.toFixed(2)} kg`;
-            totalLossElem.style.color = '#28a745'; // Verde para perda
+            totalLossElem.style.color = '#28a745';
         } else if (firstRecord && latestRecord.weight > firstRecord.weight) {
-             const totalGain = latestRecord.weight - firstRecord.weight;
-             totalLossElem.textContent = `+${totalGain.toFixed(2)} kg`;
-             totalLossElem.style.color = '#dc3545'; // Vermelho para ganho
+            const totalGain = latestRecord.weight - firstRecord.weight;
+            totalLossElem.textContent = `+${totalGain.toFixed(2)} kg`;
+            totalLossElem.style.color = '#dc3545';
         } else {
             totalLossElem.textContent = '0.00 kg';
         }
 
-        // Status Semanal (Exemplo simples: verifica se o peso mudou na última semana)
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
         const recordsLastWeek = sortedRecords.filter(r => new Date(r.record_date) >= oneWeekAgo);
 
         if (recordsLastWeek.length > 1) {
             const latestWeight = parseFloat(recordsLastWeek[0].weight);
-            const previousWeight = parseFloat(recordsLastWeek[1].weight); // Penúltimo peso na última semana
+            const previousWeight = parseFloat(recordsLastWeek[1].weight);
 
             if (latestWeight < previousWeight) {
                 weeklyStatusElem.textContent = 'Emagrecendo';
@@ -149,23 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
             weeklyStatusElem.style.color = '#ffc107';
         }
 
-
-        // IMC (depende da altura do usuário)
         if (userHeightCm && userHeightCm > 0) {
             const heightMeters = userHeightCm / 100;
             const bmi = parseFloat(latestRecord.weight) / (heightMeters * heightMeters);
             bmiElem.textContent = bmi.toFixed(2);
-            // Adicione lógica de cores para diferentes categorias de IMC se desejar
         } else {
             bmiElem.textContent = '-- (Altura N/A)';
             bmiElem.style.color = '#ffc107';
         }
     }
 
-
     // Função para renderizar os gráficos de peso e cintura
     function renderCharts(records) {
-        // Ordena os registros pela data para garantir a ordem correta no gráfico
         const sortedRecords = [...records].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
 
         const dates = sortedRecords.map(record => new Date(record.record_date).toLocaleDateString('pt-BR'));
@@ -175,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return waist ? parseFloat(waist.value) : null;
         });
 
-        // Gráfico de Peso
         if (myWeightChart) {
             myWeightChart.destroy();
         }
@@ -195,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
             options: { responsive: true, tension: 0.4 }
         });
 
-        // Gráfico de Cintura
         if (myWaistChart) {
             myWaistChart.destroy();
         }
@@ -221,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/measurements');
             availableMeasurements = await response.json();
-            addMeasurementField(); // Adiciona o primeiro campo de medida
+            addMeasurementField();
         } catch (error) {
             console.error('Erro ao carregar lista de medidas:', error);
         }
@@ -247,30 +234,76 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         measurementsContainer.appendChild(row);
 
-        // Adiciona o listener para remover o campo
         row.querySelector('.remove-measurement-btn').addEventListener('click', () => {
             row.remove();
         });
     }
 
-    // Listener para o botão de adicionar medida
     addMeasurementBtn.addEventListener('click', addMeasurementField);
 
-    // Fetch inicial dos dados
-    async function fetchData() {
+    // Nova função assíncrona para buscar os dados de clima
+    async function fetchWeather() {
+        const apiKey = 'SUA_CHAVE_DE_API_DO_OPENWEATHERMAP'; // Insira sua chave aqui
+        const city = 'São Paulo';
+        const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
+
         try {
-            const response = await fetch(`/api/records?userId=${userId}`);
-            const records = await response.json();
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error('Erro ao buscar dados do clima');
+            }
+            const data = await response.json();
             
-            applyCardColors(); 
-            updateKPIs(records); // Atualiza os KPIs
+            const temp = data.main.temp.toFixed(0);
+            const weatherDescription = data.weather[0].description;
+            const weatherIconCode = data.weather[0].icon;
+
+            weatherDataElem.textContent = `${temp}°C`;
+            
+            const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
+            const iconElement = document.querySelector('.card-terracotta .icon');
+            iconElement.src = iconUrl;
+            iconElement.alt = weatherDescription;
+            
+        } catch (error) {
+            console.error('Erro ao carregar clima:', error);
+            weatherDataElem.textContent = 'N/A';
+        }
+    }
+
+    // Função que carrega todos os dados
+    async function loadInitialData() {
+        try {
+            // Define a saudação inicial
+            if (greetingMessageElem && username) {
+                greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
+            } else {
+                greetingMessageElem.textContent = `${getGreeting()}, Usuário`;
+            }
+
+            // Exibir a mensagem de carregamento inicial
+            loadingStatusTextElem.textContent = 'carregando seus dados...';
+            
+            const [recordsResponse, measurementsResponse] = await Promise.all([
+                fetch(`/api/records?userId=${userId}`),
+                fetch('/api/measurements')
+            ]);
+            
+            const records = await recordsResponse.json();
+            availableMeasurements = await measurementsResponse.json();
+
+            // Depois que os dados foram carregados, atualiza o status
+            loadingStatusTextElem.textContent = 'Acompanhe sua evolução';
+
+            updateKPIs(records);
             renderPhotos(records, photoGrid, 'photo_url');
             renderPhotos(records, formaGrid, 'forma_url');
             renderCharts(records);
+            addMeasurementField(); // Adiciona o primeiro campo de medida
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
-            motivationMessage.textContent = 'Erro ao carregar dados. Tente novamente mais tarde.';
+            loadingStatusTextElem.textContent = 'Erro ao carregar dados. Tente novamente mais tarde.';
         }
     }
     
@@ -279,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         const formData = new FormData();
         
-        // Coleta os dados estáticos
         formData.append('userId', userId);
         formData.append('date', this.querySelector('#date').value);
         formData.append('weight', this.querySelector('#weight').value);
@@ -296,7 +328,6 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('forma', formaFile);
         }
 
-        // Coleta os dados das medidas dinâmicas
         const measurements = [];
         document.querySelectorAll('.measurement-row').forEach(row => {
             const measurementId = row.querySelector('.measurement-type').value;
@@ -319,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 alert('Registro salvo com sucesso!');
                 dataForm.reset();
-                fetchData();
+                loadInitialData();
                 document.querySelectorAll('.measurement-row').forEach(row => row.remove());
                 addMeasurementField();
             } else {
@@ -331,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    loadMeasurements();
-    fetchData();
+    // Chamadas iniciais
+    loadInitialData();
+    fetchWeather();
 });
