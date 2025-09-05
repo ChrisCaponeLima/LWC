@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Nova função assíncrona para buscar os dados de clima
     async function fetchWeather() {
-        const apiKey = 'SUA_CHAVE_DE_API_DO_OPENWEATHERMAP'; // Insira sua chave aqui
+        const apiKey = '05ed98339efc6ed6a913340eea26a1bd'; // Insira sua chave aqui
         const city = 'São Paulo';
         const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
 
