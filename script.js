@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         userProfilePhoto.src = userPhotoUrl;
     }
     
-    // Função para obter a saudação baseada na hora do dia
     function getGreeting() {
         const hour = new Date().getHours();
         if (hour < 12) return 'Bom dia';
@@ -53,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'Boa noite';
     }
 
-    // Funcionalidade de abrir/fechar o formulário
     toggleFormBtn.addEventListener('click', () => {
         if (formContainer.style.display === 'none' || formContainer.style.display === '') {
             formContainer.style.display = 'block';
@@ -64,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Função de Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -73,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Função para renderizar as fotos de evolução
     function renderPhotos(records, gridElement, photoUrlKey) {
         gridElement.innerHTML = '';
         records.forEach(record => {
@@ -92,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Função para calcular e exibir os KPIs
     function updateKPIs(records) {
         if (records.length === 0) {
             currentWeightElem.textContent = '-- kg';
@@ -153,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Função para renderizar os gráficos de peso e cintura
     function renderCharts(records) {
         const sortedRecords = [...records].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
 
@@ -203,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Função para carregar as medidas e popular o dropdown
     async function loadMeasurements() {
         try {
             const response = await fetch('/api/measurements');
@@ -214,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Função para criar um novo campo de medida
     function addMeasurementField() {
         const row = document.createElement('div');
         row.className = 'row g-3 mb-2 measurement-row';
@@ -241,47 +233,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addMeasurementBtn.addEventListener('click', addMeasurementField);
 
-    // Nova função assíncrona para buscar os dados de clima
+    // Função assíncrona para buscar os dados de clima com tratamento de erro
     async function fetchWeather() {
-        const apiKey = '05ed98339efc6ed6a913340eea26a1bd'; // Insira sua chave aqui
+        const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
         const city = 'São Paulo';
         const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
 
         try {
             const response = await fetch(apiUrl);
+
+            // Verificação mais robusta para a resposta da API
             if (!response.ok) {
-                throw new Error('Erro ao buscar dados do clima');
+                const errorData = await response.json();
+                throw new Error(`Erro ${response.status}: ${errorData.message}`);
             }
+
             const data = await response.json();
             
-            const temp = data.main.temp.toFixed(0);
-            const weatherDescription = data.weather[0].description;
-            const weatherIconCode = data.weather[0].icon;
+            // Verificação para garantir que os dados de temperatura existem
+            if (data && data.main && data.main.temp !== undefined) {
+                const temp = data.main.temp.toFixed(0);
+                const weatherDescription = data.weather[0].description;
+                const weatherIconCode = data.weather[0].icon;
 
-            weatherDataElem.textContent = `${temp}°C`;
-            
-            const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
-            const iconElement = document.querySelector('.card-terracotta .icon');
-            iconElement.src = iconUrl;
-            iconElement.alt = weatherDescription;
+                weatherDataElem.textContent = `${temp}°C`;
+                
+                const iconElement = document.querySelector('.card-terracota .icon');
+                if (iconElement) {
+                     const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
+                     iconElement.src = iconUrl;
+                     iconElement.alt = weatherDescription;
+                }
+            } else {
+                throw new Error('Dados de temperatura não encontrados na resposta da API.');
+            }
             
         } catch (error) {
-            console.error('Erro ao carregar clima:', error);
+            console.error('Erro ao carregar clima:', error.message);
             weatherDataElem.textContent = 'N/A';
+            const iconElement = document.querySelector('.card-terracota .icon');
+            if (iconElement) {
+                iconElement.src = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg'; // Ícone padrão de erro
+            }
         }
     }
 
-    // Função que carrega todos os dados
     async function loadInitialData() {
         try {
-            // Define a saudação inicial
             if (greetingMessageElem && username) {
                 greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
             } else {
                 greetingMessageElem.textContent = `${getGreeting()}, Usuário`;
             }
 
-            // Exibir a mensagem de carregamento inicial
             loadingStatusTextElem.textContent = 'carregando seus dados...';
             
             const [recordsResponse, measurementsResponse] = await Promise.all([
@@ -292,14 +296,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const records = await recordsResponse.json();
             availableMeasurements = await measurementsResponse.json();
 
-            // Depois que os dados foram carregados, atualiza o status
             loadingStatusTextElem.textContent = 'Acompanhe sua evolução';
 
             updateKPIs(records);
             renderPhotos(records, photoGrid, 'photo_url');
             renderPhotos(records, formaGrid, 'forma_url');
             renderCharts(records);
-            addMeasurementField(); // Adiciona o primeiro campo de medida
+            addMeasurementField();
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
@@ -307,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Submissão do formulário
     dataForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         const formData = new FormData();
@@ -362,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Chamadas iniciais
     loadInitialData();
     fetchWeather();
 });
