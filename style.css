@@ -1,202 +1,272 @@
-/* Paleta de Cores dos Cards */
 :root {
-    --card-color-1: #E0F2FE;
-    --card-color-2: #E6E1FF;
-    --card-color-3: #EDE5D6;
-    --card-color-4: #E3F0E4;
-    --card-color-5: #FFF0EB;
-    --card-color-6: #F8EBFD;
-    --card-color-7: #E6E6EE;
+    --primary-blue: #007AFF;
+    --dark-grey: #3A3A3C;
+    --success-green: #34C759;
+    --warning-orange: #FF9500;
+    --danger-red: #FF3B30;
+    --bg-light: #F2F2F7;
+    --card-bg: #FFFFFF;
+    --border-color: #EAEAEA;
+    --shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* Base Geral */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--card-color-7);
-    padding: 20px;
+    background-color: var(--bg-light);
+    color: var(--dark-grey);
+    padding-bottom: 80px;
 }
 
-.container.main-content {
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+.container {
+    padding: 1rem;
 }
 
-/* Títulos e Tipografia */
+.app-header {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Alinha verticalmente */
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
 .h1-title {
-    font-size: 2.5rem;
+    font-size: 1.3rem; /* Título do cabeçalho com tamanho de subtítulo */
     font-weight: 700;
-    color: #fff;
     margin: 0;
 }
 
-.h2-title {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 20px;
-}
-
-/* Cabeçalho */
-.app-header {
-    background-color: #333;
-    color: #fff;
-    padding: 15px 20px;
-    border-radius: 12px;
+.back-button {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    gap: 5px;
 }
 
-.user-profile-menu strong {
-    color: #fff; /* Nome do usuário visível no header */
+.user-profile-menu {
+    display: flex;
+    align-items: center;
 }
 
 .user-photo-sm {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #fff;
+    border: 2px solid white;
 }
 
-/* Cards de KPI */
+.profile-page {
+    padding-top: 2rem;
+}
+
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.profile-picture-container {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.profile-picture-container img, .profile-photo-lg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.h2-profile-name {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.profile-email {
+    font-size: 1rem;
+    color: #6C757D;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.h2-title {
+    font-size: 1rem; /* Subtítulo com fonte diminuída */
+    font-weight: 700;
+    margin: 0;
+}
+
+.edit-profile-icon .icon-sm {
+    width: 24px;
+    height: 24px;
+    color: var(--primary-blue);
+}
+
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* 2 cards por linha no celular */
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .card-basic {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 1rem;
     display: flex;
     align-items: center;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
+    gap: 1rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease-in-out;
 }
 
-.card-basic .icon {
-    width: 30px;
-    height: 30px;
-    margin-right: 15px;
+.card-basic:hover {
+    transform: translateY(-3px);
+}
+
+.icon {
+    width: 36px;
+    height: 36px;
+    color: var(--dark-grey);
 }
 
 .kpi-info {
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
 }
 
 .kpi-label {
-    font-size: 0.9rem;
-    color: #555;
-    white-space: nowrap;
+    font-size: 0.75rem; /* Fonte diminuída */
+    color: #6C757D;
+    text-transform: uppercase;
+    font-weight: 500;
 }
 
 .kpi-value {
-    font-size: 1.2rem;
+    font-size: 1.1rem; /* Fonte diminuída, mas ainda de destaque */
     font-weight: 700;
 }
 
-/* Botões de Ação */
 .btn-control {
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 1rem;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    color: var(--dark-grey);
+    text-decoration: none;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease-in-out;
 }
 
 .btn-control:hover {
-    background-color: #0056b3;
+    transform: translateY(-3px);
 }
 
-/* Formulário */
-.form-card {
-    padding: 20px;
+.control-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.card-featured {
+    background-color: var(--primary-blue);
+    color: white;
     border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
-    margin-bottom: 20px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
 }
 
-.btn-success {
-    background-color: #28a745;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.btn-success:hover {
-    background-color: #218838;
-}
-
-/* Seção de Fotos */
-.section-header {
-    border-bottom: 2px solid #f0f0f0;
-    margin-bottom: 20px;
+.card-chart {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: var(--shadow);
 }
 
 .photo-grid-gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
 }
 
-.photo-grid-gallery .photo-item {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: transform 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.photo-item {
     text-align: center;
-    background-color: #fff;
 }
 
-.photo-grid-gallery .photo-item img {
+.photo-item img {
     width: 100%;
-    height: 150px;
-    object-fit: cover;
-    display: block;
-    cursor: pointer;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    transition: border-color 0.2s ease-in-out;
 }
 
-.photo-grid-gallery .photo-item p {
-    font-size: 0.8rem;
-    color: #666;
-    margin: 5px 0;
+.photo-item img:hover {
+    border-color: var(--primary-blue);
 }
 
-.photo-grid-gallery .photo-item:hover {
-    transform: scale(1.05);
+.photo-item p {
+    font-size: 0.75rem;
+    margin-top: 5px;
 }
 
-/* Login Page */
-.login-card {
-    max-width: 400px;
-    width: 100%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+.form-card {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
     border-radius: 12px;
-    background-color: #fff;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
 }
 
-.small-text-link {
-    font-size: 0.9rem;
-    color: #555;
-    text-decoration: none;
+.btn-success {
+    background-color: var(--success-green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    width: 100%;
+}
+
+.btn-secondary {
+    background-color: #6C757D;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    width: 100%;
+}
+
+.btn-filter {
+    background-color: #EAEAEA;
+    color: #3A3A3C;
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
 }
