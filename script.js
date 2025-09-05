@@ -235,22 +235,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Função assíncrona para buscar os dados de clima com tratamento de erro
     async function fetchWeather() {
-        const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
+        console.log("Tentando buscar dados de clima...");
+        const apiKey = 'SUA_CHAVE_DE_API_DO_OPENWEATHERMAP'; 
         const city = 'São Paulo';
         const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
 
         try {
             const response = await fetch(apiUrl);
-
-            // Verificação mais robusta para a resposta da API
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(`Erro ${response.status}: ${errorData.message}`);
             }
 
             const data = await response.json();
-            
-            // Verificação para garantir que os dados de temperatura existem
+            console.log("Dados de clima recebidos:", data); // AQUI ESTÁ A CHAVE!
+
             if (data && data.main && data.main.temp !== undefined) {
                 const temp = data.main.temp.toFixed(0);
                 const weatherDescription = data.weather[0].description;
@@ -258,11 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 weatherDataElem.textContent = `${temp}°C`;
                 
-                const iconElement = document.querySelector('.card-terracota .icon');
+                const iconElement = document.querySelector('.card-terracotta .icon');
                 if (iconElement) {
-                     const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
-                     iconElement.src = iconUrl;
-                     iconElement.alt = weatherDescription;
+                    const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
+                    iconElement.src = iconUrl;
+                    iconElement.alt = weatherDescription;
                 }
             } else {
                 throw new Error('Dados de temperatura não encontrados na resposta da API.');
@@ -271,9 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Erro ao carregar clima:', error.message);
             weatherDataElem.textContent = 'N/A';
-            const iconElement = document.querySelector('.card-terracota .icon');
+            const iconElement = document.querySelector('.card-terracotta .icon');
             if (iconElement) {
-                iconElement.src = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg'; // Ícone padrão de erro
+                iconElement.src = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg';
             }
         }
     }

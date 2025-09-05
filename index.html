@@ -31,43 +31,41 @@
             <div class="container main-content">
                 <h2 class="h2-title" id="greeting-message">Carregando...</h2>
                 <p class="loading-status" id="loading-status-text">carregando seus dados...</p>
-                <div class="card-featured">
+
+                <div class="kpi-grid">
+                    <div class="card-basic card-blue">
+                        <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Peso Atual</span>
+                            <span class="kpi-value" id="current-weight">-- kg</span>
+                        </div>
                     </div>
-                    <div class="kpi-grid">
-                        <div class="card-basic card-blue">
-                            <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Peso Atual</span>
-                                <span class="kpi-value" id="current-weight">-- kg</span>
-                            </div>
+                    <div class="card-basic card-purple">
+                        <img src="https://api.iconify.design/solar:minus-square-bold-duotone.svg" alt="Ícone de Perda" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Perda Total</span>
+                            <span class="kpi-value" id="total-loss">-- kg</span>
                         </div>
-                        <div class="card-basic card-purple">
-                            <img src="https://api.iconify.design/solar:minus-square-bold-duotone.svg" alt="Ícone de Perda" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Perda Total</span>
-                                <span class="kpi-value" id="total-loss">-- kg</span>
-                            </div>
+                    </div>
+                    <div class="card-basic card-orange">
+                        <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Calendário" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Status Semanal</span>
+                            <span class="kpi-value" id="weekly-status">N/A</span>
                         </div>
-                        <div class="card-basic card-orange">
-                            <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Calendário" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Status Semanal</span>
-                                <span class="kpi-value" id="weekly-status">N/A</span>
-                            </div>
+                    </div>
+                    <div class="card-basic card-green">
+                        <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Régua" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">IMC</span>
+                            <span class="kpi-value" id="bmi">--</span>
                         </div>
-                        <div class="card-basic card-green">
-                            <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Régua" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">IMC</span>
-                                <span class="kpi-value" id="bmi">--</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-terracotta">
-                            <img src="https://api.iconify.design/solar:sun-bold-duotone.svg" alt="Ícone de Clima" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Clima Atual</span>
-                                <span class="kpi-value" id="weather-data">--</span>
-                            </div>
+                    </div>
+                    <div class="card-basic card-terracotta">
+                        <img src="https://api.iconify.design/solar:sun-bold-duotone.svg" alt="Ícone de Clima" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Clima Atual</span>
+                            <span class="kpi-value" id="weather-data">--</span>
                         </div>
                     </div>
                 </div>
@@ -149,7 +147,6 @@
                 <div class="collapse" id="formaGalleryCollapse">
                     <div id="forma-grid" class="photo-grid-gallery"></div>
                 </div>
-
 
                 <div class="section-header">
                     <h2 class="h2-title">Gráficos de Evolução</h2>
