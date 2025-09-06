@@ -7,9 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return; // Parar a execução do script
     }
 
-    let username = localStorage.getItem('username');
-    let userPhotoUrl = localStorage.getItem('userPhotoUrl');
-    let userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null;
+    // Variáveis que serão preenchidas ao carregar os dados
+    let username = null;
+    let userPhotoUrl = null;
+    let userHeightCm = null;
 
     const dataForm = document.getElementById('dataForm');
     const toggleFormBtn = document.getElementById('toggleFormBtn');
@@ -366,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 userPhotoUrl = user.photo_url;
                 userHeightCm = user.height_cm;
                 
+                // Atualiza o cabeçalho imediatamente após receber os dados
                 if (userProfileName) userProfileName.textContent = username;
                 if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
             }
@@ -376,16 +378,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialData() {
         try {
+            loadingStatusTextElem.textContent = 'carregando seus dados...';
+            
+            // Aguarda o perfil ser carregado antes de tudo
             await fetchUserProfile();
             
+            // Agora que o nome de usuário está definido, atualiza a saudação
             if (greetingMessageElem && username) {
                 greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
             } else {
                 greetingMessageElem.textContent = `${getGreeting()}, Usuário`;
             }
 
-            loadingStatusTextElem.textContent = 'carregando seus dados...';
-            
             const [recordsResponse, measurementsResponse] = await Promise.all([
                 fetch(`/api/records?userId=${userId}`),
                 fetch('/api/measurements')
