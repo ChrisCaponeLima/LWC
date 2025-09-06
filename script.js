@@ -1,8 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const userId = localStorage.getItem('userId');
+
+    // VERIFICAÇÃO DE AUTENTICAÇÃO - A PRIMEIRA AÇÃO DO SCRIPT
+    if (!userId) {
+        window.location.href = 'login.html';
+        return; // Parar a execução do script
+    }
+
     let username = localStorage.getItem('username');
     let userPhotoUrl = localStorage.getItem('userPhotoUrl');
-    let userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null; 
+    let userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null;
 
     const dataForm = document.getElementById('dataForm');
     const toggleFormBtn = document.getElementById('toggleFormBtn');
@@ -32,11 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let availableMeasurements = [];
     const chartInstances = {}; // Usar um objeto para gerenciar instâncias de gráficos
-
-    if (!userId) {
-        window.location.href = 'login.html';
-        return;
-    }
 
     const userProfileName = document.getElementById('userProfileName');
     const userProfilePhoto = document.getElementById('userProfilePhoto');
@@ -279,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchWeather(lat, lon) {
-        const apiKey = '7266ddb3d14331910bdc98966924d8d'; //done
+        const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
         const apiUrl = lat && lon 
             ? `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=pt_br`
             : `https://api.openweathermap.org/data/2.5/weather?q=São Paulo&appid=${apiKey}&units=metric&lang=pt_br`;
