@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LWC - LIMA</title>
+    <title>Meu Perfil</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,167 +12,63 @@
 </head>
 <body>
     <header class="app-header">
-        <h1 class="h1-title">LWC - LIMA</h1>
-        <div class="user-profile-menu dropdown">
-            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="profileDropdown" aria-expanded="false" data-bs-toggle="dropdown">
-                <strong id="userProfileName" class="me-2">John Doe</strong>
-                <img id="userProfilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="user-photo-sm">
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="profile.html">Meu Perfil</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" id="logoutBtn">Sair</a></li>
-            </ul>
-        </div>
+        <a href="index.html" class="back-button">< Voltar</a>
+        <h1 class="h1-title">Meu Perfil</h1>
     </header>
 
-    <div class="white-border-wrapper">
-        <div class="grey-border-wrapper">
-            <div class="container main-content">
-                <h2 class="h2-title" id="greeting-message">Carregando...</h2>
-                <p class="loading-status" id="loading-status-text">carregando seus dados...</p>
-                
-                <div class="card-basic card-terracotta card-full-width">
-                    <img src="https://api.iconify.design/solar:sun-bold-duotone.svg" alt="Ícone de Clima" class="icon">
-                    <div class="kpi-info">
-                        <span class="kpi-label">Clima Atual</span>
-                        <span class="kpi-value" id="weather-data">--</span>
+    <div class="container profile-page">
+        <div class="profile-section" id="mainProfile">
+            <div class="profile-header-main">
+                <div class="profile-picture-container">
+                    <img id="profilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
                     </div>
-                </div>
+                <h2 id="userName" class="h2-profile-name">Nome do Usuário</h2>
+                <p id="userEmail" class="profile-email">email@exemplo.com</p>
+            </div>
 
-                <div class="kpi-card-container">
-                    <div class="kpi-grid">
-                        <div class="card-basic card-blue">
-                            <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Peso Atual</span>
-                                <span class="kpi-value" id="current-weight">-- kg</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-purple">
-                            <img src="https://api.iconify.design/solar:minus-square-bold-duotone.svg" alt="Ícone de Perda" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Perda Total</span>
-                                <span class="kpi-value" id="total-loss">-- kg</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-orange">
-                            <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Calendário" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Status Semanal</span>
-                                <span class="kpi-value" id="weekly-status">N/A</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-green">
-                            <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Régua" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">IMC</span>
-                                <span class="kpi-value" id="bmi">--</span>
-                            </div>
-                        </div>
+            <div class="profile-actions">
+                <a href="#myInfoSection" class="profile-action-card" id="showInfoBtn">
+                    <div class="action-icon-text">
+                        <img src="https://api.iconify.design/solar:user-bold-duotone.svg" class="action-card-icon" alt="Ícone de Informações">
+                        <span>Minhas Informações</span>
                     </div>
-                </div>
+                    <img src="https://api.iconify.design/solar:alt-arrow-right-bold.svg" class="arrow-icon" alt="Seta">
+                </a>
 
-                <div class="card-control-container">
-                    <button id="toggleFormBtn" class="btn-control">
-                        Adicionar Novo Registro
-                    </button>
-                </div>
-                
-                <div id="formContainer" style="display: none;">
-                    <div class="form-card">
-                        <form id="dataForm" class="row g-3" enctype="multipart/form-data">
-                            <div class="col-md-6">
-                                <label for="date" class="form-label">Data</label>
-                                <input type="date" class="form-control" id="date" name="date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="weight" class="form-label">Peso (kg)</label>
-                                <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
-                            </div>
-                            
-                            <div class="col-12" id="measurements-container">
-                                <label class="form-label d-block">Medidas</label>
-                                <button type="button" class="btn btn-sm btn-secondary mb-2" id="add-measurement-btn">Adicionar Medida</button>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="event" class="form-label">Evento</label>
-                                <input type="text" class="form-control" id="event" name="event">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="weeklyAction" class="form-label">Ação Semanal</label>
-                                <input type="text" class="form-control" id="weeklyAction" name="weeklyAction">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="workoutDays" class="form-label">Dias de Treino</label>
-                                <input type="text" class="form-control" id="workoutDays" name="workoutDays">
-                            </div>
-                            <div class="col-12">
-                                <label for="observations" class="form-label">Observações</label>
-                                <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label for="photo" class="form-label">Foto de Evolução</label>
-                                <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
-                            </div>
-                            <div class="col-12">
-                                <label for="forma" class="form-label">Foto de Forma</label>
-                                <input class="form-control" type="file" id="forma" name="forma" accept="image/*">
-                            </div>
-                            <div class="col-12 text-center">
-                                <button type="submit" class="btn-success">Salvar Registro</button>
-                            </div>
-                        </form>
+                <a href="#changePasswordSection" class="profile-action-card" id="showPasswordBtn">
+                    <div class="action-icon-text">
+                        <img src="https://api.iconify.design/solar:lock-bold-duotone.svg" class="action-card-icon" alt="Ícone de Senha">
+                        <span>Mudar Minha Senha</span>
                     </div>
-                </div>
+                    <img src="https://api.iconify.design/solar:alt-arrow-right-bold.svg" class="arrow-icon" alt="Seta">
+                </a>
 
-                <div class="section-header">
-                    <h2 class="h2-title">Registros</h2>
-                </div>
-                <p>
-                    <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse">
-                        Registros
-                    </button>
-                </p>
-                <div class="collapse" id="photoGalleryCollapse">
-                    <div id="photo-grid" class="photo-grid-gallery"></div>
-                </div>
-                
-                <div class="section-header">
-                    <h2 class="h2-title">Forma</h2>
-                </div>
-                <p>
-                    <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse">
-                        Forma
-                    </button>
-                </p>
-                <div class="collapse" id="formaGalleryCollapse">
-                    <div id="forma-grid" class="photo-grid-gallery"></div>
-                </div>
-
-                <div class="section-header">
-                    <h2 class="h2-title">Gráficos de Evolução</h2>
-                </div>
-                <div class="filter-buttons">
-                    <button type="button" class="btn-filter" onclick="filterData('3m')">Últimos 3 Meses</button>
-                    <button type="button" class="btn-filter" onclick="filterData('6m')">Últimos 6 Meses</button>
-                    <button type="button" class="btn-filter" onclick="filterData('all')">Ver Tudo</button>
-                </div>
-                <div class="charts-grid">
-                    <div class="card-chart">
-                        <canvas id="weightChart"></canvas>
-                    </div>
-                    <div class="card-chart">
-                        <canvas id="waistChart"></canvas>
-                    </div>
-                </div>
+                <button class="btn-logout" id="logoutButton">Logout</button>
             </div>
         </div>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+
+        <div class="profile-section-wrapper">
+            <div class="profile-section" id="myInfoSection" style="display: none;">
+                <h2 class="h2-title">Minhas Informações</h2>
+                <a href="#" class="back-button-info" onclick="history.back()">
+                    < Voltar
+                </a>
+                <div class="kpi-grid">
+                    <div class="card-basic">
+                        <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Medidas" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Medidas</span>
+                            <span class="kpi-value" id="user-measurements">--</span>
+                        </div>
+                    </div>
+                    <div class="card-basic">
+                        <img src="https://api.iconify.design/solar:weight-bold-duotone.svg" alt="Ícone de Peso" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Peso Inicial</span>
+                            <span class="kpi-value" id="user-initial-weight">-- kg</span>
+                        </div>
+                    </div>
+                    <div class="card-basic">
+                        <img src="https://api.iconify.design/solar:dumbbell-bold-duotone.svg" alt="Ícone de Treino" class="icon">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Dias
