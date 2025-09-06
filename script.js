@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Mantém a variável no localStorage como 'userId' para compatibilidade
     const userId = localStorage.getItem('userId');
 
     // VERIFICAÇÃO DE AUTENTICAÇÃO - A PRIMEIRA AÇÃO DO SCRIPT
@@ -358,32 +359,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-  async function fetchUserProfile() {
-    try {
-        const response = await fetch(`/api/user_profile?userId=${userId}`);
-        const user = await response.json();
-        if (user) {
-            // AQUI ESTÁ A CORREÇÃO
-            username = user.username;
-            userPhotoUrl = user.photo_perfil_url; // Campo corrigido para "photo_perfil_url"
-            userHeightCm = user.height_cm;
+    async function fetchUserProfile() {
+        try {
+            // CORREÇÃO: Usando 'id' como o nome do parâmetro para corresponder à coluna do banco de dados
+            const response = await fetch(`/api/user_profile?id=${userId}`); 
+            const user = await response.json();
+            if (user) {
+                username = user.username;
+                userPhotoUrl = user.photo_perfil_url; 
+                userHeightCm = user.height_cm;
 
-            localStorage.setItem('username', username);
-            localStorage.setItem('userPhotoUrl', userPhotoUrl);
-            localStorage.setItem('userHeightCm', userHeightCm);
-            
-            if (userProfileName) userProfileName.textContent = username;
-            if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
+                localStorage.setItem('username', username);
+                localStorage.setItem('userPhotoUrl', userPhotoUrl);
+                localStorage.setItem('userHeightCm', userHeightCm);
+                
+                if (userProfileName) userProfileName.textContent = username;
+                if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar perfil do usuário:', error);
         }
-    } catch (error) {
-        console.error('Erro ao carregar perfil do usuário:', error);
     }
-}
+
     async function loadInitialData() {
         try {
             loadingStatusTextElem.textContent = 'carregando seus dados...';
             
-            // Exibe as informações do localStorage imediatamente, se existirem
             if (username) {
                 if (userProfileName) userProfileName.textContent = username;
                 if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
@@ -392,18 +393,15 @@ document.addEventListener('DOMContentLoaded', () => {
                  if (greetingMessageElem) greetingMessageElem.textContent = `${getGreeting()}, Usuário`;
             }
 
-            // Inicia o carregamento dos dados mais recentes da API em segundo plano
-            // e os exibe quando estiverem prontos.
             await fetchUserProfile();
             
-            // Após o fetch ser concluído, atualiza a saudação com o nome atualizado
             if (username) {
                 greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
             }
 
-
+            // CORREÇÃO: Usando 'id' como o nome do parâmetro para corresponder à coluna do banco de dados
             const [recordsResponse, measurementsResponse] = await Promise.all([
-                fetch(`/api/records?userId=${userId}`),
+                fetch(`/api/records?id=${userId}`),
                 fetch('/api/measurements')
             ]);
             
