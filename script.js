@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const userId = localStorage.getItem('userId');
-    const username = localStorage.getItem('username');
-    const userPhotoUrl = localStorage.getItem('userPhotoUrl');
-    const userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null; 
+    let username = localStorage.getItem('username');
+    let userPhotoUrl = localStorage.getItem('userPhotoUrl');
+    let userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null; 
 
     const dataForm = document.getElementById('dataForm');
     const toggleFormBtn = document.getElementById('toggleFormBtn');
@@ -39,15 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Exibir nome e foto do usuário no cabeçalho
     const userProfileName = document.getElementById('userProfileName');
     const userProfilePhoto = document.getElementById('userProfilePhoto');
-    if (userProfileName && username) {
-        userProfileName.textContent = username;
-    }
-    if (userProfilePhoto && userPhotoUrl) {
-        userProfilePhoto.src = userPhotoUrl;
-    }
     
     function getGreeting() {
         const hour = new Date().getHours();
@@ -237,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addMeasurementBtn.addEventListener('click', addMeasurementField);
 
-    // Função assíncrona para buscar os dados de clima com tratamento de erro
     async function fetchWeather() {
         console.log("Tentando buscar dados de clima...");
         const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
@@ -283,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Função para atualizar a cor dos botões com base nas fotos
     function updatePhotoButtons(records) {
         const hasRegistrosPhotos = records.some(record => record.photo_url);
         const hasFormaPhotos = records.some(record => record.forma_url);
@@ -309,8 +300,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function fetchUserProfile() {
+        try {
+            const response = await fetch(`/api/user_profile?userId=${userId}`);
+            const user = await response.json();
+            if (user) {
+                userProfileName.textContent = user.username;
+                userProfilePhoto.src = user.photo_url;
+                userHeightCm = user.height_cm;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar perfil do usuário:', error);
+        }
+    }
+
     async function loadInitialData() {
         try {
+            await fetchUserProfile();
+            
             if (greetingMessageElem && username) {
                 greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
             } else {

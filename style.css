@@ -86,7 +86,6 @@ body {
     color: #6C757D;
 }
 
-/* Garante que apenas a foto de perfil do cabeçalho seja pequena */
 .user-photo-sm {
     width: 32px;
     height: 32px;
@@ -95,7 +94,6 @@ body {
     border: 2px solid var(--dark-grey);
 }
 
-/* Espaço de uma linha para o card do clima */
 .card-full-width.spaced-top {
     margin-top: 1.5rem; 
 }
@@ -128,7 +126,7 @@ body {
 }
 
 .card-full-width {
-    width: 100%;
+    width: 0%; /* Alterado para 100% */
 }
 
 .icon {
@@ -227,18 +225,16 @@ body {
     width: 100%;
 }
 
-/* Classes para os botões dinâmicos */
 .btn-with-photos {
-    background-color: var(--btn-with-photos-bg);
+    background-color: var(--btn-with-photos-bg) !important;
     color: var(--btn-with-photos-font) !important;
 }
 
 .btn-no-photos {
-    background-color: var(--btn-no-photos-bg);
+    background-color: var(--btn-no-photos-bg) !important;
     color: var(--btn-no-photos-font) !important;
 }
 
-/* Estilo para a página de perfil */
 .profile-page {
     padding-top: 2rem;
 }
@@ -289,12 +285,13 @@ body {
 
 .photo-grid-gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, min-content);
     gap: 10px;
 }
 
 .photo-item {
     text-align: center;
+    width: 100px;
 }
 
 .photo-item img {
@@ -319,4 +316,6 @@ body {
     text-decoration: none;
     font-weight: 500;
     display: flex;
-    align-items:
+    align-items: center;
+    gap: 5px;
+}
