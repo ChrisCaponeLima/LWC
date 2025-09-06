@@ -358,29 +358,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchUserProfile() {
-        try {
-            const response = await fetch(`/api/user_profile?userId=${userId}`);
-            const user = await response.json();
-            if (user) {
-                // Atualiza as variáveis globais e o localStorage
-                username = user.username;
-                userPhotoUrl = user.photo_url;
-                userHeightCm = user.height_cm;
+  async function fetchUserProfile() {
+    try {
+        const response = await fetch(`/api/user_profile?userId=${userId}`);
+        const user = await response.json();
+        if (user) {
+            // AQUI ESTÁ A CORREÇÃO
+            username = user.username;
+            userPhotoUrl = user.photo_perfil_url; // Campo corrigido para "photo_perfil_url"
+            userHeightCm = user.height_cm;
 
-                localStorage.setItem('username', username);
-                localStorage.setItem('userPhotoUrl', userPhotoUrl);
-                localStorage.setItem('userHeightCm', userHeightCm);
-                
-                // Atualiza o cabeçalho imediatamente após receber os dados
-                if (userProfileName) userProfileName.textContent = username;
-                if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
-            }
-        } catch (error) {
-            console.error('Erro ao carregar perfil do usuário:', error);
+            localStorage.setItem('username', username);
+            localStorage.setItem('userPhotoUrl', userPhotoUrl);
+            localStorage.setItem('userHeightCm', userHeightCm);
+            
+            if (userProfileName) userProfileName.textContent = username;
+            if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
         }
+    } catch (error) {
+        console.error('Erro ao carregar perfil do usuário:', error);
     }
-
+}
     async function loadInitialData() {
         try {
             loadingStatusTextElem.textContent = 'carregando seus dados...';
