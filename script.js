@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchUserProfile() {
         try {
-            // CORREÇÃO: Usando 'id' como o nome do parâmetro para corresponder à coluna do banco de dados
+            // CORREÇÃO MANTIDA: Usando 'id' como o nome do parâmetro para corresponder à coluna do banco de dados
             const response = await fetch(`/api/user_profile?id=${userId}`); 
             const user = await response.json();
             if (user) {
@@ -399,9 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
             }
 
-            // CORREÇÃO: Usando 'id' como o nome do parâmetro para corresponder à coluna do banco de dados
+            // CORREÇÃO REVERTIDA: Usando 'userId' novamente para carregar os registros
             const [recordsResponse, measurementsResponse] = await Promise.all([
-                fetch(`/api/records?id=${userId}`),
+                fetch(`/api/records?userId=${userId}`),
                 fetch('/api/measurements')
             ]);
             
