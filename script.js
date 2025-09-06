@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Novo elemento do clima
     const weatherDataElem = document.getElementById('weather-data');
+    
+    // Novo elemento do título de registros
+    const registrosHeaderElem = document.getElementById('registrosHeader');
 
     let availableMeasurements = [];
     let myWeightChart, myWaistChart;
@@ -248,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-            console.log("Dados de clima recebidos:", data); // AQUI ESTÁ A CHAVE!
+            console.log("Dados de clima recebidos:", data);
 
             if (data && data.main && data.main.temp !== undefined) {
                 const temp = data.main.temp.toFixed(0);
@@ -259,9 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const iconElement = document.querySelector('.card-terracotta .icon');
                 if (iconElement) {
-                    const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
-                    iconElement.src = iconUrl;
-                    iconElement.alt = weatherDescription;
+                     const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
+                     iconElement.src = iconUrl;
+                     iconElement.alt = weatherDescription;
                 }
             } else {
                 throw new Error('Dados de temperatura não encontrados na resposta da API.');
@@ -269,11 +272,28 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (error) {
             console.error('Erro ao carregar clima:', error.message);
-            weatherDataElem.textContent = 'N/A';
+            if(weatherDataElem) {
+                weatherDataElem.textContent = 'N/A';
+            }
             const iconElement = document.querySelector('.card-terracotta .icon');
             if (iconElement) {
                 iconElement.src = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg';
             }
+        }
+    }
+    
+    // Função para atualizar o estilo do cabeçalho de registros com base nas fotos
+    function updateRegistrosHeader(records) {
+        if (!registrosHeaderElem) return;
+        
+        const hasPhotos = records.some(record => record.photo_url);
+        
+        if (hasPhotos) {
+            registrosHeaderElem.classList.remove('header-no-photos');
+            registrosHeaderElem.classList.add('header-with-photos');
+        } else {
+            registrosHeaderElem.classList.remove('header-with-photos');
+            registrosHeaderElem.classList.add('header-no-photos');
         }
     }
 
@@ -302,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPhotos(records, formaGrid, 'forma_url');
             renderCharts(records);
             addMeasurementField();
+            updateRegistrosHeader(records); // Chamada da nova função
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);

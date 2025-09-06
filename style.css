@@ -24,6 +24,16 @@
     --card-pink-font: #D7B4B6;
     --card-gelo-bg: #E6E6EE;
     --card-gelo-font: #5D5D5D;
+    
+    /* Cores do botão 'Adicionar Novo Registro' */
+    --btn-add-bg: #E9E9FF;
+    --btn-add-font: #4845CF;
+
+    /* Cores dos títulos dinâmicos */
+    --header-with-photos-bg: #D78159;
+    --header-with-photos-font: #FFFFFF;
+    --header-no-photos-bg: #C7D1E1;
+    --header-no-photos-font: #000000;
 }
 
 body {
@@ -44,7 +54,8 @@ body {
 }
 
 .main-greeting {
-    padding: 1rem 1rem 0 1rem;
+    padding: 1rem;
+    background-color: var(--card-gelo-bg);
 }
 
 .container {
@@ -161,10 +172,10 @@ body {
 }
 
 .kpi-card-container {
-    background-color: var(--bg-light); /* Cor de fundo solicitada */
+    background-color: var(--card-gelo-bg);
     border-radius: 12px;
     padding: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.5rem; /* Espaço entre os KPIs e o botão */
 }
 
 .kpi-grid {
@@ -270,13 +281,11 @@ body {
     justify-content: center;
     gap: 10px;
     padding: 1rem;
-    background-color: var(--card-bg);
     border-radius: 12px;
-    color: var(--dark-grey);
-    text-decoration: none;
-    font-weight: 500;
     box-shadow: var(--shadow);
     transition: transform 0.2s ease-in-out;
+    background-color: var(--btn-add-bg);
+    color: var(--btn-add-font);
 }
 
 .btn-control:hover {
@@ -357,4 +366,21 @@ body {
     border-radius: 20px;
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
+}
+
+/* Novas classes para o título "Registros" */
+.header-with-photos {
+    background-color: var(--header-with-photos-bg);
+}
+
+.header-with-photos h2 {
+    color: var(--header-with-photos-font);
+}
+
+.header-no-photos {
+    background-color: var(--header-no-photos-bg);
+}
+
+.header-no-photos h2 {
+    color: var(--header-no-photos-font);
 }
