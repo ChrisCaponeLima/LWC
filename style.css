@@ -18,7 +18,7 @@
     --card-orange-font: #F3934F;
     --card-green-bg: #E3F0E4;
     --card-green-font: #1DA01C;
-    --card-terracotta-bg: #FFF0EB; /* Nova cor para o card de clima */
+    --card-terracotta-bg: #FFF0EB;
     --card-terracotta-font: #F2350E;
     --card-pink-bg: #F8EBFD;
     --card-pink-font: #D7B4B6;
@@ -33,7 +33,6 @@ body {
     padding-bottom: 80px;
 }
 
-/* Nova estrutura de borda */
 .white-border-wrapper {
     background-color: var(--card-bg);
     padding: 1px;
@@ -142,7 +141,6 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Novo estilo para o status de carregamento */
 .loading-status {
     font-size: 0.8rem;
     font-style: italic;
@@ -158,11 +156,18 @@ body {
     color: var(--primary-blue);
 }
 
+.kpi-card-container {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+}
+
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
-    margin-bottom: 1.5rem;
 }
 
 .card-basic {
@@ -177,6 +182,11 @@ body {
 
 .card-basic:hover {
     transform: translateY(-3px);
+}
+
+.card-full-width {
+    width: 100%;
+    margin-bottom: 1.5rem;
 }
 
 .icon {
@@ -201,7 +211,6 @@ body {
     font-weight: 700;
 }
 
-/* Novas classes de cores para os cards */
 .card-blue {
     background-color: var(--card-blue-bg);
     color: var(--card-blue-font);
@@ -234,7 +243,7 @@ body {
 .card-green .kpi-info .kpi-label { color: var(--card-green-font); }
 .card-green .kpi-info .kpi-value { color: var(--card-green-font); }
 
-.card-terracotta { /* Novo card de cor */
+.card-terracotta {
     background-color: var(--card-terracotta-bg);
     color: var(--card-terracotta-font);
 }
@@ -242,7 +251,6 @@ body {
 .card-terracotta .kpi-info .kpi-label { color: var(--card-terracotta-font); }
 .card-terracotta .kpi-info .kpi-value { color: var(--card-terracotta-font); }
 
-/* Adaptação para o card featured */
 .card-featured {
     background-color: var(--card-bg);
     color: var(--dark-grey);
