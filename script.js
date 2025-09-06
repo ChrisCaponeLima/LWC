@@ -361,12 +361,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchUserProfile() {
         try {
-            // CORREÇÃO MANTIDA: Usando 'id' como o nome do parâmetro para corresponder à coluna do banco de dados
-            const response = await fetch(`/api/user_profile?id=${userId}`); 
+            // CORREÇÃO DA URL: A rota correta é /api/users, não user_profile.
+            const response = await fetch(`/api/users?id=${userId}`); 
             const user = await response.json();
             if (user) {
-                username = user.username;
-                userPhotoUrl = user.photo_perfil_url; 
+                // CORREÇÃO DOS NOMES DE PROPRIEDADE
+                username = user.user_name;
+                userPhotoUrl = user.photo_url; 
                 userHeightCm = user.height_cm;
 
                 localStorage.setItem('username', username);
@@ -399,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
             }
 
-            // CORREÇÃO REVERTIDA: Usando 'userId' novamente para carregar os registros
             const [recordsResponse, measurementsResponse] = await Promise.all([
                 fetch(`/api/records?userId=${userId}`),
                 fetch('/api/measurements')
