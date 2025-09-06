@@ -89,7 +89,7 @@ export default async function handler(req, res) {
             }
 
             const result = await client.query(
-                'SELECT id, user_name, user_email, photo_url, height_cm FROM users WHERE id = $1',
+                'SELECT id, username, email, photo_perfil_url, height_cm FROM users WHERE id = $1',
                 [id]
             );
 

@@ -361,13 +361,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchUserProfile() {
         try {
-            // CORREÇÃO DA URL: A rota correta é /api/users, não user_profile.
             const response = await fetch(`/api/users?id=${userId}`); 
             const user = await response.json();
             if (user) {
-                // CORREÇÃO DOS NOMES DE PROPRIEDADE
-                username = user.user_name;
-                userPhotoUrl = user.photo_url; 
+                // CORRIGIDO: Agora as propriedades correspondem ao novo SELECT no users.js
+                username = user.username; 
+                userPhotoUrl = user.photo_perfil_url; 
                 userHeightCm = user.height_cm;
 
                 localStorage.setItem('username', username);
