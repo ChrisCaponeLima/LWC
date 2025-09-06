@@ -363,12 +363,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/user_profile?userId=${userId}`);
             const user = await response.json();
             if (user) {
-                // Atualiza as variáveis globais
+                // Atualiza as variáveis globais e o localStorage
                 username = user.username;
                 userPhotoUrl = user.photo_url;
                 userHeightCm = user.height_cm;
 
-                // Atualiza o localStorage para acesso mais rápido na próxima visita
                 localStorage.setItem('username', username);
                 localStorage.setItem('userPhotoUrl', userPhotoUrl);
                 localStorage.setItem('userHeightCm', userHeightCm);
@@ -397,12 +396,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Inicia o carregamento dos dados mais recentes da API em segundo plano
             // e os exibe quando estiverem prontos.
-            fetchUserProfile().then(() => {
-                // Após o fetch ser concluído, re-exibe a saudação com o nome atualizado
-                if (username) {
-                    greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
-                }
-            });
+            await fetchUserProfile();
+            
+            // Após o fetch ser concluído, atualiza a saudação com o nome atualizado
+            if (username) {
+                greetingMessageElem.textContent = `${getGreeting()}, ${username}`;
+            }
+
 
             const [recordsResponse, measurementsResponse] = await Promise.all([
                 fetch(`/api/records?userId=${userId}`),
