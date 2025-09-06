@@ -9,7 +9,7 @@
     --border-color: #EAEAEA;
     --shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
     
-    /* Novas cores dos cards */
+    /* Cores dos cards */
     --card-blue-bg: #E0F2FE;
     --card-blue-font: #9AB3E5;
     --card-purple-bg: #E6E1FF;
@@ -86,6 +86,15 @@ body {
     color: #6C757D;
 }
 
+/* Garante que apenas a foto de perfil do cabeçalho seja pequena */
+.user-photo-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--dark-grey);
+}
+
 /* Espaço de uma linha para o card do clima */
 .card-full-width.spaced-top {
     margin-top: 1.5rem; 
@@ -94,7 +103,7 @@ body {
 .kpi-card-container {
     background-color: transparent;
     border-radius: 12px;
-    padding: 1rem 0; /* Ajustado para remover o padding de lado */
+    padding: 1rem 0;
     margin-bottom: 1.5rem;
 }
 
@@ -179,7 +188,7 @@ body {
     border-radius: 12px;
     background-color: var(--btn-add-bg);
     color: var(--btn-add-font);
-    box-shadow: none; /* Removida a borda/sombra */
+    box-shadow: none;
     border: none;
     transition: transform 0.2s ease-in-out;
 }
@@ -228,3 +237,86 @@ body {
     background-color: var(--btn-no-photos-bg);
     color: var(--btn-no-photos-font) !important;
 }
+
+/* Estilo para a página de perfil */
+.profile-page {
+    padding-top: 2rem;
+}
+
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.profile-picture-container {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.profile-picture-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.h2-profile-name {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.profile-email {
+    font-size: 1rem;
+    color: #6C757D;
+}
+
+.edit-profile-icon .icon-sm {
+    width: 24px;
+    height: 24px;
+    color: var(--primary-blue);
+}
+
+.user-profile-menu strong, .user-profile-menu a {
+    color: var(--dark-grey) !important;
+}
+
+.photo-grid-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.photo-item {
+    text-align: center;
+}
+
+.photo-item img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    transition: border-color 0.2s ease-in-out;
+}
+
+.photo-item img:hover {
+    border-color: var(--primary-blue);
+}
+
+.photo-item p {
+    font-size: 0.75rem;
+    margin-top: 5px;
+}
+
+.back-button {
+    color: var(--dark-grey);
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items:
