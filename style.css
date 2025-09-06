@@ -43,24 +43,22 @@ body {
     padding-bottom: 80px;
 }
 
-.white-border-wrapper {
-    background-color: var(--card-bg);
-    padding: 1px;
-}
-
-.grey-border-wrapper {
-    background-color: var(--card-gelo-bg);
-    padding: 3px;
+/* Removido o estilo de borda, o container principal vai gerenciar isso */
+.white-border-wrapper, .grey-border-wrapper {
+    display: none;
 }
 
 .main-greeting {
     padding: 1rem;
-    background-color: var(--card-gelo-bg);
+    background-color: transparent; /* Fundo transparente para não ter a linha */
 }
 
-.container {
+.container.main-content {
     padding: 1rem;
-    background-color: var(--bg-light);
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-top: 1rem; /* Espaço entre a saudação e o card principal */
 }
 
 .app-header {
@@ -172,10 +170,10 @@ body {
 }
 
 .kpi-card-container {
-    background-color: var(--card-gelo-bg);
+    background-color: transparent; /* Remove a cor de fundo para ficar dentro do card principal */
     border-radius: 12px;
     padding: 1rem;
-    margin-bottom: 1.5rem; /* Espaço entre os KPIs e o botão */
+    margin-bottom: 1.5rem; 
 }
 
 .kpi-grid {

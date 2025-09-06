@@ -31,145 +31,140 @@
         <p class="loading-status" id="loading-status-text">carregando seus dados...</p>
     </div>
 
-    <div class="white-border-wrapper">
-        <div class="grey-border-wrapper">
-            <div class="container main-content">
-                
-                <div class="card-basic card-terracotta card-full-width">
-                    <img src="https://api.iconify.design/solar:sun-bold-duotone.svg" alt="Ícone de Clima" class="icon">
+    <div class="container main-content floating-card">
+        <div class="card-basic card-terracotta card-full-width">
+            <img src="https://api.iconify.design/solar:sun-bold-duotone.svg" alt="Ícone de Clima" class="icon">
+            <div class="kpi-info">
+                <span class="kpi-label">Clima Atual</span>
+                <span class="kpi-value" id="weather-data">--</span>
+            </div>
+        </div>
+
+        <div class="kpi-card-container">
+            <div class="kpi-grid">
+                <div class="card-basic card-blue">
+                    <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
                     <div class="kpi-info">
-                        <span class="kpi-label">Clima Atual</span>
-                        <span class="kpi-value" id="weather-data">--</span>
+                        <span class="kpi-label">Peso Atual</span>
+                        <span class="kpi-value" id="current-weight">-- kg</span>
                     </div>
                 </div>
+                <div class="card-basic card-purple">
+                    <img src="https://api.iconify.design/solar:minus-square-bold-duotone.svg" alt="Ícone de Perda" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Perda Total</span>
+                        <span class="kpi-value" id="total-loss">-- kg</span>
+                    </div>
+                </div>
+                <div class="card-basic card-orange">
+                    <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Calendário" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Status Semanal</span>
+                        <span class="kpi-value" id="weekly-status">N/A</span>
+                    </div>
+                </div>
+                <div class="card-basic card-green">
+                    <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Régua" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">IMC</span>
+                        <span class="kpi-value" id="bmi">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                <div class="kpi-card-container">
-                    <div class="kpi-grid">
-                        <div class="card-basic card-blue">
-                            <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Peso Atual</span>
-                                <span class="kpi-value" id="current-weight">-- kg</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-purple">
-                            <img src="https://api.iconify.design/solar:minus-square-bold-duotone.svg" alt="Ícone de Perda" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Perda Total</span>
-                                <span class="kpi-value" id="total-loss">-- kg</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-orange">
-                            <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg" alt="Ícone de Calendário" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">Status Semanal</span>
-                                <span class="kpi-value" id="weekly-status">N/A</span>
-                            </div>
-                        </div>
-                        <div class="card-basic card-green">
-                            <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Régua" class="icon">
-                            <div class="kpi-info">
-                                <span class="kpi-label">IMC</span>
-                                <span class="kpi-value" id="bmi">--</span>
-                            </div>
-                        </div>
+        <div class="card-control-container">
+            <button id="toggleFormBtn" class="btn-control">
+                Adicionar Novo Registro
+            </button>
+        </div>
+        
+        <div id="formContainer" style="display: none;">
+            <div class="form-card">
+                <form id="dataForm" class="row g-3" enctype="multipart/form-data">
+                    <div class="col-md-6">
+                        <label for="date" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
                     </div>
-                </div>
+                    <div class="col-md-6">
+                        <label for="weight" class="form-label">Peso (kg)</label>
+                        <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
+                    </div>
+                    
+                    <div class="col-12" id="measurements-container">
+                        <label class="form-label d-block">Medidas</label>
+                        <button type="button" class="btn btn-sm btn-secondary mb-2" id="add-measurement-btn">Adicionar Medida</button>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label for="event" class="form-label">Evento</label>
+                        <input type="text" class="form-control" id="event" name="event">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="weeklyAction" class="form-label">Ação Semanal</label>
+                        <input type="text" class="form-control" id="weeklyAction" name="weeklyAction">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="workoutDays" class="form-label">Dias de Treino</label>
+                        <input type="text" class="form-control" id="workoutDays" name="workoutDays">
+                    </div>
+                    <div class="col-12">
+                        <label for="observations" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label for="photo" class="form-label">Foto de Evolução</label>
+                        <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <label for="forma" class="form-label">Foto de Forma</label>
+                        <input class="form-control" type="file" id="forma" name="forma" accept="image/*">
+                    </div>
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn-success">Salvar Registro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-                <div class="card-control-container">
-                    <button id="toggleFormBtn" class="btn-control">
-                        Adicionar Novo Registro
-                    </button>
-                </div>
-                
-                <div id="formContainer" style="display: none;">
-                    <div class="form-card">
-                        <form id="dataForm" class="row g-3" enctype="multipart/form-data">
-                            <div class="col-md-6">
-                                <label for="date" class="form-label">Data</label>
-                                <input type="date" class="form-control" id="date" name="date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="weight" class="form-label">Peso (kg)</label>
-                                <input type="number" step="0.01" class="form-control" id="weight" name="weight" required>
-                            </div>
-                            
-                            <div class="col-12" id="measurements-container">
-                                <label class="form-label d-block">Medidas</label>
-                                <button type="button" class="btn btn-sm btn-secondary mb-2" id="add-measurement-btn">Adicionar Medida</button>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="event" class="form-label">Evento</label>
-                                <input type="text" class="form-control" id="event" name="event">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="weeklyAction" class="form-label">Ação Semanal</label>
-                                <input type="text" class="form-control" id="weeklyAction" name="weeklyAction">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="workoutDays" class="form-label">Dias de Treino</label>
-                                <input type="text" class="form-control" id="workoutDays" name="workoutDays">
-                            </div>
-                            <div class="col-12">
-                                <label for="observations" class="form-label">Observações</label>
-                                <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label for="photo" class="form-label">Foto de Evolução</label>
-                                <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
-                            </div>
-                            <div class="col-12">
-                                <label for="forma" class="form-label">Foto de Forma</label>
-                                <input class="form-control" type="file" id="forma" name="forma" accept="image/*">
-                            </div>
-                            <div class="col-12 text-center">
-                                <button type="submit" class="btn-success">Salvar Registro</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+        <div class="section-header" id="registrosHeader">
+            <h2 class="h2-title">Registros</h2>
+        </div>
+        <p>
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse">
+                Registros
+            </button>
+        </p>
+        <div class="collapse" id="photoGalleryCollapse">
+            <div id="photo-grid" class="photo-grid-gallery"></div>
+        </div>
+        
+        <div class="section-header">
+            <h2 class="h2-title">Forma</h2>
+        </div>
+        <p>
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse">
+                Forma
+            </button>
+        </p>
+        <div class="collapse" id="formaGalleryCollapse">
+            <div id="forma-grid" class="photo-grid-gallery"></div>
+        </div>
 
-                <div class="section-header" id="registrosHeader">
-                    <h2 class="h2-title">Registros</h2>
-                </div>
-                <p>
-                    <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse">
-                        Registros
-                    </button>
-                </p>
-                <div class="collapse" id="photoGalleryCollapse">
-                    <div id="photo-grid" class="photo-grid-gallery"></div>
-                </div>
-                
-                <div class="section-header">
-                    <h2 class="h2-title">Forma</h2>
-                </div>
-                <p>
-                    <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse">
-                        Forma
-                    </button>
-                </p>
-                <div class="collapse" id="formaGalleryCollapse">
-                    <div id="forma-grid" class="photo-grid-gallery"></div>
-                </div>
-
-                <div class="section-header">
-                    <h2 class="h2-title">Gráficos de Evolução</h2>
-                </div>
-                <div class="filter-buttons">
-                    <button type="button" class="btn-filter" onclick="filterData('3m')">Últimos 3 Meses</button>
-                    <button type="button" class="btn-filter" onclick="filterData('6m')">Últimos 6 Meses</button>
-                    <button type="button" class="btn-filter" onclick="filterData('all')">Ver Tudo</button>
-                </div>
-                <div class="charts-grid">
-                    <div class="card-chart">
-                        <canvas id="weightChart"></canvas>
-                    </div>
-                    <div class="card-chart">
-                        <canvas id="waistChart"></canvas>
-                    </div>
-                </div>
+        <div class="section-header">
+            <h2 class="h2-title">Gráficos de Evolução</h2>
+        </div>
+        <div class="filter-buttons">
+            <button type="button" class="btn-filter" onclick="filterData('3m')">Últimos 3 Meses</button>
+            <button type="button" class="btn-filter" onclick="filterData('6m')">Últimos 6 Meses</button>
+            <button type="button" class="btn-filter" onclick="filterData('all')">Ver Tudo</button>
+        </div>
+        <div class="charts-grid">
+            <div class="card-chart">
+                <canvas id="weightChart"></canvas>
+            </div>
+            <div class="card-chart">
+                <canvas id="waistChart"></canvas>
             </div>
         </div>
     </div>
