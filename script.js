@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchWeather(lat, lon) {
-        const apiKey = '7266ddb3d14331910bdc98966924d8d'; 
+        const apiKey = '7266ddb3d14331910bdc98966924d8d'; //done
         const apiUrl = lat && lon 
             ? `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=pt_br`
             : `https://api.openweathermap.org/data/2.5/weather?q=São Paulo&appid=${apiKey}&units=metric&lang=pt_br`;
