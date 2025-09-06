@@ -11,8 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addMeasurementBtn = document.getElementById('add-measurement-btn');
     const photoGrid = document.getElementById('photo-grid');
     const formaGrid = document.getElementById('forma-grid');
-    const weightChartElement = document.getElementById('weightChart');
-    const waistChartElement = document.getElementById('waistChart');
+    const chartsContainer = document.getElementById('charts-container');
 
     // Elementos dos KPIs
     const currentWeightElem = document.getElementById('current-weight');
@@ -32,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const formaButton = document.getElementById('formaButtonCollapse');
 
     let availableMeasurements = [];
-    let myWeightChart, myWaistChart;
-    
+    const chartInstances = {}; // Usar um objeto para gerenciar instâncias de gráficos
+
     if (!userId) {
         window.location.href = 'login.html';
         return;
@@ -146,51 +145,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCharts(records) {
+        chartsContainer.innerHTML = ''; // Limpar o container de gráficos
         const sortedRecords = [...records].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
-
         const dates = sortedRecords.map(record => new Date(record.record_date).toLocaleDateString('pt-BR'));
-        const weights = sortedRecords.map(record => parseFloat(record.weight));
-        const waistMeasurements = sortedRecords.map(record => {
-            const waist = record.measurements.find(m => m.name === 'Cintura');
-            return waist ? parseFloat(waist.value) : null;
+        
+        // Coleta todos os tipos de medidas disponíveis
+        const allMeasurements = new Set();
+        sortedRecords.forEach(record => {
+            if (record.measurements) {
+                record.measurements.forEach(m => allMeasurements.add(m.name));
+            }
         });
 
-        if (myWeightChart) {
-            myWeightChart.destroy();
+        // Adiciona peso e cintura se houverem dados
+        if (sortedRecords.some(r => r.weight)) {
+            allMeasurements.add('Peso');
         }
-        myWeightChart = new Chart(weightChartElement, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Peso (kg)',
-                    data: weights,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    borderWidth: 2,
-                    fill: true
-                }]
-            },
-            options: { responsive: true, tension: 0.4 }
-        });
+        if (sortedRecords.some(r => r.measurements.some(m => m.name === 'Cintura'))) {
+            allMeasurements.add('Cintura');
+        }
 
-        if (myWaistChart) {
-            myWaistChart.destroy();
-        }
-        myWaistChart = new Chart(waistChartElement, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Cintura (cm)',
-                    data: waistMeasurements,
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    borderWidth: 2,
-                    fill: true
-                }]
-            },
-            options: { responsive: true, tension: 0.4 }
+        // Destroi os gráficos existentes
+        Object.values(chartInstances).forEach(chart => chart.destroy());
+        
+        // Cria um gráfico para cada tipo de medida
+        allMeasurements.forEach(measurementName => {
+            const chartData = sortedRecords.map(record => {
+                if (measurementName === 'Peso') {
+                    return parseFloat(record.weight);
+                } else {
+                    const measurement = record.measurements.find(m => m.name === measurementName);
+                    return measurement ? parseFloat(measurement.value) : null;
+                }
+            });
+
+            const uniqueChartId = `${measurementName.toLowerCase().replace(/\s/g, '-')}-chart`;
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'card-chart';
+            chartDiv.innerHTML = `<canvas id="${uniqueChartId}"></canvas>`;
+            chartsContainer.appendChild(chartDiv);
+
+            const ctx = document.getElementById(uniqueChartId);
+            chartInstances[uniqueChartId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: `${measurementName} (cm)`, // Adicione a unidade se precisar
+                        data: chartData,
+                        borderColor: '#007bff', // Cor padrão, pode ser dinamizada
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: { responsive: true, tension: 0.4 }
+            });
         });
     }
 
@@ -230,51 +240,96 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addMeasurementBtn.addEventListener('click', addMeasurementField);
 
-    async function fetchWeather() {
-        console.log("Tentando buscar dados de clima...");
-        const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
-        const city = 'São Paulo';
-        const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
+    function updateWeatherCardStyle(weatherCode) {
+        const weatherCard = document.querySelector('.card-terracotta');
+        const iconElement = weatherCard.querySelector('.icon');
+        const kpiInfoElements = weatherCard.querySelectorAll('.kpi-info, .kpi-label, .kpi-value');
+
+        let bgVar, fontVar;
+
+        // Mapeamento dos códigos de clima para variáveis de cor
+        const weatherMap = {
+            '01d': { bg: 'var(--weather-bg-sunny-day)', font: 'var(--weather-font-sunny-day)' },
+            '01n': { bg: 'var(--weather-bg-clear-night)', font: 'var(--weather-font-clear-night)' },
+            '02d': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '02n': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '03d': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '03n': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '04d': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '04n': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '09d': { bg: 'var(--weather-bg-rainy)', font: 'var(--weather-font-rainy)' },
+            '09n': { bg: 'var(--weather-bg-rainy)', font: 'var(--weather-font-rainy)' },
+            '10d': { bg: 'var(--weather-bg-rainy)', font: 'var(--weather-font-rainy)' },
+            '10n': { bg: 'var(--weather-bg-rainy)', font: 'var(--weather-font-rainy)' },
+            '11d': { bg: 'var(--weather-bg-thunderstorm)', font: 'var(--weather-font-thunderstorm)' },
+            '11n': { bg: 'var(--weather-bg-thunderstorm)', font: 'var(--weather-font-thunderstorm)' },
+            '13d': { bg: 'var(--weather-bg-snow)', font: 'var(--weather-font-snow)' },
+            '13n': { bg: 'var(--weather-bg-snow)', font: 'var(--weather-font-snow)' },
+            '50d': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+            '50n': { bg: 'var(--weather-bg-clouds)', font: 'var(--weather-font-clouds)' },
+        };
+        
+        const style = weatherMap[weatherCode] || { bg: 'var(--weather-bg-default)', font: 'var(--weather-font-default)' };
+        
+        weatherCard.style.backgroundColor = style.bg;
+        iconElement.style.color = style.font;
+        kpiInfoElements.forEach(elem => {
+            elem.style.color = style.font;
+        });
+    }
+
+    async function fetchWeather(lat, lon) {
+        const apiKey = '7266ddb3d14331910bdc98966924d8d'; 
+        const apiUrl = lat && lon 
+            ? `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=pt_br`
+            : `https://api.openweathermap.org/data/2.5/weather?q=São Paulo&appid=${apiKey}&units=metric&lang=pt_br`;
 
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Erro ${response.status}: ${errorData.message}`);
+                throw new Error('Erro ao buscar dados de clima.');
             }
-
             const data = await response.json();
-            console.log("Dados de clima recebidos:", data);
-
-            if (data && data.main && data.main.temp !== undefined) {
-                const temp = data.main.temp.toFixed(0);
-                const weatherDescription = data.weather[0].description;
-                const weatherIconCode = data.weather[0].icon;
-
-                weatherDataElem.textContent = `${temp}°C`;
-                
-                const iconElement = document.querySelector('.card-terracotta .icon');
-                if (iconElement) {
-                     const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
-                     iconElement.src = iconUrl;
-                     iconElement.alt = weatherDescription;
-                }
-            } else {
-                throw new Error('Dados de temperatura não encontrados na resposta da API.');
-            }
             
+            const temp = data.main.temp.toFixed(0);
+            const weatherIconCode = data.weather[0].icon;
+
+            weatherDataElem.textContent = `${temp}°C`;
+            const iconUrl = `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`;
+            const iconElement = document.querySelector('.card-terracotta .icon');
+            if (iconElement) {
+                 iconElement.src = iconUrl;
+                 iconElement.alt = data.weather[0].description;
+                 updateWeatherCardStyle(weatherIconCode);
+            }
         } catch (error) {
             console.error('Erro ao carregar clima:', error.message);
-            if(weatherDataElem) {
-                weatherDataElem.textContent = 'N/A';
-            }
+            weatherDataElem.textContent = 'N/A';
             const iconElement = document.querySelector('.card-terracotta .icon');
             if (iconElement) {
                 iconElement.src = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg';
+                updateWeatherCardStyle('default');
             }
         }
     }
     
+    function fetchWeatherByGeolocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    fetchWeather(position.coords.latitude, position.coords.longitude);
+                },
+                (error) => {
+                    console.error('Erro de geolocalização:', error);
+                    fetchWeather(); // Fallback para São Paulo
+                }
+            );
+        } else {
+            console.log('Geolocalização não é suportada por este navegador.');
+            fetchWeather(); // Fallback para São Paulo
+        }
+    }
+
     function updatePhotoButtons(records) {
         const hasRegistrosPhotos = records.some(record => record.photo_url);
         const hasFormaPhotos = records.some(record => record.forma_url);
@@ -305,9 +360,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/user_profile?userId=${userId}`);
             const user = await response.json();
             if (user) {
-                userProfileName.textContent = user.username;
-                userProfilePhoto.src = user.photo_url;
+                username = user.username;
+                userPhotoUrl = user.photo_url;
                 userHeightCm = user.height_cm;
+                
+                if (userProfileName) userProfileName.textContent = username;
+                if (userProfilePhoto) userProfilePhoto.src = userPhotoUrl;
             }
         } catch (error) {
             console.error('Erro ao carregar perfil do usuário:', error);
@@ -404,5 +462,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     loadInitialData();
-    fetchWeather();
+    fetchWeatherByGeolocation();
 });

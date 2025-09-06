@@ -9,7 +9,7 @@
     --border-color: #EAEAEA;
     --shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
     
-    /* Cores dos cards */
+    /* Cores dos cards KPI */
     --card-blue-bg: #E0F2FE;
     --card-blue-font: #9AB3E5;
     --card-purple-bg: #E6E1FF;
@@ -18,12 +18,6 @@
     --card-orange-font: #F3934F;
     --card-green-bg: #E3F0E4;
     --card-green-font: #1DA01C;
-    --card-terracotta-bg: #FFF0EB;
-    --card-terracotta-font: #F2350E;
-    --card-pink-bg: #F8EBFD;
-    --card-pink-font: #D7B4B6;
-    --card-gelo-bg: #E6E6EE;
-    --card-gelo-font: #5D5D5D;
     
     /* Cores do botão 'Adicionar Novo Registro' */
     --btn-add-bg: #E9E9FF;
@@ -34,6 +28,22 @@
     --btn-with-photos-font: #FFFFFF;
     --btn-no-photos-bg: #C7D1E1;
     --btn-no-photos-font: #000000;
+
+    /* Cores do card do tempo dinâmico */
+    --weather-bg-sunny-day: #E0F7FA;
+    --weather-font-sunny-day: #00796B;
+    --weather-bg-clear-night: #2C3E50;
+    --weather-font-clear-night: #ECF0F1;
+    --weather-bg-rainy: #B0BEC5;
+    --weather-font-rainy: #263238;
+    --weather-bg-clouds: #CFD8DC;
+    --weather-font-clouds: #546E7A;
+    --weather-bg-snow: #EFEBE9;
+    --weather-font-snow: #3E2723;
+    --weather-bg-thunderstorm: #424242;
+    --weather-font-thunderstorm: #BDBDBD;
+    --weather-bg-default: #FFF0EB;
+    --weather-font-default: #F2350E;
 }
 
 body {
@@ -126,7 +136,7 @@ body {
 }
 
 .card-full-width {
-    width: 0%; /* Alterado para 100% */
+    width: 100%;
 }
 
 .icon {
@@ -171,10 +181,10 @@ body {
 .card-green .kpi-info .kpi-label { color: var(--card-green-font); }
 .card-green .kpi-info .kpi-value { color: var(--card-green-font); }
 
-.card-terracotta { background-color: var(--card-terracotta-bg); color: var(--card-terracotta-font); }
-.card-terracotta .icon { color: var(--card-terracotta-font); }
-.card-terracotta .kpi-info .kpi-label { color: var(--card-terracotta-font); }
-.card-terracotta .kpi-info .kpi-value { color: var(--card-terracotta-font); }
+.card-terracotta { background-color: var(--weather-bg-default); color: var(--weather-font-default); }
+.card-terracotta .icon { color: var(--weather-font-default); }
+.card-terracotta .kpi-info .kpi-label { color: var(--weather-font-default); }
+.card-terracotta .kpi-info .kpi-value { color: var(--weather-font-default); }
 
 .btn-control {
     width: 100%;
@@ -285,13 +295,13 @@ body {
 
 .photo-grid-gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, min-content);
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 10px;
 }
 
 .photo-item {
     text-align: center;
-    width: 100px;
+    max-width: 100px;
 }
 
 .photo-item img {
@@ -318,4 +328,11 @@ body {
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+/* Novo estilo para a grade de gráficos dinâmicos */
+.charts-grid-dynamic {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
 }
