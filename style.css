@@ -43,6 +43,10 @@ body {
     padding: 3px;
 }
 
+.main-greeting {
+    padding: 1rem 1rem 0 1rem;
+}
+
 .container {
     padding: 1rem;
     background-color: var(--bg-light);
@@ -157,10 +161,9 @@ body {
 }
 
 .kpi-card-container {
-    background-color: var(--card-bg);
+    background-color: var(--bg-light); /* Cor de fundo solicitada */
     border-radius: 12px;
     padding: 1rem;
-    box-shadow: var(--shadow);
     margin-bottom: 1.5rem;
 }
 
