@@ -28,37 +28,19 @@
     /* Cores do botão 'Adicionar Novo Registro' */
     --btn-add-bg: #E9E9FF;
     --btn-add-font: #4845CF;
-
-    /* Cores dos títulos dinâmicos */
-    --header-with-photos-bg: #D78159;
-    --header-with-photos-font: #FFFFFF;
-    --header-no-photos-bg: #C7D1E1;
-    --header-no-photos-font: #000000;
+    
+    /* Cores dos botões dinâmicos */
+    --btn-with-photos-bg: #D78159;
+    --btn-with-photos-font: #FFFFFF;
+    --btn-no-photos-bg: #C7D1E1;
+    --btn-no-photos-font: #000000;
 }
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--bg-light);
+    background-color: var(--card-gelo-bg);
     color: var(--dark-grey);
     padding-bottom: 80px;
-}
-
-/* Removido o estilo de borda, o container principal vai gerenciar isso */
-.white-border-wrapper, .grey-border-wrapper {
-    display: none;
-}
-
-.main-greeting {
-    padding: 1rem;
-    background-color: transparent; /* Fundo transparente para não ter a linha */
-}
-
-.container.main-content {
-    padding: 1rem;
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    margin-top: 1rem; /* Espaço entre a saudação e o card principal */
 }
 
 .app-header {
@@ -73,78 +55,19 @@ body {
     z-index: 1000;
 }
 
+.container.main-content {
+    padding: 1rem;
+}
+
+.main-greeting {
+    padding-top: 1rem;
+}
+
 .h1-title {
     font-size: 1.3rem; 
     font-weight: 700;
     margin: 0;
     color: var(--dark-grey);
-}
-
-.back-button {
-    color: var(--dark-grey);
-    text-decoration: none;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.user-profile-menu strong, .user-profile-menu a {
-    color: var(--dark-grey) !important;
-}
-
-.user-photo-sm {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--dark-grey);
-}
-
-.profile-page {
-    padding-top: 2rem;
-}
-
-.profile-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.profile-picture-container {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-bottom: 1rem;
-    box-shadow: var(--shadow);
-}
-
-.profile-picture-container img, .profile-photo-lg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.h2-profile-name {
-    font-size: 1.5rem;
-    margin-bottom: 0.25rem;
-}
-
-.profile-email {
-    font-size: 1rem;
-    color: #6C757D;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
 }
 
 .h2-title {
@@ -163,17 +86,16 @@ body {
     color: #6C757D;
 }
 
-.edit-profile-icon .icon-sm {
-    width: 24px;
-    height: 24px;
-    color: var(--primary-blue);
+/* Espaço de uma linha para o card do clima */
+.card-full-width.spaced-top {
+    margin-top: 1.5rem; 
 }
 
 .kpi-card-container {
-    background-color: transparent; /* Remove a cor de fundo para ficar dentro do card principal */
+    background-color: transparent;
     border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: 1.5rem; 
+    padding: 1rem 0; /* Ajustado para remover o padding de lado */
+    margin-bottom: 1.5rem;
 }
 
 .kpi-grid {
@@ -198,7 +120,6 @@ body {
 
 .card-full-width {
     width: 100%;
-    margin-bottom: 1.5rem;
 }
 
 .icon {
@@ -223,54 +144,30 @@ body {
     font-weight: 700;
 }
 
-.card-blue {
-    background-color: var(--card-blue-bg);
-    color: var(--card-blue-font);
-}
+.card-blue { background-color: var(--card-blue-bg); color: var(--card-blue-font); }
 .card-blue .icon { color: var(--card-blue-font); }
 .card-blue .kpi-info .kpi-label { color: var(--card-blue-font); }
 .card-blue .kpi-info .kpi-value { color: var(--card-blue-font); }
 
-.card-purple {
-    background-color: var(--card-purple-bg);
-    color: var(--card-purple-font);
-}
+.card-purple { background-color: var(--card-purple-bg); color: var(--card-purple-font); }
 .card-purple .icon { color: var(--card-purple-font); }
 .card-purple .kpi-info .kpi-label { color: var(--card-purple-font); }
 .card-purple .kpi-info .kpi-value { color: var(--card-purple-font); }
 
-.card-orange {
-    background-color: var(--card-orange-bg);
-    color: var(--card-orange-font);
-}
+.card-orange { background-color: var(--card-orange-bg); color: var(--card-orange-font); }
 .card-orange .icon { color: var(--card-orange-font); }
 .card-orange .kpi-info .kpi-label { color: var(--card-orange-font); }
 .card-orange .kpi-info .kpi-value { color: var(--card-orange-font); }
 
-.card-green {
-    background-color: var(--card-green-bg);
-    color: var(--card-green-font);
-}
+.card-green { background-color: var(--card-green-bg); color: var(--card-green-font); }
 .card-green .icon { color: var(--card-green-font); }
 .card-green .kpi-info .kpi-label { color: var(--card-green-font); }
 .card-green .kpi-info .kpi-value { color: var(--card-green-font); }
 
-.card-terracotta {
-    background-color: var(--card-terracotta-bg);
-    color: var(--card-terracotta-font);
-}
+.card-terracotta { background-color: var(--card-terracotta-bg); color: var(--card-terracotta-font); }
 .card-terracotta .icon { color: var(--card-terracotta-font); }
 .card-terracotta .kpi-info .kpi-label { color: var(--card-terracotta-font); }
 .card-terracotta .kpi-info .kpi-value { color: var(--card-terracotta-font); }
-
-.card-featured {
-    background-color: var(--card-bg);
-    color: var(--dark-grey);
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
-    margin-bottom: 1.5rem;
-}
 
 .btn-control {
     width: 100%;
@@ -280,53 +177,17 @@ body {
     gap: 10px;
     padding: 1rem;
     border-radius: 12px;
-    box-shadow: var(--shadow);
-    transition: transform 0.2s ease-in-out;
     background-color: var(--btn-add-bg);
     color: var(--btn-add-font);
+    box-shadow: none; /* Removida a borda/sombra */
+    border: none;
+    transition: transform 0.2s ease-in-out;
 }
 
-.btn-control:hover {
-    transform: translateY(-3px);
-}
+.btn-control:hover { transform: translateY(-3px); }
 
-.control-icon {
-    width: 24px;
-    height: 24px;
-}
-
-.card-chart {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: var(--shadow);
-}
-
-.photo-grid-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
-}
-
-.photo-item {
-    text-align: center;
-}
-
-.photo-item img {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    border: 2px solid var(--border-color);
-    transition: border-color 0.2s ease-in-out;
-}
-
-.photo-item img:hover {
-    border-color: var(--primary-blue);
-}
-
-.photo-item p {
-    font-size: 0.75rem;
-    margin-top: 5px;
+.section-top-space {
+    margin-top: 1.5rem;
 }
 
 .form-card {
@@ -357,28 +218,13 @@ body {
     width: 100%;
 }
 
-.btn-filter {
-    background-color: #EAEAEA;
-    color: #3A3A3C;
-    border: none;
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+/* Classes para os botões dinâmicos */
+.btn-with-photos {
+    background-color: var(--btn-with-photos-bg);
+    color: var(--btn-with-photos-font) !important;
 }
 
-/* Novas classes para o título "Registros" */
-.header-with-photos {
-    background-color: var(--header-with-photos-bg);
-}
-
-.header-with-photos h2 {
-    color: var(--header-with-photos-font);
-}
-
-.header-no-photos {
-    background-color: var(--header-no-photos-bg);
-}
-
-.header-no-photos h2 {
-    color: var(--header-no-photos-font);
+.btn-no-photos {
+    background-color: var(--btn-no-photos-bg);
+    color: var(--btn-no-photos-font) !important;
 }

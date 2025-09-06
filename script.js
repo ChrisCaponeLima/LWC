@@ -27,8 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Novo elemento do clima
     const weatherDataElem = document.getElementById('weather-data');
     
-    // Novo elemento do título de registros
-    const registrosHeaderElem = document.getElementById('registrosHeader');
+    // Novos elementos dos botões de galeria
+    const registrosButton = document.getElementById('registrosButtonCollapse');
+    const formaButton = document.getElementById('formaButtonCollapse');
 
     let availableMeasurements = [];
     let myWeightChart, myWaistChart;
@@ -239,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Função assíncrona para buscar os dados de clima com tratamento de erro
     async function fetchWeather() {
         console.log("Tentando buscar dados de clima...");
-        const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
+        const apiKey = 'SUA_CHAVE_DE_API_DO_OPENWEATHERMAP'; 
         const city = 'São Paulo';
         const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
 
@@ -282,18 +283,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Função para atualizar o estilo do cabeçalho de registros com base nas fotos
-    function updateRegistrosHeader(records) {
-        if (!registrosHeaderElem) return;
+    // Função para atualizar a cor dos botões com base nas fotos
+    function updatePhotoButtons(records) {
+        const hasRegistrosPhotos = records.some(record => record.photo_url);
+        const hasFormaPhotos = records.some(record => record.forma_url);
         
-        const hasPhotos = records.some(record => record.photo_url);
-        
-        if (hasPhotos) {
-            registrosHeaderElem.classList.remove('header-no-photos');
-            registrosHeaderElem.classList.add('header-with-photos');
-        } else {
-            registrosHeaderElem.classList.remove('header-with-photos');
-            registrosHeaderElem.classList.add('header-no-photos');
+        if (registrosButton) {
+            if (hasRegistrosPhotos) {
+                registrosButton.classList.remove('btn-no-photos');
+                registrosButton.classList.add('btn-with-photos');
+            } else {
+                registrosButton.classList.remove('btn-with-photos');
+                registrosButton.classList.add('btn-no-photos');
+            }
+        }
+
+        if (formaButton) {
+            if (hasFormaPhotos) {
+                formaButton.classList.remove('btn-no-photos');
+                formaButton.classList.add('btn-with-photos');
+            } else {
+                formaButton.classList.remove('btn-with-photos');
+                formaButton.classList.add('btn-no-photos');
+            }
         }
     }
 
@@ -322,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPhotos(records, formaGrid, 'forma_url');
             renderCharts(records);
             addMeasurementField();
-            updateRegistrosHeader(records); // Chamada da nova função
+            updatePhotoButtons(records);
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);

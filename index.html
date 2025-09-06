@@ -26,13 +26,13 @@
         </div>
     </header>
 
-    <div class="main-greeting">
-        <h2 class="h2-title" id="greeting-message">Carregando...</h2>
-        <p class="loading-status" id="loading-status-text">carregando seus dados...</p>
-    </div>
+    <div class="container main-content">
+        <div class="main-greeting">
+            <h2 class="h2-title" id="greeting-message">Carregando...</h2>
+            <p class="loading-status" id="loading-status-text">carregando seus dados...</p>
+        </div>
 
-    <div class="container main-content floating-card">
-        <div class="card-basic card-terracotta card-full-width">
+        <div class="card-basic card-terracotta card-full-width spaced-top">
             <img src="https://api.iconify.design/solar:sun-bold-duotone.svg" alt="Ícone de Clima" class="icon">
             <div class="kpi-info">
                 <span class="kpi-label">Clima Atual</span>
@@ -127,11 +127,8 @@
             </div>
         </div>
 
-        <div class="section-header" id="registrosHeader">
-            <h2 class="h2-title">Registros</h2>
-        </div>
-        <p>
-            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse">
+        <p class="section-top-space">
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse" id="registrosButtonCollapse">
                 Registros
             </button>
         </p>
@@ -139,11 +136,8 @@
             <div id="photo-grid" class="photo-grid-gallery"></div>
         </div>
         
-        <div class="section-header">
-            <h2 class="h2-title">Forma</h2>
-        </div>
-        <p>
-            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse">
+        <p class="section-top-space">
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse" id="formaButtonCollapse">
                 Forma
             </button>
         </p>
