@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Função assíncrona para buscar os dados de clima com tratamento de erro
     async function fetchWeather() {
         console.log("Tentando buscar dados de clima...");
-        const apiKey = 'SUA_CHAVE_DE_API_DO_OPENWEATHERMAP'; 
+        const apiKey = '7266ddb3d14331910bdc98966924d8d0'; 
         const city = 'São Paulo';
         const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
 
