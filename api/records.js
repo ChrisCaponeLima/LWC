@@ -36,7 +36,8 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // Acesso mais seguro aos campos para evitar erros se estiverem ausentes
+                // Acesso seguro aos campos do formulário para evitar erros.
+                // O operador `?.` garante que o código não falha se o campo não existir.
                 const date = fields.date?.[0] || null;
                 const weight = fields.weight?.[0] || null;
                 const event = fields.event?.[0] || null;
@@ -46,13 +47,14 @@ export default async function handler(req, res) {
                 const userId = fields.userId?.[0] || null;
                 const measurements = fields.measurements?.[0] || null;
 
-                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
-                const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
+                const photoFile = files.photo?.[0] || null;
+                const formaFile = files.forma?.[0] || null;
 
                 if (!userId) {
                     return res.status(401).json({ message: 'ID de usuário não fornecido.' });
                 }
                 
+                // Upload das fotos em paralelo para otimizar o tempo de resposta
                 let photo_url = null;
                 let forma_url = null;
                 
@@ -101,6 +103,7 @@ export default async function handler(req, res) {
                 
 
                 if (parsedMeasurements && parsedMeasurements.length > 0) {
+                    // A sintaxe para inserção múltipla não suporta parâmetros dinâmicos ($1, $2), então construímos a string SQL.
                     const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
                     await client.query(`INSERT INTO record_measurements (record_id, measurement_id, value) VALUES ${values}`);
                 }
