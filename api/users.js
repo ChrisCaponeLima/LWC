@@ -35,48 +35,88 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                const { user_id, user_name, user_email, password, height } = fields;
-                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+                // Acesso aos campos como strings, como nas versões antigas do formidable
+                const user_id = fields.user_id || null;
+                const user_name = fields.user_name || null;
+                const user_email = fields.user_email || null;
+                const password = fields.password || null;
+                const height = fields.height || null;
 
-                let photo_url = null;
-                if (photoFile) {
-                    try {
-                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
-                        photo_url = result.secure_url;
-                    } catch (uploadError) {
-                        console.error('Erro ao fazer upload da foto:', uploadError);
-                        return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
-                    }
+                // Acesso ao objeto de arquivo, como na versão 1.2.6 do formidable
+                const photoFile = files.photo || null;
+                
+                let hashedPassword = null;
+                if (password) {
+                    hashedPassword = await bcrypt.hash(password, 10);
                 }
 
-                if (user_id) { // Atualiza usuário existente
+                if (user_id) {
+                    // Lógica para atualizar o usuário
+                    let photo_url = null;
+                    if (photoFile) {
+                        try {
+                            const result = await cloudinary.uploader.upload(photoFile.path, { folder: "user_photos" });
+                            photo_url = result.secure_url;
+                        } catch (uploadError) {
+                            console.error('Erro ao fazer upload da foto:', uploadError);
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.', error: uploadError });
+                        }
+                    }
+
                     const updateFields = [];
                     const updateValues = [];
                     let paramIndex = 1;
 
-                    if (user_name) { updateFields.push(`user_name = $${paramIndex++}`); updateValues.push(user_name[0]); }
-                    if (user_email) { updateFields.push(`user_email = $${paramIndex++}`); updateValues.push(user_email[0]); }
-                    if (password && password[0]) {
-                        const hashedPassword = await bcrypt.hash(password[0], 10);
+                    if (user_name) {
+                        updateFields.push(`user_name = $${paramIndex++}`);
+                        updateValues.push(user_name);
+                    }
+                    if (user_email) {
+                        updateFields.push(`user_email = $${paramIndex++}`);
+                        updateValues.push(user_email);
+                    }
+                    if (hashedPassword) {
                         updateFields.push(`password = $${paramIndex++}`);
                         updateValues.push(hashedPassword);
                     }
-                    if (photo_url) { updateFields.push(`photo_url = $${paramIndex++}`); updateValues.push(photo_url); }
-                    if (height) { updateFields.push(`height_cm = $${paramIndex++}`); updateValues.push(parseInt(height[0])); }
-                    
-                    updateValues.push(user_id[0]);
+                    if (photo_url) {
+                        updateFields.push(`photo_url = $${paramIndex++}`);
+                        updateValues.push(photo_url);
+                    }
+                    if (height) {
+                        updateFields.push(`height_cm = $${paramIndex++}`);
+                        updateValues.push(parseInt(height));
+                    }
 
                     if (updateFields.length > 0) {
+                        updateValues.push(user_id);
                         const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`;
                         await client.query(query, updateValues);
                     }
-                    res.status(200).json({ message: 'Dados atualizados com sucesso.' });
 
-                } else { // Cria novo usuário (login)
-                    const hashedPassword = await bcrypt.hash(password[0], 10);
+                    res.status(200).json({ message: 'Dados do usuário atualizados com sucesso.' });
+                } else {
+                    // Lógica para criar um novo usuário
+                    let photo_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
+                    if (photoFile) {
+                        try {
+                            const result = await cloudinary.uploader.upload(photoFile.path, { folder: "user_photos" });
+                            photo_url = result.secure_url;
+                        } catch (uploadError) {
+                            console.error('Erro ao fazer upload da foto:', uploadError);
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.', error: uploadError });
+                        }
+                    }
+                    
+                    if (!user_name || !user_email || !password || !height) {
+                         return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+                    }
+
+                    const hashedPassword = await bcrypt.hash(password, 10);
+
                     const result = await client.query(
                         'INSERT INTO users (user_name, user_email, password, photo_url, height_cm) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-                        [user_name[0], user_email[0], hashedPassword, photo_url, parseInt(height[0])]
+                        [user_name, user_email, hashedPassword, photo_url, parseInt(height)]
                     );
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
@@ -90,7 +130,7 @@ export default async function handler(req, res) {
             }
 
             const result = await client.query(
-                'SELECT id, username, email, photo_perfil_url, height_cm FROM users WHERE id = $1',
+                'SELECT id, user_name, user_email, photo_url, height_cm FROM users WHERE id = $1',
                 [id]
             );
 
@@ -111,7 +151,7 @@ export default async function handler(req, res) {
 }
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+    api: {
+        bodyParser: false,
+    },
 };

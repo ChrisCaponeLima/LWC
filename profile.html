@@ -12,63 +12,105 @@
 </head>
 <body>
     <header class="app-header">
-        <a href="index.html" class="back-button">< Voltar</a>
         <h1 class="h1-title">Meu Perfil</h1>
+        <div class="user-profile-menu dropdown">
+            <strong id="userProfileName" class="me-2">John Doe</strong>
+            <img id="userProfilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="user-photo-sm">
+        </div>
     </header>
 
     <div class="container profile-page">
         <div class="profile-section" id="mainProfile">
-            <div class="profile-header-main">
+            <div class="profile-header">
                 <div class="profile-picture-container">
                     <img id="profilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
-                    </div>
-                <h2 id="userName" class="h2-profile-name">Nome do Usuário</h2>
-                <p id="userEmail" class="profile-email">email@exemplo.com</p>
+                </div>
+                <h2 class="h2-profile-name"><strong id="userName">Nome do Usuário</strong></h2>
+                <p class="profile-email" id="userEmail">email@exemplo.com</p>
             </div>
-
-            <div class="profile-actions">
-                <a href="#myInfoSection" class="profile-action-card" id="showInfoBtn">
-                    <div class="action-icon-text">
-                        <img src="https://api.iconify.design/solar:user-bold-duotone.svg" class="action-card-icon" alt="Ícone de Informações">
-                        <span>Minhas Informações</span>
-                    </div>
-                    <img src="https://api.iconify.design/solar:alt-arrow-right-bold.svg" class="arrow-icon" alt="Seta">
-                </a>
-
-                <a href="#changePasswordSection" class="profile-action-card" id="showPasswordBtn">
-                    <div class="action-icon-text">
-                        <img src="https://api.iconify.design/solar:lock-bold-duotone.svg" class="action-card-icon" alt="Ícone de Senha">
-                        <span>Mudar Minha Senha</span>
-                    </div>
-                    <img src="https://api.iconify.design/solar:alt-arrow-right-bold.svg" class="arrow-icon" alt="Seta">
-                </a>
-
-                <button class="btn-logout" id="logoutButton">Logout</button>
-            </div>
-        </div>
-
-        <div class="profile-section-wrapper">
-            <div class="profile-section" id="myInfoSection" style="display: none;">
+            
+            <div class="section-header">
                 <h2 class="h2-title">Minhas Informações</h2>
-                <a href="#" class="back-button-info" onclick="history.back()">
-                    < Voltar
+                <a href="#" class="edit-profile-icon" id="editProfileBtn">
+                    <img src="https://api.iconify.design/solar:settings-bold.svg" alt="Editar" class="icon-sm">
                 </a>
-                <div class="kpi-grid">
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Medidas" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Medidas</span>
-                            <span class="kpi-value" id="user-measurements">--</span>
-                        </div>
+            </div>
+            
+            <div id="infoDisplay" class="kpi-grid">
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:weight-bold-duotone.svg" alt="Ícone de Peso" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Peso Inicial</span>
+                        <span class="kpi-value" id="initial-weight">-- kg</span>
                     </div>
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:weight-bold-duotone.svg" alt="Ícone de Peso" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Peso Inicial</span>
-                            <span class="kpi-value" id="user-initial-weight">-- kg</span>
-                        </div>
+                </div>
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Altura" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Altura</span>
+                        <span class="kpi-value" id="user-height">-- cm</span>
                     </div>
-                    <div class="card-basic">
-                        <img src="https://api.iconify.design/solar:dumbbell-bold-duotone.svg" alt="Ícone de Treino" class="icon">
-                        <div class="kpi-info">
-                            <span class="kpi-label">Dias
+                </div>
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:heart-bold-duotone.svg" alt="Ícone de Coração" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">IMC</span>
+                        <span class="kpi-value" id="user-bmi">--</span>
+                    </div>
+                </div>
+                <div class="card-basic">
+                    <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala" class="icon">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Peso Ideal</span>
+                        <span class="kpi-value" id="ideal-weight">-- kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="infoForm" class="form-card" style="display: none;">
+                <h3 class="h3-title">Editar Dados</h3>
+                <form id="profileForm" class="row g-3" enctype="multipart/form-data">
+                    <div class="col-12 text-center mb-3">
+                        <label for="profile-photo-upload" class="photo-upload-label">
+                            <img id="profilePhotoForm" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="profile-photo-lg">
+                            <br>
+                            Mudar Foto
+                        </label>
+                        <input type="file" id="profile-photo-upload" style="display: none;" accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <label for="profile-username" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="profile-username" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="profile-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="profile-email" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label for="height" class="form-label">Altura (cm)</label>
+                        <input type="number" step="1" class="form-control" id="height" name="height">
+                    </div>
+                    <div class="col-12">
+                        <label for="profile-password" class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control" id="profile-password" placeholder="Deixe em branco para não alterar">
+                    </div>
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn-success">Salvar Alterações</button>
+                    </div>
+                </form>
+                <div class="d-grid gap-2">
+                    <button id="cancelEditBtn" class="btn btn-secondary mt-3">Cancelar</button>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2 class="h2-title">Registros</h2>
+            </div>
+            <div id="photo-grid" class="photo-grid-gallery"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>
