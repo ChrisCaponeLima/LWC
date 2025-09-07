@@ -476,7 +476,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 alert('Registro salvo com sucesso!');
+                
+                // Limpeza de todos os campos do formulário
                 dataForm.reset();
+
+                // Limpeza manual dos campos de arquivo para garantir
+                document.querySelector('#photo').value = '';
+                document.querySelector('#forma').value = '';
+                
                 loadInitialData();
                 document.querySelectorAll('.measurement-row').forEach(row => row.remove());
                 addMeasurementField();
