@@ -36,7 +36,6 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // CORRIGIDO: Acessando o primeiro elemento de cada array retornado pelo formidable
                 const date = fields.date[0];
                 const weight = fields.weight[0];
                 const event = fields.event[0];
@@ -49,30 +48,36 @@ export default async function handler(req, res) {
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
 
-                if (!userId || userId.length === 0) {
+                if (!userId) {
                     return res.status(401).json({ message: 'ID de usuário não fornecido.' });
                 }
                 
                 let photo_url = null;
-                if (photoFile) {
-                    try {
-                        const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "record_photos" });
-                        photo_url = result.secure_url;
-                    } catch (uploadError) {
-                        console.error('Erro ao fazer upload da foto:', uploadError);
-                        return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
-                    }
-                }
-
                 let forma_url = null;
-                if (formaFile) {
-                    try {
-                        const result = await cloudinary.uploader.upload(formaFile.filepath, { folder: "record_forma" });
-                        forma_url = result.secure_url;
-                    } catch (uploadError) {
-                        console.error('Erro ao fazer upload da foto de forma:', uploadError);
-                        return res.status(500).json({ message: 'Erro ao fazer upload da foto de forma.' });
+                
+                try {
+                    const uploadPromises = [];
+                    
+                    if (photoFile) {
+                        uploadPromises.push(cloudinary.uploader.upload(photoFile.filepath, { folder: "record_photos" }));
+                    } else {
+                        uploadPromises.push(Promise.resolve(null));
                     }
+                    
+                    if (formaFile) {
+                        uploadPromises.push(cloudinary.uploader.upload(formaFile.filepath, { folder: "record_forma" }));
+                    } else {
+                        uploadPromises.push(Promise.resolve(null));
+                    }
+                    
+                    const [photoResult, formaResult] = await Promise.all(uploadPromises);
+                    
+                    photo_url = photoResult ? photoResult.secure_url : null;
+                    forma_url = formaResult ? formaResult.secure_url : null;
+
+                } catch (uploadError) {
+                    console.error('Erro ao fazer upload de fotos:', uploadError);
+                    return res.status(500).json({ message: 'Erro ao fazer upload de fotos.' });
                 }
 
                 await client.query('BEGIN');
