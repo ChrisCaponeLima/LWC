@@ -36,7 +36,14 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                const { date, weight, event, weeklyAction, workoutDays, observations, userId, measurements } = fields;
+                const date = fields.date[0];
+                const weight = fields.weight[0];
+                const event = fields.event[0];
+                const weeklyAction = fields.weeklyAction[0];
+                const workoutDays = fields.workoutDays[0];
+                const observations = fields.observations[0];
+                const userId = fields.userId[0];
+                const measurements = fields.measurements[0];
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
 

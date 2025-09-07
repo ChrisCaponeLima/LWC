@@ -430,10 +430,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     dataForm.addEventListener('submit', async function(event) {
         event.preventDefault();
+
+        const dateValue = this.querySelector('#date').value;
+        if (!dateValue) {
+            alert('Por favor, selecione uma data para o registro.');
+            return; // Interrompe a submissão se a data não estiver presente
+        }
+
         const formData = new FormData();
         
         formData.append('userId', userId);
-        formData.append('date', this.querySelector('#date').value);
+        formData.append('date', dateValue);
         formData.append('weight', this.querySelector('#weight').value);
         formData.append('event', this.querySelector('#event').value);
         formData.append('weeklyAction', this.querySelector('#weeklyAction').value);
@@ -474,14 +481,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.measurement-row').forEach(row => row.remove());
                 addMeasurementField();
             } else {
-                alert('Erro ao salvar o registro.');
+                const errorData = await response.json();
+                alert(`Erro ao salvar o registro: ${errorData.message}`);
             }
         } catch (error) {
             console.error('Erro ao enviar registro:', error);
             alert('Erro ao enviar registro. Verifique a conexão.');
         }
     });
-
+    
     loadInitialData();
     fetchWeatherByGeolocation();
 });
