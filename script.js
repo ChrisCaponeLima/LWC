@@ -1,17 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Mantém a variável no localStorage como 'userId' para compatibilidade
     const userId = localStorage.getItem('userId');
 
-    // VERIFICAÇÃO DE AUTENTICAÇÃO - A PRIMEIRA AÇÃO DO SCRIPT
     if (!userId) {
         window.location.href = 'login.html';
-        return; // Parar a execução do script
+        return;
     }
 
-    // Tenta carregar as informações do localStorage primeiro para uma experiência mais rápida
     let username = localStorage.getItem('username');
     let userPhotoUrl = localStorage.getItem('userPhotoUrl');
     let userHeightCm = localStorage.getItem('userHeightCm') ? parseFloat(localStorage.getItem('userHeightCm')) : null;
+
+    let allRecords = []; // Variável para armazenar todos os registros carregados
+    let availableMeasurements = [];
+    const chartInstances = {};
 
     const dataForm = document.getElementById('dataForm');
     const toggleFormBtn = document.getElementById('toggleFormBtn');
@@ -21,30 +22,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const photoGrid = document.getElementById('photo-grid');
     const formaGrid = document.getElementById('forma-grid');
     const chartsContainer = document.getElementById('charts-container');
-
-    // Elementos dos KPIs
     const currentWeightElem = document.getElementById('current-weight');
     const totalLossElem = document.getElementById('total-loss');
     const weeklyStatusElem = document.getElementById('weekly-status');
     const bmiElem = document.getElementById('bmi');
-
-    // Elementos da nova saudação
     const greetingMessageElem = document.getElementById('greeting-message');
     const loadingStatusTextElem = document.getElementById('loading-status-text');
-    
-    // Novo elemento do clima
     const weatherDataElem = document.getElementById('weather-data');
-    
-    // Novos elementos dos botões de galeria
     const registrosButton = document.getElementById('registrosButtonCollapse');
     const formaButton = document.getElementById('formaButtonCollapse');
-
-    let availableMeasurements = [];
-    const chartInstances = {}; // Usar um objeto para gerenciar instâncias de gráficos
-
     const userProfileName = document.getElementById('userProfileName');
     const userProfilePhoto = document.getElementById('userProfilePhoto');
-    
+
     function getGreeting() {
         const hour = new Date().getHours();
         if (hour < 12) return 'Bom dia';
@@ -149,64 +138,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCharts(records) {
-        chartsContainer.innerHTML = ''; // Limpar o container de gráficos
+        chartsContainer.innerHTML = '';
         const sortedRecords = [...records].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
         const dates = sortedRecords.map(record => new Date(record.record_date).toLocaleDateString('pt-BR'));
         
-        // Coleta todos os tipos de medidas disponíveis
         const allMeasurements = new Set();
         sortedRecords.forEach(record => {
+            if (record.weight) allMeasurements.add('Peso');
             if (record.measurements) {
                 record.measurements.forEach(m => allMeasurements.add(m.name));
             }
         });
 
-        // Adiciona peso e cintura se houverem dados
-        if (sortedRecords.some(r => r.weight)) {
-            allMeasurements.add('Peso');
-        }
-        if (sortedRecords.some(r => r.measurements.some(m => m.name === 'Cintura'))) {
-            allMeasurements.add('Cintura');
-        }
+        // Ordenar as medições
+        const orderedMeasurements = ['Peso', 'Cintura'];
+        allMeasurements.forEach(m => {
+            if (!orderedMeasurements.includes(m)) {
+                orderedMeasurements.push(m);
+            }
+        });
 
-        // Destroi os gráficos existentes
         Object.values(chartInstances).forEach(chart => chart.destroy());
         
-        // Cria um gráfico para cada tipo de medida
-        allMeasurements.forEach(measurementName => {
+        orderedMeasurements.forEach(measurementName => {
             const chartData = sortedRecords.map(record => {
                 if (measurementName === 'Peso') {
                     return parseFloat(record.weight);
                 } else {
-                    const measurement = record.measurements.find(m => m.name === measurementName);
+                    const measurement = record.measurements?.find(m => m.name === measurementName);
                     return measurement ? parseFloat(measurement.value) : null;
                 }
             });
 
-            const uniqueChartId = `${measurementName.toLowerCase().replace(/\s/g, '-')}-chart`;
-            const chartDiv = document.createElement('div');
-            chartDiv.className = 'card-chart';
-            chartDiv.innerHTML = `<canvas id="${uniqueChartId}"></canvas>`;
-            chartsContainer.appendChild(chartDiv);
+            if (chartData.some(d => d !== null && !isNaN(d))) {
+                const uniqueChartId = `${measurementName.toLowerCase().replace(/\s/g, '-')}-chart`;
+                const chartDiv = document.createElement('div');
+                chartDiv.className = 'card-chart';
+                chartDiv.innerHTML = `<canvas id="${uniqueChartId}"></canvas>`;
+                chartsContainer.appendChild(chartDiv);
 
-            const ctx = document.getElementById(uniqueChartId);
-            chartInstances[uniqueChartId] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: `${measurementName} (cm)`, // Adicione a unidade se precisar
-                        data: chartData,
-                        borderColor: '#007bff', // Cor padrão, pode ser dinamizada
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        borderWidth: 2,
-                        fill: true
-                    }]
-                },
-                options: { responsive: true, tension: 0.4 }
-            });
+                const ctx = document.getElementById(uniqueChartId);
+                chartInstances[uniqueChartId] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: `${measurementName} (cm)`,
+                            data: chartData,
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, tension: 0.4 }
+                });
+            }
         });
     }
+    
+    // Função para filtrar os dados por período
+    function filterData(period) {
+        const now = new Date();
+        let filteredRecords = [];
+
+        if (period === 'all') {
+            filteredRecords = allRecords;
+        } else {
+            const dateFilter = new Date();
+            if (period === '3months') {
+                dateFilter.setMonth(now.getMonth() - 3);
+            } else if (period === '6months') {
+                dateFilter.setMonth(now.getMonth() - 6);
+            }
+            filteredRecords = allRecords.filter(r => new Date(r.record_date) >= dateFilter);
+        }
+        
+        renderCharts(filteredRecords);
+    }
+    window.filterData = filterData; // Expor a função para o escopo global
 
     async function loadMeasurements() {
         try {
@@ -249,9 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const iconElement = weatherCard.querySelector('.icon');
         const kpiInfoElements = weatherCard.querySelectorAll('.kpi-info, .kpi-label, .kpi-value');
 
-        let bgVar, fontVar;
-
-        // Mapeamento dos códigos de clima para variáveis de cor
         const weatherMap = {
             '01d': { bg: 'var(--weather-bg-sunny-day)', font: 'var(--weather-font-sunny-day)' },
             '01n': { bg: 'var(--weather-bg-clear-night)', font: 'var(--weather-font-clear-night)' },
@@ -325,12 +332,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 (error) => {
                     console.error('Erro de geolocalização:', error);
-                    fetchWeather(); // Fallback para São Paulo
+                    fetchWeather();
                 }
             );
         } else {
             console.log('Geolocalização não é suportada por este navegador.');
-            fetchWeather(); // Fallback para São Paulo
+            fetchWeather();
         }
     }
 
@@ -364,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/users?id=${userId}`); 
             const user = await response.json();
             if (user) {
-                // CORRIGIDO: Agora as propriedades correspondem ao novo SELECT no users.js
                 username = user.username; 
                 userPhotoUrl = user.photo_perfil_url; 
                 userHeightCm = user.height_cm;
@@ -404,17 +410,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('/api/measurements')
             ]);
             
-            const records = await recordsResponse.json();
+            allRecords = await recordsResponse.json();
             availableMeasurements = await measurementsResponse.json();
 
             loadingStatusTextElem.textContent = 'Acompanhe sua evolução';
 
-            updateKPIs(records);
-            renderPhotos(records, photoGrid, 'photo_url');
-            renderPhotos(records, formaGrid, 'forma_url');
-            renderCharts(records);
+            updateKPIs(allRecords);
+            renderPhotos(allRecords, photoGrid, 'photo_url');
+            renderPhotos(allRecords, formaGrid, 'forma_url');
+            renderCharts(allRecords);
             addMeasurementField();
-            updatePhotoButtons(records);
+            updatePhotoButtons(allRecords);
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
