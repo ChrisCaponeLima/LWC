@@ -36,10 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <img src="https://api.iconify.design/solar:pen-bold-duotone.svg" alt="Editar" class="icon-sm">
                     </button>
                 `;
-                // Adicionar evento para o botão de edição
                 const editBtn = photoItem.querySelector('.photo-edit-btn');
                 editBtn.addEventListener('click', () => {
-                    // Lógica para editar o registro, será implementada futuramente
                     alert('Funcionalidade de edição em desenvolvimento.');
                 });
                 gridElement.appendChild(photoItem);
@@ -54,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const userData = await response.json();
                 
+                // --- CORREÇÃO: ADICIONA O NOVO URL DA FOTO AO LOCALSTORAGE ---
+                localStorage.setItem('userPhotoUrl', userData.photo_url);
+
                 // Preencher informações do perfil
                 userNameElement.textContent = userData.user_name || 'Usuário';
                 profilePhotoPreview.src = userData.photo_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
@@ -95,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelEditBtn.addEventListener('click', () => {
         infoDisplay.style.display = 'grid';
         infoForm.style.display = 'none';
-        // Opcional: recarregar dados para garantir que não haja alterações não salvas no formulário
         loadUserDataAndRecords(); 
     });
 
