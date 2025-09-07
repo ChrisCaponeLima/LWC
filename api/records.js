@@ -36,25 +36,16 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // FIX: Acesso mais seguro aos campos do formulário para evitar erros.
-                // O operador `?.` garante que o código não falha se o campo não existir.
-                const date = fields.date?.[0] || null;
-                const weight = fields.weight?.[0] || null;
-                const event = fields.event?.[0] || null;
-                const weeklyAction = fields.weeklyAction?.[0] || null;
-                const workoutDays = fields.workoutDays?.[0] || null;
-                const observations = fields.observations?.[0] || null;
-                const userId = fields.userId?.[0] || null;
-                const measurements = fields.measurements?.[0] || null;
+                // Acesso aos campos como strings, como nas versões antigas do formidable
+                const { date, weight, event, weeklyAction, workoutDays, observations, userId, measurements } = fields;
 
-                const photoFile = files.photo?.[0] || null;
-                const formaFile = files.forma?.[0] || null;
+                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+                const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
 
                 if (!userId) {
                     return res.status(401).json({ message: 'ID de usuário não fornecido.' });
                 }
                 
-                // FIX: Upload das fotos em paralelo para otimizar o tempo de resposta
                 let photo_url = null;
                 let forma_url = null;
                 
@@ -91,16 +82,7 @@ export default async function handler(req, res) {
                 );
 
                 const newRecordId = recordInsertResult.rows[0].id;
-                
-                let parsedMeasurements = [];
-                if (measurements) {
-                    try {
-                        parsedMeasurements = JSON.parse(measurements);
-                    } catch (e) {
-                        console.error('Erro ao analisar as medidas:', e);
-                    }
-                }
-                
+                const parsedMeasurements = JSON.parse(measurements);
 
                 if (parsedMeasurements && parsedMeasurements.length > 0) {
                     const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
