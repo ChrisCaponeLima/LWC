@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const pool = new Pool({
     user: process.env.PGUSER,
@@ -14,7 +14,7 @@ const pool = new Pool({
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Método não permitido' });
+        return res.status(405).json({ message: 'Método não permitido.' });
     }
 
     const { username, password } = req.body;
@@ -28,10 +28,10 @@ export default async function handler(req, res) {
             return res.status(401).json({ message: 'Credenciais inválidas.' });
         }
 
-        // Você precisa gerar um hash para as senhas no momento do cadastro
-        // Para este exemplo, vamos supor que as senhas estão em texto simples
-        // Em um ambiente de produção, use bcrypt.compare
-        if (password === user.password_hash) {
+        // CORREÇÃO: Usar bcrypt.compare para verificar a senha de forma segura
+        const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (isPasswordMatch) {
             res.status(200).json({
                 message: 'Login bem-sucedido.',
                 userId: user.id,

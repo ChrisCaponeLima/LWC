@@ -1,40 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
-    const loginMessage = document.getElementById('loginMessage');
+    
+    // Verifica se o usuário já está logado
+    if (localStorage.getItem('userId')) {
+        window.location.href = 'index.html';
+    }
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-        const username = loginForm.username.value;
-        const password = loginForm.password.value;
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
 
-        try {
-            const response = await fetch('/api/auth', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Salva o ID do usuário, nome e URL da foto no localStorage
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('userPhotoUrl', data.photoUrl); 
 
-            const data = await response.json();
-
-            if (response.ok) {
-                // Autenticação bem-sucedida
-                localStorage.setItem('userId', data.userId);
-                localStorage.setItem('username', data.username);
-                localStorage.setItem('role', data.role);
-                localStorage.setItem('userPhotoUrl', data.photoUrl || ''); // Salva a URL da foto
-                window.location.href = 'index.html'; // Redireciona para o dashboard
-            } else {
-                // Autenticação falhou
-                loginMessage.textContent = data.message;
-                loginMessage.style.display = 'block';
+                    alert('Login bem-sucedido!');
+                    window.location.href = 'index.html';
+                } else {
+                    const errorData = await response.json();
+                    alert(`Erro de login: ${errorData.message}`);
+                }
+            } catch (error) {
+                console.error('Erro de conexão:', error);
+                alert('Erro de conexão. Tente novamente.');
             }
-        } catch (error) {
-            loginMessage.textContent = 'Erro ao conectar com o servidor.';
-            loginMessage.style.display = 'block';
-            console.error('Erro de login:', error);
-        }
-    });
+        });
+    }
 });
