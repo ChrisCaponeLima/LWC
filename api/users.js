@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
-import { IncomingForm } from 'formidable';
+import pkg from 'formidable';
+const { IncomingForm } = pkg;
 import cloudinary from 'cloudinary';
 import bcrypt from 'bcryptjs';
 
