@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
                 const { date, weight, event, weeklyAction, workoutDays, observations, userId, measurements } = fields;
 
-                // FIX: Acesso direto aos objetos de arquivo, como na versão 1.2.6 do formidable
+                // FIX: Acesso aos objetos de arquivo. A versão 1.2.6 do formidable retorna um objeto ou null, e a propriedade do caminho é '.path'.
                 const photoFile = files.photo || null;
                 const formaFile = files.forma || null;
 
@@ -52,26 +52,31 @@ export default async function handler(req, res) {
                 try {
                     const uploadPromises = [];
                     
+                    // Verificação de existência do arquivo antes de adicionar a promessa de upload
                     if (photoFile) {
-                        uploadPromises.push(cloudinary.uploader.upload(photoFile.filepath, { folder: "record_photos" }));
-                    } else {
-                        uploadPromises.push(Promise.resolve(null));
+                        uploadPromises.push(cloudinary.uploader.upload(photoFile.path, { folder: "record_photos" }));
                     }
                     
                     if (formaFile) {
-                        uploadPromises.push(cloudinary.uploader.upload(formaFile.filepath, { folder: "record_forma" }));
-                    } else {
-                        uploadPromises.push(Promise.resolve(null));
+                        uploadPromises.push(cloudinary.uploader.upload(formaFile.path, { folder: "record_forma" }));
                     }
-                    
-                    const [photoResult, formaResult] = await Promise.all(uploadPromises);
-                    
-                    photo_url = photoResult ? photoResult.secure_url : null;
-                    forma_url = formaResult ? formaResult.secure_url : null;
+
+                    // Aguarda o resultado de todas as promessas de upload
+                    const results = await Promise.all(uploadPromises);
+
+                    // Atribui os URLs apenas se o upload foi bem-sucedido
+                    let resultIndex = 0;
+                    if (photoFile) {
+                        photo_url = results[resultIndex].secure_url;
+                        resultIndex++;
+                    }
+                    if (formaFile) {
+                        forma_url = results[resultIndex].secure_url;
+                    }
 
                 } catch (uploadError) {
                     console.error('Erro ao fazer upload de fotos:', uploadError);
-                    return res.status(500).json({ message: 'Erro ao fazer upload de fotos.' });
+                    return res.status(500).json({ message: 'Erro ao fazer upload de fotos.', error: uploadError });
                 }
 
                 await client.query('BEGIN');
