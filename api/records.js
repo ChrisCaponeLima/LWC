@@ -36,11 +36,11 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // Acesso aos campos como strings, como nas versões antigas do formidable
                 const { date, weight, event, weeklyAction, workoutDays, observations, userId, measurements } = fields;
 
-                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
-                const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
+                // FIX: Acesso direto aos objetos de arquivo, como na versão 1.2.6 do formidable
+                const photoFile = files.photo || null;
+                const formaFile = files.forma || null;
 
                 if (!userId) {
                     return res.status(401).json({ message: 'ID de usuário não fornecido.' });
