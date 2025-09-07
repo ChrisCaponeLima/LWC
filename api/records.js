@@ -36,6 +36,7 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
+                // CORRIGIDO: Acessando o primeiro elemento de cada array retornado pelo formidable
                 const date = fields.date[0];
                 const weight = fields.weight[0];
                 const event = fields.event[0];
@@ -44,6 +45,7 @@ export default async function handler(req, res) {
                 const observations = fields.observations[0];
                 const userId = fields.userId[0];
                 const measurements = fields.measurements[0];
+
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
 
@@ -77,11 +79,11 @@ export default async function handler(req, res) {
 
                 const recordInsertResult = await client.query(
                     'INSERT INTO records (user_id, record_date, weight, event, weekly_action, workout_days, observations, photo_url, forma_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-                    [userId[0], date[0], weight[0], event[0], weeklyAction[0], workoutDays[0], observations[0], photo_url, forma_url]
+                    [userId, date, weight, event, weeklyAction, workoutDays, observations, photo_url, forma_url]
                 );
 
                 const newRecordId = recordInsertResult.rows[0].id;
-                const parsedMeasurements = JSON.parse(measurements[0]);
+                const parsedMeasurements = JSON.parse(measurements);
 
                 if (parsedMeasurements && parsedMeasurements.length > 0) {
                     const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
