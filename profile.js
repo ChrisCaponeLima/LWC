@@ -331,6 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     alert('Dados atualizados com sucesso!');
+                    
+                    // Limpeza de todos os campos do formulário
+                    profileForm.reset();
+
+                    // Limpeza manual dos campos de arquivo para garantir
+                    document.getElementById('profile-photo-upload').value = '';
+
                     loadUserDataAndRecords(); // Recarrega os dados após a atualização
                     infoDisplay.style.display = 'grid'; // Retorna para o display de informações
                     infoForm.style.display = 'none';
