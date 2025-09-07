@@ -21,6 +21,8 @@ export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
+        // CORREÇÃO AQUI: A coluna que armazena a senha criptografada é 'password_hash'
+        // A coluna que armazena a foto de perfil é 'photo_perfil_url'
         const result = await client.query('SELECT id, username, password_hash, role, photo_perfil_url FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
 
