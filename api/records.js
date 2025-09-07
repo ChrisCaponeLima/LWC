@@ -31,73 +31,73 @@ export default async function handler(req, res) {
             const form = new IncomingForm();
 
             form.parse(req, async (err, fields, files) => {
-            if (err) {
-                console.error('Erro ao processar formulário:', err);
-                return res.status(500).json({ message: 'Erro ao processar formulário.' });
-            }
+                if (err) {
+                    console.error('Erro ao processar formulário:', err);
+                    return res.status(500).json({ message: 'Erro ao processar formulário.' });
+                }
 
-            const date = fields.date[0];
-            const weight = fields.weight[0];
-            const event = fields.event[0];
-            const weeklyAction = fields.weeklyAction[0];
-            const workoutDays = fields.workoutDays[0];
-            const observations = fields.observations[0];
-            const userId = fields.userId[0];
-            const measurements = fields.measurements[0];
+                const date = fields.date ? fields.date[0] : null;
+                const weight = fields.weight ? fields.weight[0] : null;
+                const event = fields.event ? fields.event[0] : null;
+                const weeklyAction = fields.weeklyAction ? fields.weeklyAction[0] : null;
+                const workoutDays = fields.workoutDays ? fields.workoutDays[0] : null;
+                const observations = fields.observations ? fields.observations[0] : null;
+                const userId = fields.userId ? fields.userId[0] : null;
+                const measurements = fields.measurements ? fields.measurements[0] : null;
 
-            const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
-            const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
+                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+                const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
 
-            if (!userId) {
-                return res.status(401).json({ message: 'ID de usuário não fornecido.' });
-            }
-            
-            let photo_url = null;
-            let forma_url = null;
-            
-            try {
-                const uploadPromises = [];
-                
-                if (photoFile) {
-                    uploadPromises.push(cloudinary.uploader.upload(photoFile.filepath, { folder: "record_photos" }));
-                } else {
-                    uploadPromises.push(Promise.resolve(null));
+                if (!userId) {
+                    return res.status(401).json({ message: 'ID de usuário não fornecido.' });
                 }
                 
-                if (formaFile) {
-                    uploadPromises.push(cloudinary.uploader.upload(formaFile.filepath, { folder: "record_forma" }));
-                } else {
-                    uploadPromises.push(Promise.resolve(null));
+                let photo_url = null;
+                let forma_url = null;
+                
+                try {
+                    const uploadPromises = [];
+                    
+                    if (photoFile) {
+                        uploadPromises.push(cloudinary.uploader.upload(photoFile.filepath, { folder: "record_photos" }));
+                    } else {
+                        uploadPromises.push(Promise.resolve(null));
+                    }
+                    
+                    if (formaFile) {
+                        uploadPromises.push(cloudinary.uploader.upload(formaFile.filepath, { folder: "record_forma" }));
+                    } else {
+                        uploadPromises.push(Promise.resolve(null));
+                    }
+                    
+                    const [photoResult, formaResult] = await Promise.all(uploadPromises);
+                    
+                    photo_url = photoResult ? photoResult.secure_url : null;
+                    forma_url = formaResult ? formaResult.secure_url : null;
+
+                } catch (uploadError) {
+                    console.error('Erro ao fazer upload de fotos:', uploadError);
+                    return res.status(500).json({ message: 'Erro ao fazer upload de fotos.' });
                 }
-                
-                const [photoResult, formaResult] = await Promise.all(uploadPromises);
-                
-                photo_url = photoResult ? photoResult.secure_url : null;
-                forma_url = formaResult ? formaResult.secure_url : null;
 
-            } catch (uploadError) {
-                console.error('Erro ao fazer upload de fotos:', uploadError);
-                return res.status(500).json({ message: 'Erro ao fazer upload de fotos.' });
-            }
+                await client.query('BEGIN');
 
-            await client.query('BEGIN');
+                const recordInsertResult = await client.query(
+                    'INSERT INTO records (user_id, record_date, weight, event, weekly_action, workout_days, observations, photo_url, forma_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+                    [userId, date, weight, event, weeklyAction, workoutDays, observations, photo_url, forma_url]
+                );
 
-            const recordInsertResult = await client.query(
-                'INSERT INTO records (user_id, record_date, weight, event, weekly_action, workout_days, observations, photo_url, forma_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-                [userId, date, weight, event, weeklyAction, workoutDays, observations, photo_url, forma_url]
-            );
+                const newRecordId = recordInsertResult.rows[0].id;
+                const parsedMeasurements = JSON.parse(measurements);
 
-            const newRecordId = recordInsertResult.rows[0].id;
-            const parsedMeasurements = JSON.parse(measurements);
+                if (parsedMeasurements && parsedMeasurements.length > 0) {
+                    const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
+                    await client.query(`INSERT INTO record_measurements (record_id, measurement_id, value) VALUES ${values}`);
+                }
 
-            if (parsedMeasurements && parsedMeasurements.length > 0) {
-                const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
-                await client.query(`INSERT INTO record_measurements (record_id, measurement_id, value) VALUES ${values}`);
-            }
-
-            await client.query('COMMIT');
-            res.status(201).json({ message: 'Registro salvo com sucesso!' });
-        });
+                await client.query('COMMIT');
+                res.status(201).json({ message: 'Registro salvo com sucesso!' });
+            });
         } else if (req.method === 'GET') {
             const { userId } = req.query;
             if (!userId) {
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
 }
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+    api: {
+        bodyParser: false,
+    },
 };
