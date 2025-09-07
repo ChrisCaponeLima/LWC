@@ -36,14 +36,15 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                const date = fields.date ? fields.date[0] : null;
-                const weight = fields.weight ? fields.weight[0] : null;
-                const event = fields.event ? fields.event[0] : null;
-                const weeklyAction = fields.weeklyAction ? fields.weeklyAction[0] : null;
-                const workoutDays = fields.workoutDays ? fields.workoutDays[0] : null;
-                const observations = fields.observations ? fields.observations[0] : null;
-                const userId = fields.userId ? fields.userId[0] : null;
-                const measurements = fields.measurements ? fields.measurements[0] : null;
+                // Acesso mais seguro aos campos para evitar erros se estiverem ausentes
+                const date = fields.date?.[0] || null;
+                const weight = fields.weight?.[0] || null;
+                const event = fields.event?.[0] || null;
+                const weeklyAction = fields.weeklyAction?.[0] || null;
+                const workoutDays = fields.workoutDays?.[0] || null;
+                const observations = fields.observations?.[0] || null;
+                const userId = fields.userId?.[0] || null;
+                const measurements = fields.measurements?.[0] || null;
 
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 const formaFile = files.forma && files.forma.length > 0 ? files.forma[0] : null;
@@ -88,7 +89,16 @@ export default async function handler(req, res) {
                 );
 
                 const newRecordId = recordInsertResult.rows[0].id;
-                const parsedMeasurements = JSON.parse(measurements);
+                
+                let parsedMeasurements = [];
+                if (measurements) {
+                    try {
+                        parsedMeasurements = JSON.parse(measurements);
+                    } catch (e) {
+                        console.error('Erro ao analisar as medidas:', e);
+                    }
+                }
+                
 
                 if (parsedMeasurements && parsedMeasurements.length > 0) {
                     const values = parsedMeasurements.map(m => `(${newRecordId}, ${m.id}, ${m.value})`).join(', ');
