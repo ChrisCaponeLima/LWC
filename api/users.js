@@ -38,7 +38,7 @@ export default async function handler(req, res) {
                 // Acesso aos campos do formulário
                 const user_id = fields.user_id ? fields.user_id[0] : null;
                 const username = fields.username ? fields.username[0] : null;
-                const user_email = fields.user_email ? fields.user_email[0] : null;
+                const email = fields.email ? fields.email[0] : null;
                 const password = fields.password ? fields.password[0] : null;
                 const height = fields.height ? fields.height[0] : null;
                 const initial_weight = fields.initial_weight ? fields.initial_weight[0] : null;
@@ -69,16 +69,16 @@ export default async function handler(req, res) {
                         updateFields.push(`username = $${paramIndex++}`);
                         updateValues.push(username);
                     }
-                    if (user_email) {
-                        updateFields.push(`user_email = $${paramIndex++}`);
-                        updateValues.push(user_email);
+                    if (email) {
+                        updateFields.push(`email = $${paramIndex++}`);
+                        updateValues.push(email);
                     }
                     if (hashedPassword) {
-                        updateFields.push(`password = $${paramIndex++}`);
+                        updateFields.push(`password_hash = $${paramIndex++}`);
                         updateValues.push(hashedPassword);
                     }
                     if (photo_url) {
-                        updateFields.push(`photo_url = $${paramIndex++}`);
+                        updateFields.push(`photo_perfil_url = $${paramIndex++}`);
                         updateValues.push(photo_url);
                     }
                     if (height) {
@@ -98,26 +98,26 @@ export default async function handler(req, res) {
 
                     res.status(200).json({ message: 'Dados atualizados com sucesso.' });
                 } else { // Cria novo usuário
-                    let photo_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
+                    let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                     if (photoFile) {
                         try {
                             const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
-                            photo_url = result.secure_url;
+                            photo_perfil_url = result.secure_url;
                         } catch (uploadError) {
                             console.error('Erro ao fazer upload da foto:', uploadError);
                             return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
                     
-                    if (!username || !user_email || !password || !height || !initial_weight) {
+                    if (!username || !email || !password || !height || !initial_weight) {
                          return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
                     }
 
                     const hashedPassword = await bcrypt.hash(password, 10);
 
                     const result = await client.query(
-                        'INSERT INTO users (username, user_email, password, photo_url, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                        [username, user_email, hashedPassword, photo_url, parseInt(height), parseFloat(initial_weight)]
+                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                        [username, email, hashedPassword, photo_perfil_url, parseInt(height), parseFloat(initial_weight)]
                     );
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
             }
 
             const userResult = await client.query(
-                'SELECT id, username, user_email, photo_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
+                'SELECT id, username, email, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
                 [id]
             );
 
