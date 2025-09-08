@@ -52,13 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const userData = await response.json();
                 
-                // --- CORREÇÃO: ADICIONA O NOVO URL DA FOTO AO LOCALSTORAGE ---
-                localStorage.setItem('userPhotoUrl', userData.photo_url);
+                // CORREÇÃO: Atualiza a URL da foto no localStorage com o nome correto da coluna
+                localStorage.setItem('userPhotoUrl', userData.photo_perfil_url);
 
                 // Preencher informações do perfil
-                userNameElement.textContent = userData.user_name || 'Usuário';
-                profilePhotoPreview.src = userData.photo_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
-                document.getElementById('user-profile-photo').src = userData.photo_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
+                userNameElement.textContent = userData.username || 'Usuário'; 
+                // As duas linhas abaixo foram alteradas para usar o nome de coluna correto
+                profilePhotoPreview.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
+                document.getElementById('user-profile-photo').src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg'; 
                 
                 // Preencher os KPIs
                 initialWeightElem.textContent = `${userData.initial_weight_kg || '--'} kg`;
@@ -67,8 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentWeightElem.textContent = `${userData.latest_weight_kg || '--'} kg`;
 
                 // Preencher o formulário de edição
-                document.getElementById('profile-username').value = userData.user_name || '';
-                document.getElementById('profile-email').value = userData.user_email || '';
+                document.getElementById('profile-username').value = userData.username || '';
+                document.getElementById('profile-email').value = userData.email || '';
                 document.getElementById('height').value = userData.height_cm || '';
                 document.getElementById('initial-weight-form').value = userData.initial_weight_kg || '';
                 if (userData.birthdate) {
@@ -119,9 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const profilePhotoInput = document.getElementById('profile-photo-upload');
 
         formData.append('user_id', userId);
-        formData.append('user_email', document.getElementById('profile-email').value);
+        formData.append('username', document.getElementById('profile-username').value);
+        formData.append('email', document.getElementById('profile-email').value); 
         formData.append('password', document.getElementById('profile-password').value);
-        
+        formData.append('height', document.getElementById('height').value);
+        formData.append('initial_weight', document.getElementById('initial-weight-form').value);
+
         const photoFile = profilePhotoInput.files[0];
         if (photoFile) {
             formData.append('photo', photoFile);
@@ -154,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
-        localStorage.removeItem('userPhotoUrl');
+        localStorage.removeItem('userPhotoUrl'); 
         window.location.href = 'login.html';
     });
     
