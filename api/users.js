@@ -35,32 +35,29 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // Acesso aos campos como strings, como nas versões antigas do formidable
-                const user_id = fields.user_id || null;
-                const user_name = fields.user_name || null;
-                const user_email = fields.user_email || null;
-                const password = fields.password || null;
-                const height = fields.height || null;
-                const initial_weight = fields.initial_weight || null;
-
-                // Acesso ao objeto de arquivo, como na versão 1.2.6 do formidable
-                const photoFile = files.photo || null;
+                // Acesso aos campos do formulário
+                const user_id = fields.user_id ? fields.user_id[0] : null;
+                const username = fields.username ? fields.username[0] : null;
+                const user_email = fields.user_email ? fields.user_email[0] : null;
+                const password = fields.password ? fields.password[0] : null;
+                const height = fields.height ? fields.height[0] : null;
+                const initial_weight = fields.initial_weight ? fields.initial_weight[0] : null;
+                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 
                 let hashedPassword = null;
                 if (password) {
                     hashedPassword = await bcrypt.hash(password, 10);
                 }
 
-                if (user_id) {
-                    // Lógica para atualizar o usuário
+                if (user_id) { // Atualiza usuário existente
                     let photo_url = null;
                     if (photoFile) {
                         try {
-                            const result = await cloudinary.uploader.upload(photoFile.path, { folder: "user_photos" });
+                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                             photo_url = result.secure_url;
                         } catch (uploadError) {
                             console.error('Erro ao fazer upload da foto:', uploadError);
-                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.', error: uploadError });
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
 
@@ -68,9 +65,9 @@ export default async function handler(req, res) {
                     const updateValues = [];
                     let paramIndex = 1;
 
-                    if (user_name) {
-                        updateFields.push(`user_name = $${paramIndex++}`);
-                        updateValues.push(user_name);
+                    if (username) {
+                        updateFields.push(`username = $${paramIndex++}`);
+                        updateValues.push(username);
                     }
                     if (user_email) {
                         updateFields.push(`user_email = $${paramIndex++}`);
@@ -99,29 +96,28 @@ export default async function handler(req, res) {
                         await client.query(query, updateValues);
                     }
 
-                    res.status(200).json({ message: 'Dados do usuário atualizados com sucesso.' });
-                } else {
-                    // Lógica para criar um novo usuário
+                    res.status(200).json({ message: 'Dados atualizados com sucesso.' });
+                } else { // Cria novo usuário
                     let photo_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                     if (photoFile) {
                         try {
-                            const result = await cloudinary.uploader.upload(photoFile.path, { folder: "user_photos" });
+                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                             photo_url = result.secure_url;
                         } catch (uploadError) {
                             console.error('Erro ao fazer upload da foto:', uploadError);
-                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.', error: uploadError });
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
                     
-                    if (!user_name || !user_email || !password || !height || !initial_weight) {
+                    if (!username || !user_email || !password || !height || !initial_weight) {
                          return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
                     }
 
                     const hashedPassword = await bcrypt.hash(password, 10);
 
                     const result = await client.query(
-                        'INSERT INTO users (user_name, user_email, password, photo_url, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                        [user_name, user_email, hashedPassword, photo_url, parseInt(height), parseFloat(initial_weight)]
+                        'INSERT INTO users (username, user_email, password, photo_url, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                        [username, user_email, hashedPassword, photo_url, parseInt(height), parseFloat(initial_weight)]
                     );
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
@@ -135,7 +131,7 @@ export default async function handler(req, res) {
             }
 
             const userResult = await client.query(
-                'SELECT id, user_name, user_email, photo_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
+                'SELECT id, username, user_email, photo_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
                 [id]
             );
 
@@ -169,7 +165,7 @@ export default async function handler(req, res) {
             
             // Busca todos os registros de peso para o gráfico
             const recordsResult = await client.query(
-                'SELECT record_date, weight FROM records WHERE user_id = $1 ORDER BY record_date ASC',
+                'SELECT record_date, weight, photo_url, forma_url FROM records WHERE user_id = $1 ORDER BY record_date ASC',
                 [id]
             );
 
