@@ -42,6 +42,8 @@ export default async function handler(req, res) {
                 const password = fields.password ? fields.password[0] : null;
                 const height = fields.height ? fields.height[0] : null;
                 const initial_weight = fields.initial_weight ? fields.initial_weight[0] : null;
+                // Adiciona o campo birthdate para ser capturado do formulário
+                const birthdate = fields.birthdate ? fields.birthdate[0] : null; 
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 
                 let hashedPassword = null;
@@ -65,6 +67,7 @@ export default async function handler(req, res) {
                     const updateValues = [];
                     let paramIndex = 1;
 
+                    // Adiciona os campos a serem atualizados apenas se existirem
                     if (username) {
                         updateFields.push(`username = $${paramIndex++}`);
                         updateValues.push(username);
@@ -89,8 +92,14 @@ export default async function handler(req, res) {
                         updateFields.push(`initial_weight_kg = $${paramIndex++}`);
                         updateValues.push(parseFloat(initial_weight));
                     }
+                    // Adiciona a data de nascimento para ser atualizada
+                    if (birthdate) {
+                        updateFields.push(`birthdate = $${paramIndex++}`);
+                        updateValues.push(birthdate);
+                    }
 
                     if (updateFields.length > 0) {
+                        // O ID do usuário é o último parâmetro da query
                         updateValues.push(user_id);
                         const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`;
                         await client.query(query, updateValues);
@@ -110,7 +119,7 @@ export default async function handler(req, res) {
                     }
                     
                     if (!username || !email || !password || !height || !initial_weight) {
-                         return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+                        return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
                     }
 
                     const hashedPassword = await bcrypt.hash(password, 10);
@@ -131,7 +140,8 @@ export default async function handler(req, res) {
             }
 
             const userResult = await client.query(
-                'SELECT id, username, email, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
+                // Inclui o campo birthdate na query para que ele seja retornado ao frontend
+                'SELECT id, username, email, birthdate, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
                 [id]
             );
 

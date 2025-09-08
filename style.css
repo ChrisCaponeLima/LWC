@@ -279,14 +279,23 @@ body {
 }
 
 .profile-email {
-    font-size: 1rem;
+    font-size: 0.85rem; /* Diminui o tamanho da fonte */
     color: #6C757D;
+    margin-top: -0.25rem; /* Reduz o espaço superior entre o nome e o e-mail */
 }
 
 .edit-profile-icon .icon-sm {
     width: 24px;
     height: 24px;
     color: var(--primary-blue);
+}
+
+.edit-profile-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: none;
 }
 
 .user-profile-menu strong, .user-profile-menu a {
@@ -439,4 +448,34 @@ body {
     cursor: pointer;
     transition: background-color 0.3s ease;
     text-decoration: none;
+}
+
+.form-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem; /* Adiciona 16px de espaço entre os botões */
+    align-items: center;
+}
+
+/* Garante que o botão 'Cancelar' siga o padrão de estilo */
+.cancel-button {
+    width: auto;
+    background-color: transparent !important;
+    color: #000;
+    font-weight: 500;
+}
+
+.back-to-home {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.btn-back {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: none;
 }
