@@ -66,45 +66,32 @@ export default async function handler(req, res) {
                         }
                     }
 
-                    const userResult = await client.query('SELECT * FROM users WHERE id = $1', [user_id]);
-                    if (userResult.rows.length === 0) {
-                        return res.status(404).json({ message: 'Usuário não encontrado.' });
-                    }
-                    const existingUser = userResult.rows[0];
-
-                    const newUsername = username || existingUser.username;
-                    const newEmail = email || existingUser.email;
-                    const newPasswordHash = hashedPassword || existingUser.password_hash;
-                    const newPhotoUrl = photo_url || existingUser.photo_perfil_url;
-                    
-                    const newHeight = height ? parseFloat(height) : existingUser.height_cm;
-                    const newInitialWeight = initial_weight ? parseFloat(initial_weight) : existingUser.initial_weight_kg;
-                    const newBirthdate = (birthdate && birthdate.trim() !== '1') ? birthdate : existingUser.birthdate;
-                    
+                    // A consulta desnecessária foi removida.
+                    // Agora, o código usará os dados do formulário diretamente.
                     const query = `
                         UPDATE users 
                         SET 
-                            username = $1, 
-                            email = $2, 
-                            password_hash = $3, 
-                            photo_perfil_url = $4, 
-                            height_cm = $5, 
-                            initial_weight_kg = $6, 
-                            birthdate = $7
+                            username = COALESCE($1, username), 
+                            email = COALESCE($2, email), 
+                            password_hash = COALESCE($3, password_hash), 
+                            photo_perfil_url = COALESCE($4, photo_perfil_url), 
+                            height_cm = COALESCE($5, height_cm), 
+                            initial_weight_kg = COALESCE($6, initial_weight_kg), 
+                            birthdate = COALESCE($7, birthdate)
                         WHERE id = $8
                     `;
                     
                     const values = [
-                        newUsername,
-                        newEmail,
-                        newPasswordHash,
-                        newPhotoUrl,
-                        newHeight,
-                        newInitialWeight,
-                        newBirthdate,
+                        username,
+                        email,
+                        hashedPassword,
+                        photo_url,
+                        height ? parseFloat(height) : null,
+                        initial_weight ? parseFloat(initial_weight) : null,
+                        (birthdate && birthdate.trim() !== '') ? birthdate : null,
                         user_id
                     ];
-                    
+
                     // Comentamos a linha que executa a query para evitar alterações.
                     // await client.query(query, values); 
                     
@@ -114,7 +101,7 @@ export default async function handler(req, res) {
                         query, 
                         values 
                     });
-
+                    
                 } else {
                     let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                     if (photoFile) {
