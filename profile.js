@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 userBmiElem.textContent = userData.bmi || '--';
                 currentWeightElem.textContent = `${userData.latest_weight_kg || '--'} kg`;
 
-                // Preencher o formulário com os dados corretos
                 document.getElementById('profile-username').value = userData.username || '';
                 document.getElementById('profile-email').value = userData.email || '';
                 document.getElementById('height').value = userData.height_cm || '';
@@ -80,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (userData.birthdate) {
                     document.getElementById('birthdate').value = new Date(userData.birthdate).toISOString().split('T')[0];
                 }
-                document.getElementById('user-id-form').value = userData.id;
 
                 const hasPhotoRecords = renderPhotos(userData.records, photoGrid, 'photo_url');
                 const hasFormaRecords = renderPhotos(userData.records, formaGrid, 'forma_url');
@@ -137,6 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         
         const formData = new FormData(profileForm);
+
+        formData.append('user_id', userId);
         
         const passwordValue = document.getElementById('profile-password').value;
         if (passwordValue.trim() === '') {
