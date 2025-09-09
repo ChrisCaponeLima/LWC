@@ -104,102 +104,19 @@ export default async function handler(req, res) {
                         newBirthdate,
                         user_id
                     ];
+                    
+                    // Comentamos a linha que executa a query para evitar alterações.
+                    // await client.query(query, values); 
+                    
+                    // Retornamos os dados para o frontend para depuração.
+                    return res.status(200).json({ 
+                        message: 'Dados de depuração da query:', 
+                        query, 
+                        values 
+                    });
 
-                    await client.query(query, values);
-
-                    res.status(200).json({ message: 'Dados atualizados com sucesso.' });
                 } else {
                     let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                     if (photoFile) {
                         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-                        const maxSize = 5 * 1024 * 1024; // 5 MB
-
-                        if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
-                            return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
-                        }
-                        
-                        try {
-                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
-                            photo_perfil_url = result.secure_url;
-                        } catch (uploadError) {
-                            console.error('Erro ao fazer upload da foto:', uploadError);
-                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
-                        }
-                    }
-                    
-                    if (!username || !email || !password || !height || !initial_weight || !birthdate) {
-                        return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
-                    }
-
-                    const hashedPassword = await bcrypt.hash(password, 10);
-                    
-                    await client.query(
-                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-                        [username, email, hashedPassword, photo_perfil_url, parseFloat(height), parseFloat(initial_weight), birthdate]
-                    );
-                    const newUserId = result.rows[0].id;
-                    res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
-                }
-            });
-
-        } else if (req.method === 'GET') {
-            const { id } = req.query;
-            if (!id) {
-                return res.status(400).json({ message: 'ID de usuário é obrigatório.' });
-            }
-
-            const userResult = await client.query(
-                'SELECT id, username, email, birthdate, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
-                [id]
-            );
-
-            if (userResult.rows.length === 0) {
-                return res.status(404).json({ message: 'Usuário não encontrado.' });
-            }
-
-            const userData = userResult.rows[0];
-
-            const latestWeightResult = await client.query(
-                'SELECT weight FROM records WHERE user_id = $1 ORDER BY record_date DESC LIMIT 1',
-                [id]
-            );
-
-            let latestWeight = userData.initial_weight_kg;
-            if (latestWeightResult.rows.length > 0) {
-                latestWeight = latestWeightResult.rows[0].weight;
-            }
-
-            let bmi = null;
-            if (userData.height_cm && latestWeight) {
-                const heightInMeters = userData.height_cm / 100;
-                bmi = (latestWeight / (heightInMeters * heightInMeters)).toFixed(2);
-            }
-
-            userData.latest_weight_kg = latestWeight;
-            userData.bmi = bmi;
-            
-            const recordsResult = await client.query(
-                'SELECT record_date, weight, photo_url, forma_url FROM records WHERE user_id = $1 ORDER BY record_date ASC',
-                [id]
-            );
-
-            userData.records = recordsResult.rows;
-
-            res.status(200).json(userData);
-
-        } else {
-            res.status(405).json({ message: 'Método não permitido.' });
-        }
-    } catch (error) {
-        console.error('Erro na requisição da API:', error);
-        res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
-    } finally {
-        client.release();
-    }
-}
-
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+                        const
