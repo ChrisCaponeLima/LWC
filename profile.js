@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userHeightElem = document.getElementById('user-height');
     const userBmiElem = document.getElementById('user-bmi');
 
-    // Novas variáveis para os botões
     const registrosButton = document.getElementById('registrosButtonCollapse');
     const formaButton = document.getElementById('formaButtonCollapse');
 
@@ -25,13 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // Função para renderizar as fotos de evolução
     function renderPhotos(records, gridElement, photoUrlKey) {
         gridElement.innerHTML = '';
-        let hasPhotos = false; // Flag para verificar se há fotos
+        let hasPhotos = false;
         records.forEach(record => {
             if (record[photoUrlKey]) {
-                hasPhotos = true; // Se encontrar uma foto, define a flag como true
+                hasPhotos = true;
                 const photoItem = document.createElement('div');
                 photoItem.className = 'photo-item';
                 photoItem.innerHTML = `
@@ -48,37 +46,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 gridElement.appendChild(photoItem);
             }
         });
-        return hasPhotos; // Retorna o status da flag
+        return hasPhotos;
     }
 
-    // Função para carregar os dados do usuário e registros
     async function loadUserDataAndRecords() {
         try {
             const response = await fetch(`/api/users?id=${userId}`);
             if (response.ok) {
                 const userData = await response.json();
                 
-                // CORREÇÃO: Atualiza a URL da foto no localStorage com o nome correto da coluna
                 localStorage.setItem('userPhotoUrl', userData.photo_perfil_url);
 
-                // Preencher informações do perfil
                 userNameElement.textContent = userData.username || 'Usuário'; 
                 document.getElementById('user-email').textContent = userData.email || 'Não informado'; 
                 
-                // Evita a duplicação da foto carregando-a apenas uma vez no DOM
                 const userProfilePhotoElement = document.getElementById('user-profile-photo');
                 if (userProfilePhotoElement) {
                     userProfilePhotoElement.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg'; 
                 }
                 profilePhotoPreview.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                 
-                // Preencher os KPIs
                 initialWeightElem.textContent = `${userData.initial_weight_kg || '--'} kg`;
                 userHeightElem.textContent = `${userData.height_cm || '--'} cm`;
                 userBmiElem.textContent = userData.bmi || '--';
                 currentWeightElem.textContent = `${userData.latest_weight_kg || '--'} kg`;
 
-                // Preencher o formulário de edição
+                // Preencher o formulário de edição com os dados CORRETOS do usuário logado
                 document.getElementById('profile-username').value = userData.username || '';
                 document.getElementById('profile-email').value = userData.email || '';
                 document.getElementById('height').value = userData.height_cm || '';
@@ -87,11 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('birthdate').value = new Date(userData.birthdate).toISOString().split('T')[0];
                 }
 
-                // Renderizar as fotos
                 const hasPhotoRecords = renderPhotos(userData.records, photoGrid, 'photo_url');
                 const hasFormaRecords = renderPhotos(userData.records, formaGrid, 'forma_url');
 
-                // Lógica para colorir os botões se houver fotos
                 if (registrosButton) {
                     if (hasPhotoRecords) {
                         registrosButton.classList.add('btn-with-photos');
@@ -110,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         formaButton.classList.remove('btn-with-photos');
                     }
                 }
-
             } else {
                 console.error('Erro ao carregar dados do usuário.');
             }
@@ -119,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Lógica para mostrar/esconder o formulário
     editProfileBtn.addEventListener('click', () => {
         infoDisplay.style.display = 'none';
         infoForm.style.display = 'block';
@@ -131,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadUserDataAndRecords(); 
     });
 
-    // Pré-visualização da foto ao selecionar
     profilePhotoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -143,25 +131,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica de envio do formulário de perfil (ÚNICA E CORRIGIDA)
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        // A LÓGICA DE COLETA DE DADOS FOI SIMPLIFICADA E CORRIGIDA AQUI
         const formData = new FormData();
-        const passwordValue = document.getElementById('profile-password').value;
-        const birthdateValue = document.getElementById('birthdate').value;
-
         formData.append('user_id', userId);
         formData.append('username', document.getElementById('profile-username').value);
         formData.append('email', document.getElementById('profile-email').value); 
         formData.append('height', document.getElementById('height').value);
         formData.append('initial_weight', document.getElementById('initial-weight-form').value);
 
-        // Adiciona a data de nascimento apenas se estiver preenchida
+        const birthdateValue = document.getElementById('birthdate').value;
         if (birthdateValue) {
             formData.append('birthdate', birthdateValue);
         }
 
+        const passwordValue = document.getElementById('profile-password').value;
         if (passwordValue.trim() !== '') {
             formData.append('password', passwordValue);
         }
@@ -177,14 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            // Lê a resposta JSON em qualquer caso de sucesso (código 2xx)
+            // Lógica de depuração - remova quando terminar
             const responseData = await response.json(); 
-            
-            // VERIFICA O CENÁRIO DE DEPURAÇÃO
             if (responseData.query && responseData.values) {
                 alert(`Query de depuração:\n\nSQL: ${responseData.query}\n\nValores: ${JSON.stringify(responseData.values, null, 2)}`);
             } else if (response.ok) {
-                // Este é o cenário de sucesso real, quando a API estiver finalizada
                 alert('Dados atualizados com sucesso!');
                 infoDisplay.style.display = 'grid'; 
                 infoForm.style.display = 'none';
@@ -192,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 profileForm.reset();
                 document.getElementById('profile-photo-upload').value = '';
             } else {
-                // Este é o cenário de erro, como 400 ou 500
                 alert(`Erro ao atualizar dados: ${responseData.message}`);
             }
         } catch (error) {
@@ -201,6 +183,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Inicia o carregamento dos dados
     loadUserDataAndRecords();
 });
