@@ -35,15 +35,13 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // Acesso aos campos do formulário
                 const user_id = fields.user_id ? fields.user_id[0] : null;
                 const username = fields.username ? fields.username[0] : null;
                 const email = fields.email ? fields.email[0] : null;
                 const password = fields.password ? fields.password[0] : null;
                 const height = fields.height ? fields.height[0] : null;
                 const initial_weight = fields.initial_weight ? fields.initial_weight[0] : null;
-                // Adiciona o campo birthdate para ser capturado do formulário
-                const birthdate = fields.birthdate ? fields.birthdate[0] : null; 
+                const birthdate = fields.birthdate ? fields.birthdate[0] : null;
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
                 
                 let hashedPassword = null;
@@ -54,6 +52,13 @@ export default async function handler(req, res) {
                 if (user_id) { // Atualiza usuário existente
                     let photo_url = null;
                     if (photoFile) {
+                        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                        const maxSize = 5 * 1024 * 1024; // 5 MB
+
+                        if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
+                            return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
+                        }
+
                         try {
                             const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                             photo_url = result.secure_url;
@@ -67,7 +72,6 @@ export default async function handler(req, res) {
                     const updateValues = [];
                     let paramIndex = 1;
 
-                    // Adiciona os campos a serem atualizados apenas se existirem
                     if (username) {
                         updateFields.push(`username = $${paramIndex++}`);
                         updateValues.push(username);
@@ -92,14 +96,12 @@ export default async function handler(req, res) {
                         updateFields.push(`initial_weight_kg = $${paramIndex++}`);
                         updateValues.push(parseFloat(initial_weight));
                     }
-                    // Adiciona a data de nascimento para ser atualizada
                     if (birthdate) {
                         updateFields.push(`birthdate = $${paramIndex++}`);
                         updateValues.push(birthdate);
                     }
 
                     if (updateFields.length > 0) {
-                        // O ID do usuário é o último parâmetro da query
                         updateValues.push(user_id);
                         const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`;
                         await client.query(query, updateValues);
@@ -109,6 +111,13 @@ export default async function handler(req, res) {
                 } else { // Cria novo usuário
                     let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                     if (photoFile) {
+                        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                        const maxSize = 5 * 1024 * 1024; // 5 MB
+
+                        if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
+                            return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
+                        }
+                        
                         try {
                             const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                             photo_perfil_url = result.secure_url;
@@ -118,15 +127,16 @@ export default async function handler(req, res) {
                         }
                     }
                     
-                    if (!username || !email || !password || !height || !initial_weight) {
+                    if (!username || !email || !password || !height || !initial_weight || !birthdate) {
                         return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
                     }
 
                     const hashedPassword = await bcrypt.hash(password, 10);
-
+                    
+                    // CORREÇÃO: Ajuste na ordem dos parâmetros na query de INSERT
                     const result = await client.query(
-                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                        [username, email, hashedPassword, photo_perfil_url, parseInt(height), parseFloat(initial_weight)]
+                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+                        [username, email, hashedPassword, photo_perfil_url, parseInt(height), parseFloat(initial_weight), birthdate]
                     );
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
@@ -140,7 +150,6 @@ export default async function handler(req, res) {
             }
 
             const userResult = await client.query(
-                // Inclui o campo birthdate na query para que ele seja retornado ao frontend
                 'SELECT id, username, email, birthdate, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
                 [id]
             );
@@ -151,7 +160,6 @@ export default async function handler(req, res) {
 
             const userData = userResult.rows[0];
 
-            // Busca o peso mais recente do usuário
             const latestWeightResult = await client.query(
                 'SELECT weight FROM records WHERE user_id = $1 ORDER BY record_date DESC LIMIT 1',
                 [id]
@@ -162,18 +170,15 @@ export default async function handler(req, res) {
                 latestWeight = latestWeightResult.rows[0].weight;
             }
 
-            // Calcula o IMC com base no peso mais recente ou inicial
             let bmi = null;
             if (userData.height_cm && latestWeight) {
                 const heightInMeters = userData.height_cm / 100;
                 bmi = (latestWeight / (heightInMeters * heightInMeters)).toFixed(2);
             }
 
-            // Adiciona o peso mais recente e o IMC ao objeto de resposta
             userData.latest_weight_kg = latestWeight;
             userData.bmi = bmi;
             
-            // Busca todos os registros de peso para o gráfico
             const recordsResult = await client.query(
                 'SELECT record_date, weight, photo_url, forma_url FROM records WHERE user_id = $1 ORDER BY record_date ASC',
                 [id]
