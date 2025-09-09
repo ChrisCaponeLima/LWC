@@ -133,7 +133,6 @@ export default async function handler(req, res) {
 
                     const hashedPassword = await bcrypt.hash(password, 10);
                     
-                    // CORREÇÃO: Ajuste na ordem dos parâmetros na query de INSERT
                     const result = await client.query(
                         'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
                         [username, email, hashedPassword, photo_perfil_url, parseInt(height), parseFloat(initial_weight), birthdate]
@@ -193,6 +192,7 @@ export default async function handler(req, res) {
         }
     } catch (error) {
         console.error('Erro na requisição da API:', error);
+        // Retorna um erro em formato JSON para evitar o SyntaxError no frontend
         res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
     } finally {
         client.release();

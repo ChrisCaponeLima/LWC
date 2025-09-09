@@ -145,46 +145,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Lógica de envio do formulário de perfil
     profileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData();
-        const profilePhotoInput = document.getElementById('profile-photo-upload');
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const profilePhotoInput = document.getElementById('profile-photo-upload');
+    const passwordValue = document.getElementById('profile-password').value;
+    const birthdateValue = document.getElementById('birthdate').value;
 
-        formData.append('user_id', userId);
-        formData.append('username', document.getElementById('profile-username').value);
-        formData.append('email', document.getElementById('profile-email').value); 
-        formData.append('password', document.getElementById('profile-password').value);
-        formData.append('height', document.getElementById('height').value);
-        formData.append('initial_weight', document.getElementById('initial-weight-form').value);
-        formData.append('birthdate', document.getElementById('birthdate').value);
+    formData.append('user_id', userId);
+    formData.append('username', document.getElementById('profile-username').value);
+    formData.append('email', document.getElementById('profile-email').value); 
+    formData.append('height', document.getElementById('height').value);
+    formData.append('initial_weight', document.getElementById('initial-weight-form').value);
 
-        const photoFile = profilePhotoInput.files[0];
-        if (photoFile) {
-            formData.append('photo', photoFile);
+    // Adiciona a data de nascimento apenas se estiver preenchida
+    if (birthdateValue) {
+        formData.append('birthdate', birthdateValue);
+    }
+
+    if (passwordValue.trim() !== '') {
+        formData.append('password', passwordValue);
+    }
+
+    const photoFile = profilePhotoInput.files[0];
+    if (photoFile) {
+        formData.append('photo', photoFile);
+    }
+
+    try {
+        const response = await fetch('/api/users', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            alert('Dados atualizados com sucesso!');
+            infoDisplay.style.display = 'grid'; 
+            infoForm.style.display = 'none';
+            loadUserDataAndRecords(); 
+            profileForm.reset();
+            document.getElementById('profile-photo-upload').value = '';
+        } else {
+            const errorData = await response.json();
+            alert(`Erro ao atualizar dados: ${errorData.message}`);
         }
+    } catch (error) {
+        console.error('Erro ao enviar dados:', error);
+        alert('Erro de conexão. Tente novamente.');
+    }
+});
 
-        try {
-            const response = await fetch('/api/users', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                alert('Dados atualizados com sucesso!');
-                infoDisplay.style.display = 'grid'; 
-                infoForm.style.display = 'none';
-                loadUserDataAndRecords(); 
-                profileForm.reset();
-                document.getElementById('profile-photo-upload').value = '';
-            } else {
-                const errorData = await response.json();
-                alert(`Erro ao atualizar dados: ${errorData.message}`);
-            }
-        } catch (error) {
-            console.error('Erro ao enviar dados:', error);
-            alert('Erro de conexão. Tente novamente.');
-        }
-    });
     
     loadUserDataAndRecords();
 });
