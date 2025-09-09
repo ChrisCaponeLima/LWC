@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userNameElement = document.getElementById('user-name');
     const photoGrid = document.getElementById('photo-grid');
     const formaGrid = document.getElementById('forma-grid');
-    const debugOutput = document.getElementById('debug-output');
     
     const initialWeightElem = document.getElementById('initial-weight');
     const currentWeightElem = document.getElementById('current-weight');
@@ -134,27 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const formData = new FormData();
-        const passwordValue = document.getElementById('profile-password').value;
-        const birthdateValue = document.getElementById('birthdate').value;
+        const formData = new FormData(profileForm); // Corrigido para pegar todos os dados do formulário
 
         formData.append('user_id', userId);
-        formData.append('username', document.getElementById('profile-username').value);
-        formData.append('email', document.getElementById('profile-email').value); 
-        formData.append('height', document.getElementById('height').value);
-        formData.append('initial_weight', document.getElementById('initial-weight-form').value);
-
-        if (birthdateValue) {
-            formData.append('birthdate', birthdateValue);
-        }
-
-        if (passwordValue.trim() !== '') {
-            formData.append('password', passwordValue);
-        }
-
-        const photoFile = profilePhotoInput.files[0];
-        if (photoFile) {
-            formData.append('photo', photoFile);
+        
+        // Remove campos desnecessários se eles não forem alterados
+        const passwordValue = document.getElementById('profile-password').value;
+        if (passwordValue.trim() === '') {
+            formData.delete('password');
         }
 
         try {
@@ -163,11 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            // Exibir a query de depuração
-            const responseData = await response.json(); 
-            if (responseData.query && responseData.values) {
-                debugOutput.value = `Query de depuração:\n\nSQL: ${responseData.query}\n\nValores: ${JSON.stringify(responseData.values, null, 2)}`;
-            } else if (response.ok) {
+            if (response.ok) {
                 alert('Dados atualizados com sucesso!');
                 infoDisplay.style.display = 'grid'; 
                 infoForm.style.display = 'none';
@@ -175,7 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 profileForm.reset();
                 document.getElementById('profile-photo-upload').value = '';
             } else {
-                alert(`Erro ao atualizar dados: ${responseData.message}`);
+                const errorData = await response.json();
+                alert(`Erro ao atualizar dados: ${errorData.message}`);
             }
         } catch (error) {
             console.error('Erro ao enviar dados:', error);
