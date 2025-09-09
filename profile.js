@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const registrosButton = document.getElementById('registrosButtonCollapse');
     const formaButton = document.getElementById('formaButtonCollapse');
+    const debugOutput = document.getElementById('debug-output');
 
     if (!userId) {
         window.location.href = 'login.html';
@@ -133,11 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const formData = new FormData(profileForm); // Corrigido para pegar todos os dados do formulário
+        const formData = new FormData(profileForm);
 
         formData.append('user_id', userId);
         
-        // Remove campos desnecessários se eles não forem alterados
         const passwordValue = document.getElementById('profile-password').value;
         if (passwordValue.trim() === '') {
             formData.delete('password');
@@ -150,12 +150,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
-                alert('Dados atualizados com sucesso!');
-                infoDisplay.style.display = 'grid'; 
-                infoForm.style.display = 'none';
-                loadUserDataAndRecords(); 
-                profileForm.reset();
-                document.getElementById('profile-photo-upload').value = '';
+                const responseData = await response.json();
+
+                // Adiciona a lógica para exibir os dados de depuração
+                if (responseData.query && responseData.values) {
+                    const debugText = `Query: \n${responseData.query}\n\nValues: \n${JSON.stringify(responseData.values, null, 2)}`;
+                    debugOutput.value = debugText;
+                    alert('Teste de depuração concluído. A query está no campo de depuração.');
+                } else {
+                    alert('Dados atualizados com sucesso!');
+                    infoDisplay.style.display = 'grid'; 
+                    infoForm.style.display = 'none';
+                    loadUserDataAndRecords(); 
+                    profileForm.reset();
+                    document.getElementById('profile-photo-upload').value = '';
+                }
+
             } else {
                 const errorData = await response.json();
                 alert(`Erro ao atualizar dados: ${errorData.message}`);
