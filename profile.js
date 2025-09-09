@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userNameElement = document.getElementById('user-name');
     const photoGrid = document.getElementById('photo-grid');
     const formaGrid = document.getElementById('forma-grid');
+    const debugOutput = document.getElementById('debug-output'); // Novo elemento de depuração
     
     const initialWeightElem = document.getElementById('initial-weight');
     const currentWeightElem = document.getElementById('current-weight');
@@ -162,7 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            if (response.ok) {
+            // Lógica de depuração
+            const responseData = await response.json(); 
+            if (responseData.query && responseData.values) {
+                debugOutput.value = `Query de depuração:\n\nSQL: ${responseData.query}\n\nValores: ${JSON.stringify(responseData.values, null, 2)}`;
+            } else if (response.ok) {
                 alert('Dados atualizados com sucesso!');
                 infoDisplay.style.display = 'grid'; 
                 infoForm.style.display = 'none';
@@ -170,8 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 profileForm.reset();
                 document.getElementById('profile-photo-upload').value = '';
             } else {
-                const errorData = await response.json();
-                alert(`Erro ao atualizar dados: ${errorData.message}`);
+                alert(`Erro ao atualizar dados: ${responseData.message}`);
             }
         } catch (error) {
             console.error('Erro ao enviar dados:', error);
