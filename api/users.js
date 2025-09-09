@@ -68,44 +68,48 @@ export default async function handler(req, res) {
                         }
                     }
 
-                    const updateFields = [];
-                    const updateValues = [];
-                    let paramIndex = 1;
+                    // Busca os dados do usuário atual para preencher os campos não atualizados
+                    const userResult = await client.query('SELECT * FROM users WHERE id = $1', [user_id]);
+                    if (userResult.rows.length === 0) {
+                        return res.status(404).json({ message: 'Usuário não encontrado.' });
+                    }
+                    const existingUser = userResult.rows[0];
 
-                    if (username) {
-                        updateFields.push(`username = $${paramIndex++}`);
-                        updateValues.push(username);
-                    }
-                    if (email) {
-                        updateFields.push(`email = $${paramIndex++}`);
-                        updateValues.push(email);
-                    }
-                    if (hashedPassword) {
-                        updateFields.push(`password_hash = $${paramIndex++}`);
-                        updateValues.push(hashedPassword);
-                    }
-                    if (photo_url) {
-                        updateFields.push(`photo_perfil_url = $${paramIndex++}`);
-                        updateValues.push(photo_url);
-                    }
-                    if (height) {
-                        updateFields.push(`height_cm = $${paramIndex++}`);
-                        updateValues.push(parseInt(height));
-                    }
-                    if (initial_weight) {
-                        updateFields.push(`initial_weight_kg = $${paramIndex++}`);
-                        updateValues.push(parseFloat(initial_weight));
-                    }
-                    if (birthdate) {
-                        updateFields.push(`birthdate = $${paramIndex++}`);
-                        updateValues.push(birthdate);
-                    }
+                    // PREENCHE OS VALORES COM OS DADOS EXISTENTES SE NÃO FOREM ENVIADOS NA REQUISIÇÃO
+                    const newUsername = username || existingUser.username;
+                    const newEmail = email || existingUser.email;
+                    const newPasswordHash = hashedPassword || existingUser.password_hash;
+                    const newPhotoUrl = photo_url || existingUser.photo_perfil_url;
+                    const newHeight = height ? parseInt(height) : existingUser.height_cm;
+                    const newInitialWeight = initial_weight ? parseFloat(initial_weight) : existingUser.initial_weight_kg;
+                    const newBirthdate = birthdate || existingUser.birthdate;
 
-                    if (updateFields.length > 0) {
-                        updateValues.push(user_id);
-                        const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`;
-                        await client.query(query, updateValues);
-                    }
+                    // QUERY DE ATUALIZAÇÃO REESTRUTURADA PARA GARANTIR A ORDEM
+                    const query = `
+                        UPDATE users 
+                        SET 
+                            username = $1, 
+                            email = $2, 
+                            password_hash = $3, 
+                            photo_perfil_url = $4, 
+                            height_cm = $5, 
+                            initial_weight_kg = $6, 
+                            birthdate = $7
+                        WHERE id = $8
+                    `;
+                    
+                    const values = [
+                        newUsername,
+                        newEmail,
+                        newPasswordHash,
+                        newPhotoUrl,
+                        newHeight,
+                        newInitialWeight,
+                        newBirthdate,
+                        user_id
+                    ];
+
+                    await client.query(query, values);
 
                     res.status(200).json({ message: 'Dados atualizados com sucesso.' });
                 } else { // Cria novo usuário
@@ -192,7 +196,6 @@ export default async function handler(req, res) {
         }
     } catch (error) {
         console.error('Erro na requisição da API:', error);
-        // Retorna um erro em formato JSON para evitar o SyntaxError no frontend
         res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
     } finally {
         client.release();
