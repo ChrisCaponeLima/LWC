@@ -82,7 +82,7 @@ export default async function handler(req, res) {
                     const newPhotoUrl = photo_url || existingUser.photo_perfil_url;
                     const newHeight = height ? parseInt(height) : existingUser.height_cm;
                     const newInitialWeight = initial_weight ? parseFloat(initial_weight) : existingUser.initial_weight_kg;
-                    const newBirthdate = birthdate || existingUser.birthdate;
+                    const newBirthdate = (birthdate && birthdate.trim() !== '') ? birthdate : existingUser.birthdate;
 
                     // QUERY DE ATUALIZAÇÃO REESTRUTURADA PARA GARANTIR A ORDEM
                     const query = `
