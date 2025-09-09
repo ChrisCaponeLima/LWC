@@ -71,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 userBmiElem.textContent = userData.bmi || '--';
                 currentWeightElem.textContent = `${userData.latest_weight_kg || '--'} kg`;
 
-                // Preencher o formulário de edição com os dados CORRETOS do usuário logado
                 document.getElementById('profile-username').value = userData.username || '';
                 document.getElementById('profile-email').value = userData.email || '';
                 document.getElementById('height').value = userData.height_cm || '';
@@ -134,20 +133,20 @@ document.addEventListener('DOMContentLoaded', () => {
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // A LÓGICA DE COLETA DE DADOS FOI SIMPLIFICADA E CORRIGIDA AQUI
         const formData = new FormData();
+        const passwordValue = document.getElementById('profile-password').value;
+        const birthdateValue = document.getElementById('birthdate').value;
+
         formData.append('user_id', userId);
         formData.append('username', document.getElementById('profile-username').value);
         formData.append('email', document.getElementById('profile-email').value); 
         formData.append('height', document.getElementById('height').value);
         formData.append('initial_weight', document.getElementById('initial-weight-form').value);
 
-        const birthdateValue = document.getElementById('birthdate').value;
         if (birthdateValue) {
             formData.append('birthdate', birthdateValue);
         }
 
-        const passwordValue = document.getElementById('profile-password').value;
         if (passwordValue.trim() !== '') {
             formData.append('password', passwordValue);
         }
@@ -163,11 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            // Lógica de depuração - remova quando terminar
-            const responseData = await response.json(); 
-            if (responseData.query && responseData.values) {
-                alert(`Query de depuração:\n\nSQL: ${responseData.query}\n\nValores: ${JSON.stringify(responseData.values, null, 2)}`);
-            } else if (response.ok) {
+            if (response.ok) {
                 alert('Dados atualizados com sucesso!');
                 infoDisplay.style.display = 'grid'; 
                 infoForm.style.display = 'none';
@@ -175,7 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 profileForm.reset();
                 document.getElementById('profile-photo-upload').value = '';
             } else {
-                alert(`Erro ao atualizar dados: ${responseData.message}`);
+                const errorData = await response.json();
+                alert(`Erro ao atualizar dados: ${errorData.message}`);
             }
         } catch (error) {
             console.error('Erro ao enviar dados:', error);
