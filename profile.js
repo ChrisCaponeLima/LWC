@@ -132,11 +132,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Pré-visualização da foto ao selecionar
+    profilePhotoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                profilePhotoPreview.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Lógica de envio do formulário de perfil (ÚNICA E CORRIGIDA)
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const formData = new FormData();
-        const profilePhotoInput = document.getElementById('profile-photo-upload');
         const passwordValue = document.getElementById('profile-password').value;
         const birthdateValue = document.getElementById('birthdate').value;
 
@@ -146,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('height', document.getElementById('height').value);
         formData.append('initial_weight', document.getElementById('initial-weight-form').value);
 
-        // A CORREÇÃO ESTÁ AQUI: Só adiciona a data se ela existir
+        // Adiciona a data de nascimento apenas se estiver preenchida
         if (birthdateValue) {
             formData.append('birthdate', birthdateValue);
         }
@@ -166,7 +177,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            if (response.ok) {
+            // Lê a resposta JSON em qualquer caso de sucesso (código 2xx)
+            const responseData = await response.json(); 
+            
+            // VERIFICA O CENÁRIO DE DEPURAÇÃO
+            if (responseData.query && responseData.values) {
+                alert(`Query de depuração:\n\nSQL: ${responseData.query}\n\nValores: ${JSON.stringify(responseData.values, null, 2)}`);
+            } else if (response.ok) {
+                // Este é o cenário de sucesso real, quando a API estiver finalizada
                 alert('Dados atualizados com sucesso!');
                 infoDisplay.style.display = 'grid'; 
                 infoForm.style.display = 'none';
@@ -174,8 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 profileForm.reset();
                 document.getElementById('profile-photo-upload').value = '';
             } else {
-                const errorData = await response.json();
-                alert(`Erro ao atualizar dados: ${errorData.message}`);
+                // Este é o cenário de erro, como 400 ou 500
+                alert(`Erro ao atualizar dados: ${responseData.message}`);
             }
         } catch (error) {
             console.error('Erro ao enviar dados:', error);
@@ -183,58 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica de envio do formulário de perfil
-    profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    const profilePhotoInput = document.getElementById('profile-photo-upload');
-    const passwordValue = document.getElementById('profile-password').value;
-    const birthdateValue = document.getElementById('birthdate').value;
-
-    formData.append('user_id', userId);
-    formData.append('username', document.getElementById('profile-username').value);
-    formData.append('email', document.getElementById('profile-email').value); 
-    formData.append('height', document.getElementById('height').value);
-    formData.append('initial_weight', document.getElementById('initial-weight-form').value);
-
-    // Adiciona a data de nascimento apenas se estiver preenchida
-    if (birthdateValue) {
-        formData.append('birthdate', birthdateValue);
-    }
-
-    if (passwordValue.trim() !== '') {
-        formData.append('password', passwordValue);
-    }
-
-    const photoFile = profilePhotoInput.files[0];
-    if (photoFile) {
-        formData.append('photo', photoFile);
-    }
-
-    try {
-        const response = await fetch('/api/users', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (response.ok) {
-            alert('Dados atualizados com sucesso!');
-            infoDisplay.style.display = 'grid'; 
-            infoForm.style.display = 'none';
-            loadUserDataAndRecords(); 
-            profileForm.reset();
-            document.getElementById('profile-photo-upload').value = '';
-        } else {
-            const errorData = await response.json();
-            alert(`Erro ao atualizar dados: ${errorData.message}`);
-        }
-    } catch (error) {
-        console.error('Erro ao enviar dados:', error);
-        alert('Erro de conexão. Tente novamente.');
-    }
-});
-
-    
+    // Inicia o carregamento dos dados
     loadUserDataAndRecords();
 });
