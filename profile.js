@@ -132,14 +132,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Pré-visualização da foto ao selecionar
-    profilePhotoInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                profilePhotoPreview.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const profilePhotoInput = document.getElementById('profile-photo-upload');
+        const passwordValue = document.getElementById('profile-password').value;
+        const birthdateValue = document.getElementById('birthdate').value;
+
+        formData.append('user_id', userId);
+        formData.append('username', document.getElementById('profile-username').value);
+        formData.append('email', document.getElementById('profile-email').value); 
+        formData.append('height', document.getElementById('height').value);
+        formData.append('initial_weight', document.getElementById('initial-weight-form').value);
+
+        // A CORREÇÃO ESTÁ AQUI: Só adiciona a data se ela existir
+        if (birthdateValue) {
+            formData.append('birthdate', birthdateValue);
+        }
+
+        if (passwordValue.trim() !== '') {
+            formData.append('password', passwordValue);
+        }
+
+        const photoFile = profilePhotoInput.files[0];
+        if (photoFile) {
+            formData.append('photo', photoFile);
+        }
+
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                alert('Dados atualizados com sucesso!');
+                infoDisplay.style.display = 'grid'; 
+                infoForm.style.display = 'none';
+                loadUserDataAndRecords(); 
+                profileForm.reset();
+                document.getElementById('profile-photo-upload').value = '';
+            } else {
+                const errorData = await response.json();
+                alert(`Erro ao atualizar dados: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error('Erro ao enviar dados:', error);
+            alert('Erro de conexão. Tente novamente.');
         }
     });
 
