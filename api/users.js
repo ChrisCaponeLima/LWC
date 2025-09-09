@@ -4,7 +4,6 @@ const { IncomingForm } = pkg;
 import cloudinary from 'cloudinary';
 import bcrypt from 'bcryptjs';
 
-// Configuração da conexão com o banco de dados
 const pool = new Pool({
     user: process.env.PGUSER,
     host: process.env.PGHOST,
@@ -16,7 +15,6 @@ const pool = new Pool({
     }
 });
 
-// Configuração do Cloudinary
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -49,7 +47,7 @@ export default async function handler(req, res) {
                     hashedPassword = await bcrypt.hash(password, 10);
                 }
 
-                if (user_id) { // Atualiza usuário existente
+                if (user_id) {
                     let photo_url = null;
                     if (photoFile) {
                         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -57,6 +55,14 @@ export default async function handler(req, res) {
 
                         if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
                             return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
+                        }
+
+                        try {
+                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                            photo_url = result.secure_url;
+                        } catch (uploadError) {
+                            console.error('Erro ao fazer upload da foto:', uploadError);
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
 
@@ -73,8 +79,8 @@ export default async function handler(req, res) {
                     
                     const newHeight = height ? parseFloat(height) : existingUser.height_cm;
                     const newInitialWeight = initial_weight ? parseFloat(initial_weight) : existingUser.initial_weight_kg;
-                    const newBirthdate = birthdate || existingUser.birthdate;
-
+                    const newBirthdate = (birthdate && birthdate.trim() !== '1') ? birthdate : existingUser.birthdate;
+                    
                     const query = `
                         UPDATE users 
                         SET 
@@ -99,12 +105,10 @@ export default async function handler(req, res) {
                         user_id
                     ];
 
-                    return res.status(200).json({
-                        message: 'Dados de depuração da query:',
-                        query,
-                        values
-                    });
-                } else { // Cria novo usuário
+                    await client.query(query, values);
+
+                    res.status(200).json({ message: 'Dados atualizados com sucesso.' });
+                } else {
                     let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                     if (photoFile) {
                         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -112,6 +116,14 @@ export default async function handler(req, res) {
 
                         if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
                             return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
+                        }
+                        
+                        try {
+                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                            photo_perfil_url = result.secure_url;
+                        } catch (uploadError) {
+                            console.error('Erro ao fazer upload da foto:', uploadError);
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
                     
@@ -121,14 +133,12 @@ export default async function handler(req, res) {
 
                     const hashedPassword = await bcrypt.hash(password, 10);
                     
-                    const query = 'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id';
-                    const values = [username, email, hashedPassword, photo_perfil_url, parseFloat(height), parseFloat(initial_weight), birthdate];
-
-                    return res.status(200).json({
-                        message: 'Dados de depuração da query:',
-                        query,
-                        values
-                    });
+                    await client.query(
+                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+                        [username, email, hashedPassword, photo_perfil_url, parseFloat(height), parseFloat(initial_weight), birthdate]
+                    );
+                    const newUserId = result.rows[0].id;
+                    res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
                 }
             });
 
