@@ -33,6 +33,17 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
+                // --- Lógica de Depuração ---
+                // Retornamos os dados exatos que o Formidable recebeu.
+                return res.status(200).json({ 
+                    message: 'Dados de depuração do Formidable:', 
+                    fields: fields, 
+                    files: files 
+                });
+                // --- Fim da Lógica de Depuração ---
+
+                // Removido temporariamente para este teste.
+                /*
                 const user_id = fields.user_id && fields.user_id[0] ? fields.user_id[0] : null;
                 const username = fields.username && fields.username[0] ? fields.username[0] : null;
                 const email = fields.email && fields.email[0] ? fields.email[0] : null;
@@ -128,6 +139,7 @@ export default async function handler(req, res) {
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
                 }
+                */
             });
 
         } else if (req.method === 'GET') {
