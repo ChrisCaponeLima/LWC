@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
                 const user_id = fields.user_id || null;
                 const username = fields.username || null;
-                const email = fields.user_email || null; // <--- CORREÇÃO AQUI
+                const email = fields.user_email || null;
                 const password = fields.password || null;
                 const height = fields.height || null;
                 const initial_weight = fields.initial_weight || null;
@@ -51,7 +51,9 @@ export default async function handler(req, res) {
 
                 if (user_id) {
                     let photo_url_to_update = null;
-                    if (photoFile) {
+                    
+                    // Adicionamos esta verificação para garantir que o arquivo exista e não esteja vazio.
+                    if (photoFile && photoFile.size > 0) { // <--- CORREÇÃO AQUI
                         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
                         const maxSize = 5 * 1024 * 1024; // 5 MB
 
@@ -114,6 +116,7 @@ export default async function handler(req, res) {
                         try {
                             const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                             photo_perfil_url = result.secure_url;
+                            fs.unlinkSync(photoFile.filepath);
                         } catch (uploadError) {
                             console.error('Erro ao fazer upload da foto:', uploadError);
                             return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
