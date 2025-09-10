@@ -3,6 +3,7 @@ import pkg from 'formidable';
 const { IncomingForm } = pkg;
 import cloudinary from 'cloudinary';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
 
 const pool = new Pool({
     user: process.env.PGUSER,
@@ -41,7 +42,8 @@ export default async function handler(req, res) {
                 const initial_weight = fields.initial_weight || null;
                 const birthdate = fields.birthdate || null;
                 
-                const photoFile = files.photo || null;
+                // Lógica aprimorada para lidar com o arquivo de foto
+                const photoFile = files.photo;
                 
                 let hashedPassword = null;
                 if (password) {
@@ -50,19 +52,29 @@ export default async function handler(req, res) {
 
                 if (user_id) {
                     let photo_url = null;
-                    if (photoFile) {
+                    
+                    // --- CORREÇÃO: Verificamos a existência do arquivo antes de processar ---
+                    // Usamos `photoFile && photoFile.size > 0` para garantir que um arquivo real foi enviado
+                    // e não um objeto vazio.
+                    if (photoFile && photoFile.size > 0) {
                         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
                         const maxSize = 5 * 1024 * 1024; // 5 MB
 
                         if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
+                            // Limpeza do arquivo temporário em caso de erro
+                            fs.unlinkSync(photoFile.filepath);
                             return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
                         }
 
                         try {
                             const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
                             photo_url = result.secure_url;
+                            // Limpeza do arquivo temporário após o upload
+                            fs.unlinkSync(photoFile.filepath);
                         } catch (uploadError) {
                             console.error('Erro ao fazer upload da foto:', uploadError);
+                            // Limpeza do arquivo temporário em caso de erro
+                            fs.unlinkSync(photoFile.filepath);
                             return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
@@ -90,11 +102,6 @@ export default async function handler(req, res) {
                         (birthdate && birthdate.trim() !== '') ? birthdate : null,
                         user_id
                     ];
-                    
-                    // --- Depuração da Consulta SQL ---
-                    console.log('SQL Query:', query);
-                    console.log('SQL Values:', values);
-                    // --- Fim da Depuração ---
                     
                     await client.query(query, values); 
                     
