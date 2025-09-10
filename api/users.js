@@ -1,200 +1,193 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const userId = localStorage.getItem('userId');
-    const profileForm = document.getElementById('profileForm');
-    const editProfileBtn = document.getElementById('editProfileBtn');
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
-    const infoDisplay = document.getElementById('infoDisplay');
-    const infoForm = document.getElementById('infoForm');
-    const profilePhotoInput = document.getElementById('profile-photo-upload');
-    const profilePhotoPreview = document.getElementById('profile-photo-preview');
-    const userNameElement = document.getElementById('user-name');
-    const photoGrid = document.getElementById('photo-grid');
-    const formaGrid = document.getElementById('forma-grid');
-    
-    const initialWeightElem = document.getElementById('initial-weight');
-    const currentWeightElem = document.getElementById('current-weight');
-    const userHeightElem = document.getElementById('user-height');
-    const userBmiElem = document.getElementById('user-bmi');
+import { Pool } from 'pg';
+import pkg from 'formidable';
+const { IncomingForm } = pkg;
+import cloudinary from 'cloudinary';
+import bcrypt from 'bcryptjs';
 
-    const registrosButton = document.getElementById('registrosButtonCollapse');
-    const formaButton = document.getElementById('formaButtonCollapse');
-    const debugOutput = document.getElementById('debug-output');
-
-    if (!userId) {
-        window.location.href = 'login.html';
-        return;
+const pool = new Pool({
+    user: process.env.PGUSER,
+    host: process.env.PGHOST,
+    database: process.env.PGDATABASE,
+    password: process.env.PGPASSWORD,
+    port: process.env.PGPORT,
+    ssl: {
+        rejectUnauthorized: false
     }
-    
-    function renderPhotos(records, gridElement, photoUrlKey) {
-        gridElement.innerHTML = '';
-        let hasPhotos = false;
-        records.forEach(record => {
-            if (record[photoUrlKey]) {
-                hasPhotos = true;
-                const photoItem = document.createElement('div');
-                photoItem.className = 'photo-item';
-                photoItem.innerHTML = `
-                    <img src="${record[photoUrlKey]}" alt="Foto de Evolução">
-                    <div class="photo-date">${new Date(record.record_date).toLocaleDateString('pt-BR')}</div>
-                    <button class="photo-edit-btn" data-record-id="${record.id}">
-                        <img src="https://api.iconify.design/solar:pen-bold-duotone.svg" alt="Editar" class="icon-sm">
-                    </button>
-                `;
-                const editBtn = photoItem.querySelector('.photo-edit-btn');
-                editBtn.addEventListener('click', () => {
-                    alert('Funcionalidade de edição em desenvolvimento.');
-                });
-                gridElement.appendChild(photoItem);
-            }
-        });
-        return hasPhotos;
-    }
+});
 
-    async function loadUserDataAndRecords() {
-        try {
-            const response = await fetch(`/api/users?id=${userId}`);
-            if (response.ok) {
-                const userData = await response.json();
-                
-                localStorage.setItem('userPhotoUrl', userData.photo_perfil_url);
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-                userNameElement.textContent = userData.username || 'Usuário'; 
-                document.getElementById('user-email').textContent = userData.email || 'Não informado'; 
-                
-                const userProfilePhotoElement = document.getElementById('user-profile-photo');
-                if (userProfilePhotoElement) {
-                    userProfilePhotoElement.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg'; 
-                }
-                profilePhotoPreview.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
-                
-                initialWeightElem.textContent = `${userData.initial_weight_kg || '--'} kg`;
-                userHeightElem.textContent = `${userData.height_cm || '--'} cm`;
-                userBmiElem.textContent = userData.bmi || '--';
-                currentWeightElem.textContent = `${userData.latest_weight_kg || '--'} kg`;
+export default async function handler(req, res) {
+    const client = await pool.connect();
 
-                document.getElementById('profile-username').value = userData.username || '';
-                document.getElementById('profile-email').value = userData.email || '';
-                document.getElementById('height').value = userData.height_cm || '';
-                document.getElementById('initial-weight-form').value = userData.initial_weight_kg || '';
-                if (userData.birthdate) {
-                    document.getElementById('birthdate').value = new Date(userData.birthdate).toISOString().split('T')[0];
+    try {
+        if (req.method === 'POST') {
+            const form = new IncomingForm();
+
+            form.parse(req, async (err, fields, files) => {
+                if (err) {
+                    return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                const hasPhotoRecords = renderPhotos(userData.records, photoGrid, 'photo_url');
-                const hasFormaRecords = renderPhotos(userData.records, formaGrid, 'forma_url');
+                const user_id = fields.user_id && fields.user_id[0] ? fields.user_id[0] : null;
+                const username = fields.username && fields.username[0] ? fields.username[0] : null;
+                const email = fields.email && fields.email[0] ? fields.email[0] : null;
+                const password = fields.password && fields.password[0] ? fields.password[0] : null;
+                const height = fields.height && fields.height[0] ? fields.height[0] : null;
+                const initial_weight = fields.initial_weight && fields.initial_weight[0] ? fields.initial_weight[0] : null;
+                const birthdate = fields.birthdate && fields.birthdate[0] ? fields.birthdate[0] : null;
+                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+                
+                let hashedPassword = null;
+                if (password) {
+                    hashedPassword = await bcrypt.hash(password, 10);
+                }
 
-                if (registrosButton) {
-                    if (hasPhotoRecords) {
-                        registrosButton.classList.add('btn-with-photos');
-                        registrosButton.classList.remove('btn-no-photos');
-                    } else {
-                        registrosButton.classList.add('btn-no-photos');
-                        registrosButton.classList.remove('btn-with-photos');
+                if (user_id) {
+                    let photo_url = null;
+                    if (photoFile) {
+                        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                        const maxSize = 5 * 1024 * 1024; // 5 MB
+
+                        if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
+                            return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
+                        }
+
+                        try {
+                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                            photo_url = result.secure_url;
+                        } catch (uploadError) {
+                            console.error('Erro ao fazer upload da foto:', uploadError);
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
+                        }
                     }
-                }
-                if (formaButton) {
-                    if (hasFormaRecords) {
-                        formaButton.classList.add('btn-with-photos');
-                        formaButton.classList.remove('btn-no-photos');
-                    } else {
-                        formaButton.classList.add('btn-no-photos');
-                        formaButton.classList.remove('btn-with-photos');
+
+                    const query = `
+                        UPDATE users 
+                        SET 
+                            username = COALESCE($1, username), 
+                            email = COALESCE($2, email), 
+                            password_hash = COALESCE($3, password_hash), 
+                            photo_perfil_url = COALESCE($4, photo_perfil_url), 
+                            height_cm = COALESCE($5, height_cm), 
+                            initial_weight_kg = COALESCE($6, initial_weight_kg), 
+                            birthdate = COALESCE($7, birthdate)
+                        WHERE id = $8
+                    `;
+                    
+                    const values = [
+                        username,
+                        email,
+                        hashedPassword,
+                        photo_url,
+                        height ? parseFloat(height) : null,
+                        initial_weight ? parseFloat(initial_weight) : null,
+                        (birthdate && birthdate.trim() !== '') ? birthdate : null,
+                        user_id
+                    ];
+                    
+                    await client.query(query, values); 
+                    
+                    return res.status(200).json({ 
+                        message: 'Perfil atualizado com sucesso!'
+                    });
+                    
+                } else {
+                    let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
+                    if (photoFile) {
+                        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                        const maxSize = 5 * 1024 * 1024; // 5 MB
+
+                        if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
+                            return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
+                        }
+                        
+                        try {
+                            const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
+                            photo_perfil_url = result.secure_url;
+                        } catch (uploadError) {
+                            console.error('Erro ao fazer upload da foto:', uploadError);
+                            return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
+                        }
                     }
+                    
+                    if (!username || !email || !password || !height || !initial_weight || !birthdate) {
+                        return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+                    }
+
+                    const hashedPassword = await bcrypt.hash(password, 10);
+                    
+                    await client.query(
+                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+                        [username, email, hashedPassword, photo_perfil_url, parseFloat(height), parseFloat(initial_weight), birthdate]
+                    );
+                    const newUserId = result.rows[0].id;
+                    res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
                 }
-            } else {
-                console.error('Erro ao carregar dados do usuário.');
-            }
-        } catch (error) {
-            console.error('Erro de conexão ao carregar dados:', error);
-        }
-    }
-
-    editProfileBtn.addEventListener('click', () => {
-        infoDisplay.style.display = 'none';
-        infoForm.style.display = 'block';
-    });
-
-    cancelEditBtn.addEventListener('click', () => {
-        infoDisplay.style.display = 'grid';
-        infoForm.style.display = 'none';
-        loadUserDataAndRecords(); 
-    });
-
-    profilePhotoInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                profilePhotoPreview.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    profileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(profileForm);
-        formData.append('user_id', userId);
-        
-        const passwordValue = document.getElementById('profile-password').value;
-        if (passwordValue.trim() === '') {
-            formData.delete('password');
-        }
-
-        let debugText = "--- Dados do Formulário (FormData) ---\n";
-        for (let pair of formData.entries()) {
-            debugText += `${pair[0]}: ${pair[1]}\n`;
-        }
-        
-        debugOutput.value = debugText;
-
-        try {
-            const response = await fetch('/api/users', {
-                method: 'POST',
-                body: formData
             });
 
-            if (response.ok) {
-                const responseData = await response.json();
-
-                // --- INÍCIO DA LÓGICA DE DEPURAÇÃO CORRIGIDA ---
-                // Agora, verificamos se a resposta do backend contém 'fields'.
-                if (responseData.fields) {
-                    let backendDebugText = "\n-------------------------\n";
-                    backendDebugText += "--- Saída de depuração do Backend ---\n";
-                    backendDebugText += `Campos recebidos pelo Formidable: \n${JSON.stringify(responseData.fields, null, 2)}`;
-                    debugOutput.value += backendDebugText; // Adiciona ao conteúdo existente
-                    alert('Teste de depuração concluído. Os campos do backend estão no campo de depuração.');
-                    // Não fechamos o formulário para que você possa ler o resultado.
-                } else if (responseData.query && responseData.values) {
-                // Mantemos esta lógica para o próximo passo.
-                    let backendDebugText = "\n-------------------------\n";
-                    backendDebugText += "--- Saída de depuração do Backend ---\n";
-                    backendDebugText += `Query: \n${responseData.query}\n\n`;
-                    backendDebugText += `Values: \n${JSON.stringify(responseData.values, null, 2)}`;
-                    debugOutput.value += backendDebugText;
-                    alert('Teste de depuração concluído. A query está no campo de depuração.');
-                } else {
-                // Caso não haja depuração, a lógica de sucesso continua.
-                    alert('Dados atualizados com sucesso!');
-                    infoDisplay.style.display = 'grid'; 
-                    infoForm.style.display = 'none';
-                    loadUserDataAndRecords(); 
-                    profileForm.reset();
-                    document.getElementById('profile-photo-upload').value = '';
-                }
-                // --- FIM DA LÓGICA DE DEPURAÇÃO CORRIGIDA ---
-
-            } else {
-                const errorData = await response.json();
-                alert(`Erro ao atualizar dados: ${errorData.message}`);
+        } else if (req.method === 'GET') {
+            const { id } = req.query;
+            if (!id) {
+                return res.status(400).json({ message: 'ID de usuário é obrigatório.' });
             }
-        } catch (error) {
-            console.error('Erro ao enviar dados:', error);
-            alert('Erro de conexão. Tente novamente.');
-        }
-    });
 
-    loadUserDataAndRecords();
-});
+            const userResult = await client.query(
+                'SELECT id, username, email, birthdate, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
+                [id]
+            );
+
+            if (userResult.rows.length === 0) {
+                return res.status(404).json({ message: 'Usuário não encontrado.' });
+            }
+
+            const userData = userResult.rows[0];
+
+            const latestWeightResult = await client.query(
+                'SELECT weight FROM records WHERE user_id = $1 ORDER BY record_date DESC LIMIT 1',
+                [id]
+            );
+
+            let latestWeight = userData.initial_weight_kg;
+            if (latestWeightResult.rows.length > 0) {
+                latestWeight = latestWeightResult.rows[0].weight;
+            }
+
+            let bmi = null;
+            if (userData.height_cm && latestWeight) {
+                const heightInMeters = userData.height_cm / 100;
+                bmi = (latestWeight / (heightInMeters * heightInMeters)).toFixed(2);
+            }
+
+            userData.latest_weight_kg = latestWeight;
+            userData.bmi = bmi;
+            
+            const recordsResult = await client.query(
+                'SELECT record_date, weight, photo_url, forma_url FROM records WHERE user_id = $1 ORDER BY record_date ASC',
+                [id]
+            );
+
+            userData.records = recordsResult.rows;
+
+            res.status(200).json(userData);
+
+        } else {
+            res.status(405).json({ message: 'Método não permitido.' });
+        }
+    } catch (error) {
+        console.error('Erro na requisição da API:', error);
+        res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+    } finally {
+        client.release();
+    }
+}
+
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
