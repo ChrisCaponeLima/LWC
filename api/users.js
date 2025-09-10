@@ -32,7 +32,7 @@ export default async function handler(req, res) {
                 if (err) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
-
+                
                 const user_id = fields.user_id ? fields.user_id[0] : null;
                 const username = fields.username ? fields.username[0] : null;
                 const email = fields.email ? fields.email[0] : null;

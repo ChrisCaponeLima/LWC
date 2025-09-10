@@ -134,35 +134,23 @@ document.addEventListener('DOMContentLoaded', () => {
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // --- INÍCIO DA NOVA LÓGICA DE DEPURAÇÃO ---
-        // Coleta os valores do formulário para verificar
-        const username = document.getElementById('profile-username').value;
-        const email = document.getElementById('profile-email').value;
-        const height = document.getElementById('height').value;
-        const initialWeight = document.getElementById('initial-weight-form').value;
-        const birthdate = document.getElementById('birthdate').value;
-        
-        // Constrói a saída de depuração do frontend
-        let debugText = "Valores coletados do formulário (antes do envio):\n";
-        debugText += `User ID: ${userId}\n`;
-        debugText += `Username: ${username}\n`;
-        debugText += `Email: ${email}\n`;
-        debugText += `Height: ${height}\n`;
-        debugText += `Initial Weight: ${initialWeight}\n`;
-        debugText += `Birthdate: ${birthdate}\n\n`;
-
-        // Exibe a saída de depuração no campo antes de enviar a requisição
-        debugOutput.value = debugText;
-        // --- FIM DA NOVA LÓGICA DE DEPURAÇÃO ---
-
         const formData = new FormData(profileForm);
-
         formData.append('user_id', userId);
         
         const passwordValue = document.getElementById('profile-password').value;
         if (passwordValue.trim() === '') {
             formData.delete('password');
         }
+
+        // --- INÍCIO DA NOVA LÓGICA DE DEPURAÇÃO ---
+        let debugText = "--- Dados do Formulário (FormData) ---\n";
+        for (let pair of formData.entries()) {
+            debugText += `${pair[0]}: ${pair[1]}\n`;
+        }
+        
+        // Exibe o FormData no campo de depuração antes de enviar a requisição
+        debugOutput.value = debugText;
+        // --- FIM DA NOVA LÓGICA DE DEPURAÇÃO ---
 
         try {
             const response = await fetch('/api/users', {
@@ -175,11 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Adiciona a lógica para exibir os dados de depuração do backend
                 if (responseData.query && responseData.values) {
-                    debugText += "-------------------------\n";
-                    debugText += "Saída de depuração do Backend:\n";
-                    debugText += `Query: \n${responseData.query}\n\n`;
-                    debugText += `Values: \n${JSON.stringify(responseData.values, null, 2)}`;
-                    debugOutput.value = debugText;
+                    let backendDebugText = "\n-------------------------\n";
+                    backendDebugText += "--- Saída de depuração do Backend ---\n";
+                    backendDebugText += `Query: \n${responseData.query}\n\n`;
+                    backendDebugText += `Values: \n${JSON.stringify(responseData.values, null, 2)}`;
+                    debugOutput.value += backendDebugText; // Adiciona ao conteúdo existente
                     alert('Teste de depuração concluído. Os valores e a query estão no campo de depuração.');
                 } else {
                     alert('Dados atualizados com sucesso!');
