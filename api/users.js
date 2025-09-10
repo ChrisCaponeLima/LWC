@@ -33,25 +33,15 @@ export default async function handler(req, res) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
 
-                // --- Lógica de Depuração ---
-                // Retornamos os dados exatos que o Formidable recebeu.
-                return res.status(200).json({ 
-                    message: 'Dados de depuração do Formidable:', 
-                    fields: fields, 
-                    files: files 
-                });
-                // --- Fim da Lógica de Depuração ---
-
-                // Removido temporariamente para este teste.
-                /*
-                const user_id = fields.user_id && fields.user_id[0] ? fields.user_id[0] : null;
-                const username = fields.username && fields.username[0] ? fields.username[0] : null;
-                const email = fields.email && fields.email[0] ? fields.email[0] : null;
-                const password = fields.password && fields.password[0] ? fields.password[0] : null;
-                const height = fields.height && fields.height[0] ? fields.height[0] : null;
-                const initial_weight = fields.initial_weight && fields.initial_weight[0] ? fields.initial_weight[0] : null;
-                const birthdate = fields.birthdate && fields.birthdate[0] ? fields.birthdate[0] : null;
-                const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+                const user_id = fields.user_id || null;
+                const username = fields.username || null;
+                const email = fields.email || null;
+                const password = fields.password || null;
+                const height = fields.height || null;
+                const initial_weight = fields.initial_weight || null;
+                const birthdate = fields.birthdate || null;
+                
+                const photoFile = files.photo || null;
                 
                 let hashedPassword = null;
                 if (password) {
@@ -101,6 +91,11 @@ export default async function handler(req, res) {
                         user_id
                     ];
                     
+                    // --- Depuração da Consulta SQL ---
+                    console.log('SQL Query:', query);
+                    console.log('SQL Values:', values);
+                    // --- Fim da Depuração ---
+                    
                     await client.query(query, values); 
                     
                     return res.status(200).json({ 
@@ -132,14 +127,13 @@ export default async function handler(req, res) {
 
                     const hashedPassword = await bcrypt.hash(password, 10);
                     
-                    await client.query(
+                    const result = await client.query(
                         'INSERT INTO users (username, email, password_hash, photo_perfil_url, height_cm, initial_weight_kg, birthdate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
                         [username, email, hashedPassword, photo_perfil_url, parseFloat(height), parseFloat(initial_weight), birthdate]
                     );
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
                 }
-                */
             });
 
         } else if (req.method === 'GET') {
