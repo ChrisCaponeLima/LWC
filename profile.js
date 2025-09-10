@@ -142,15 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.delete('password');
         }
 
-        // --- INÍCIO DA NOVA LÓGICA DE DEPURAÇÃO ---
         let debugText = "--- Dados do Formulário (FormData) ---\n";
         for (let pair of formData.entries()) {
             debugText += `${pair[0]}: ${pair[1]}\n`;
         }
         
-        // Exibe o FormData no campo de depuração antes de enviar a requisição
         debugOutput.value = debugText;
-        // --- FIM DA NOVA LÓGICA DE DEPURAÇÃO ---
 
         try {
             const response = await fetch('/api/users', {
@@ -161,14 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const responseData = await response.json();
 
-                // Adiciona a lógica para exibir os dados de depuração do backend
-                if (responseData.query && responseData.values) {
+                if (responseData.fields) {
                     let backendDebugText = "\n-------------------------\n";
                     backendDebugText += "--- Saída de depuração do Backend ---\n";
-                    backendDebugText += `Query: \n${responseData.query}\n\n`;
-                    backendDebugText += `Values: \n${JSON.stringify(responseData.values, null, 2)}`;
-                    debugOutput.value += backendDebugText; // Adiciona ao conteúdo existente
-                    alert('Teste de depuração concluído. Os valores e a query estão no campo de depuração.');
+                    backendDebugText += `Campos recebidos pelo Formidable: \n${JSON.stringify(responseData.fields, null, 2)}`;
+                    debugOutput.value += backendDebugText;
+                    alert('Teste de depuração concluído. Os campos do backend estão no campo de depuração.');
+                    // Formulário não fecha para você ler o resultado
                 } else {
                     alert('Dados atualizados com sucesso!');
                     infoDisplay.style.display = 'grid'; 
@@ -177,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     profileForm.reset();
                     document.getElementById('profile-photo-upload').value = '';
                 }
-
             } else {
                 const errorData = await response.json();
                 alert(`Erro ao atualizar dados: ${errorData.message}`);
