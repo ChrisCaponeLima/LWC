@@ -32,7 +32,20 @@ export default async function handler(req, res) {
                 if (err) {
                     return res.status(500).json({ message: 'Erro ao processar formulário.' });
                 }
+                
+                // --- INÍCIO DA LÓGICA DE DEPURAÇÃO ---
+                // Retornamos os dados de depuração do objeto 'fields' completo.
+                return res.status(200).json({ 
+                    message: 'Dados de depuração do Formidable:', 
+                    fields, 
+                    files 
+                });
+                // --- FIM DA LÓGICA DE DEPURAÇÃO ---
 
+                // O restante do código abaixo está temporariamente comentado para que a depuração funcione.
+                // Você pode descomentá-lo quando a depuração estiver concluída.
+
+                /*
                 // CORREÇÃO CRÍTICA: Acesse o primeiro elemento de cada array de campo
                 const user_id = fields.user_id && fields.user_id[0] ? fields.user_id[0] : null;
                 const username = fields.user_name && fields.user_name[0] ? fields.user_name[0] : null;
@@ -43,7 +56,6 @@ export default async function handler(req, res) {
                 const birthdate = fields.birthdate && fields.birthdate[0] ? fields.birthdate[0] : null;
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
 
-                
                 let hashedPassword = null;
                 if (password) {
                     hashedPassword = await bcrypt.hash(password, 10);
@@ -91,11 +103,9 @@ export default async function handler(req, res) {
                         (birthdate && birthdate.trim() !== '') ? birthdate : null,
                         user_id
                     ];
-
-                    // Comentamos a linha que executa a query para evitar alterações.
+                    
                     // await client.query(query, values); 
                     
-                    // Retornamos os dados para o frontend para depuração.
                     return res.status(200).json({ 
                         message: 'Dados de depuração da query:', 
                         query, 
@@ -134,6 +144,7 @@ export default async function handler(req, res) {
                     const newUserId = result.rows[0].id;
                     res.status(201).json({ message: 'Usuário criado com sucesso!', userId: newUserId });
                 }
+                */
             });
 
         } else if (req.method === 'GET') {
