@@ -35,13 +35,14 @@ export default async function handler(req, res) {
 
                 // CORREÇÃO CRÍTICA: Acesse o primeiro elemento de cada array de campo
                 const user_id = fields.user_id && fields.user_id[0] ? fields.user_id[0] : null;
-                const username = fields.username && fields.username[0] ? fields.username[0] : null;
-                const email = fields.email && fields.email[0] ? fields.email[0] : null;
+                const username = fields.user_name && fields.user_name[0] ? fields.user_name[0] : null;
+                const email = fields.user_email && fields.user_email[0] ? fields.user_email[0] : null;
                 const password = fields.password && fields.password[0] ? fields.password[0] : null;
                 const height = fields.height && fields.height[0] ? fields.height[0] : null;
                 const initial_weight = fields.initial_weight && fields.initial_weight[0] ? fields.initial_weight[0] : null;
                 const birthdate = fields.birthdate && fields.birthdate[0] ? fields.birthdate[0] : null;
                 const photoFile = files.photo && files.photo.length > 0 ? files.photo[0] : null;
+
                 
                 let hashedPassword = null;
                 if (password) {
