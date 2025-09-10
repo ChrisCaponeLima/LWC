@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const registrosButton = document.getElementById('registrosButtonCollapse');
     const formaButton = document.getElementById('formaButtonCollapse');
-    const debugOutput = document.getElementById('debug-output');
+    // A linha abaixo foi removida:
+    // const debugOutput = document.getElementById('debug-output');
 
     if (!userId) {
         window.location.href = 'login.html';
@@ -142,13 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.delete('password');
         }
 
-        let debugText = "--- Dados do Formulário (FormData) ---\n";
-        for (let pair of formData.entries()) {
-            debugText += `${pair[0]}: ${pair[1]}\n`;
-        }
-        
-        debugOutput.value = debugText;
-
         try {
             const response = await fetch('/api/users', {
                 method: 'POST',
@@ -157,22 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const responseData = await response.json();
-
-                if (responseData.fields) {
-                    let backendDebugText = "\n-------------------------\n";
-                    backendDebugText += "--- Saída de depuração do Backend ---\n";
-                    backendDebugText += `Campos recebidos pelo Formidable: \n${JSON.stringify(responseData.fields, null, 2)}`;
-                    debugOutput.value += backendDebugText;
-                    alert('Teste de depuração concluído. Os campos do backend estão no campo de depuração.');
-                    // Formulário não fecha para você ler o resultado
-                } else {
-                    alert('Dados atualizados com sucesso!');
-                    infoDisplay.style.display = 'grid'; 
-                    infoForm.style.display = 'none';
-                    loadUserDataAndRecords(); 
-                    profileForm.reset();
-                    document.getElementById('profile-photo-upload').value = '';
-                }
+                alert(responseData.message || 'Dados atualizados com sucesso!');
+                infoDisplay.style.display = 'grid'; 
+                infoForm.style.display = 'none';
+                loadUserDataAndRecords(); 
+                profileForm.reset();
+                document.getElementById('profile-photo-upload').value = '';
             } else {
                 const errorData = await response.json();
                 alert(`Erro ao atualizar dados: ${errorData.message}`);
