@@ -36,14 +36,13 @@ export default async function handler(req, res) {
 
                 const user_id = fields.user_id || null;
                 const username = fields.username || null;
-                const email = fields.email || null;
+                const email = fields.user_email || null; // <--- CORREÇÃO AQUI
                 const password = fields.password || null;
                 const height = fields.height || null;
                 const initial_weight = fields.initial_weight || null;
                 const birthdate = fields.birthdate || null;
                 
-                // Lógica aprimorada para lidar com o arquivo de foto
-                const photoFile = files.photo;
+                const photoFile = files.photo || null;
                 
                 let hashedPassword = null;
                 if (password) {
@@ -51,30 +50,21 @@ export default async function handler(req, res) {
                 }
 
                 if (user_id) {
-                    let photo_url = null;
-                    
-                    // --- CORREÇÃO: Verificamos a existência do arquivo antes de processar ---
-                    // Usamos `photoFile && photoFile.size > 0` para garantir que um arquivo real foi enviado
-                    // e não um objeto vazio.
-                    if (photoFile && photoFile.size > 0) {
+                    let photo_url_to_update = null;
+                    if (photoFile) {
                         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
                         const maxSize = 5 * 1024 * 1024; // 5 MB
 
                         if (!allowedTypes.includes(photoFile.mimetype) || photoFile.size > maxSize) {
-                            // Limpeza do arquivo temporário em caso de erro
-                            fs.unlinkSync(photoFile.filepath);
                             return res.status(400).json({ message: 'Tipo de arquivo inválido ou muito grande. Apenas imagens JPEG, PNG ou GIF até 5MB são permitidas.' });
                         }
-
+                        
                         try {
                             const result = await cloudinary.uploader.upload(photoFile.filepath, { folder: "user_photos" });
-                            photo_url = result.secure_url;
-                            // Limpeza do arquivo temporário após o upload
-                            fs.unlinkSync(photoFile.filepath);
+                            photo_url_to_update = result.secure_url;
+                            fs.unlinkSync(photoFile.filepath); // Limpa o arquivo temporário
                         } catch (uploadError) {
                             console.error('Erro ao fazer upload da foto:', uploadError);
-                            // Limpeza do arquivo temporário em caso de erro
-                            fs.unlinkSync(photoFile.filepath);
                             return res.status(500).json({ message: 'Erro ao fazer upload da foto.' });
                         }
                     }
@@ -96,18 +86,20 @@ export default async function handler(req, res) {
                         username,
                         email,
                         hashedPassword,
-                        photo_url,
+                        photo_url_to_update,
                         height ? parseFloat(height) : null,
                         initial_weight ? parseFloat(initial_weight) : null,
                         (birthdate && birthdate.trim() !== '') ? birthdate : null,
                         user_id
                     ];
-                    
-                    await client.query(query, values); 
-                    
-                    return res.status(200).json({ 
-                        message: 'Perfil atualizado com sucesso!'
-                    });
+
+                    const result = await client.query(query, values);
+
+                    if (result.rowCount === 0) {
+                        return res.status(404).json({ message: 'Usuário não encontrado ou nenhum dado alterado.' });
+                    }
+
+                    return res.status(200).json({ message: 'Perfil atualizado com sucesso!' });
                     
                 } else {
                     let photo_perfil_url = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
