@@ -44,26 +44,87 @@
     --weather-font-thunderstorm: #BDBDBD;
     --weather-bg-default: #FFF0EB;
     --weather-font-default: #F2350E;
+    
+    /* Cores personalizadas para o cabeçalho */
+    --color-dark-blue: #222B45;
+    --color-white: #FFFFFF;
+    --color-gray-dark: #6C757D;
+    --color-light-gray: #F2F2F7;
+    --color-light-gray-200: #EAEAEA;
+    --color-text: #222B45;
 }
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--card-gelo-bg);
+    background-color: var(--card-bg); /* Use card-bg para o fundo, ou var(--bg-light) se quiser um fundo cinza claro */
     color: var(--dark-grey);
     padding-bottom: 80px;
 }
 
+/* ================================================= */
+/* ATENÇÃO: Seção do cabeçalho alterada */
+/* ================================================= */
+
 .app-header {
-    background-color: var(--card-bg);
-    padding: 1rem;
+    background-color: var(--color-dark-blue); /* Fundo do cabeçalho mais escuro */
+    padding: 1rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center; 
-    box-shadow: var(--shadow);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Sombra mais sutil e moderna */
     position: sticky;
     top: 0;
     z-index: 1000;
 }
+
+.h1-title {
+    font-size: 1.5rem; /* Tamanho do título aumentado para destaque */
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-white); /* Cor da fonte branca */
+}
+
+.user-photo-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-gray-dark);
+}
+
+.user-profile-menu strong {
+    font-size: 0.9rem; /* Diminui o tamanho da fonte do nome */
+    color: var(--color-white) !important; /* Cor da fonte branca */
+    font-weight: 500;
+}
+
+.user-profile-menu a {
+    color: var(--color-white) !important;
+}
+
+.user-profile-menu .dropdown-toggle::after {
+    color: var(--color-white);
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: var(--card-bg); /* Usa a cor de fundo do card, mais limpa */
+    font-size: 0.9rem; /* Diminui o tamanho da fonte do menu */
+}
+
+.dropdown-item {
+    color: var(--dark-grey); /* Cor padrão para os itens */
+    padding: 0.5rem 1rem; /* Diminui o preenchimento dos itens */
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-light); /* Cor de fundo ao passar o mouse */
+}
+/* ================================================= */
+/* FIM DA SEÇÃO DO CABEÇALHO ALTERADA */
+/* ================================================= */
+
 
 .container.main-content {
     padding: 1rem;
@@ -73,15 +134,8 @@ body {
     padding-top: 0rem;
 }
 
-.h1-title {
-    font-size: 1.3rem; 
-    font-weight: 700;
-    margin: 0;
-    color: var(--dark-grey);
-}
-
 .h2-title {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 700;
     margin-top: 1rem;
     margin-bottom: 1rem;
@@ -94,14 +148,6 @@ body {
     margin-top: -0.5rem;
     margin-bottom: 1rem;
     color: #6C757D;
-}
-
-.user-photo-sm {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--dark-grey);
 }
 
 .card-full-width.spaced-top {
@@ -279,9 +325,9 @@ body {
 }
 
 .profile-email {
-    font-size: 0.85rem; /* Diminui o tamanho da fonte */
+    font-size: 0.85rem;
     color: #6C757D;
-    margin-top: -0.25rem; /* Reduz o espaço superior entre o nome e o e-mail */
+    margin-top: -0.25rem;
 }
 
 .edit-profile-icon .icon-sm {
