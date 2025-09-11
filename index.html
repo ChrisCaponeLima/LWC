@@ -13,16 +13,22 @@
 <body>
     <header class="app-header">
         <h1 class="h1-title">LWC - LIMA</h1>
-        <div class="user-profile-menu dropdown">
-            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="profileDropdown" aria-expanded="false" data-bs-toggle="dropdown">
-                <strong id="userProfileName" class="me-2">John Doe</strong>
-                <img id="userProfilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="user-photo-sm">
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="profile.html">Meu Perfil</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" id="logoutBtn">Sair</a></li>
-            </ul>
+        <div class="d-flex align-items-center">
+            <div class="user-profile-menu dropdown">
+                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="profileDropdown" aria-expanded="false" data-bs-toggle="dropdown">
+                    <strong id="userProfileName" class="me-2">John Doe</strong>
+                    <img id="userProfilePhoto" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil" class="user-photo-sm">
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                    <li><a class="dropdown-item" href="profile.html">Meu Perfil</a></li>
+                    <li id="adminMenuItem" style="display:none;">
+                        <hr class="dropdown-divider">
+                        <a class="dropdown-item" href="user_management.html">Gerenciar Usuários</a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="logoutBtn">Sair</a></li>
+                </ul>
+            </div>
         </div>
     </header>
 
@@ -170,5 +176,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
+    <script src="auth_menu.js"></script>
 </body>
 </html>

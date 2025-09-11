@@ -40,7 +40,8 @@ export default async function handler(req, res) {
                 const password = fields.password || null;
                 const height = fields.height || null;
                 const initial_weight = fields.initial_weight || null;
-                const birthdate = fields.birthdate || null;
+                const birthdate = fields.role || null;
+                const user_role = fields.birthdate || null;
                 
                 const photoFile = files.photo || null;
                 
@@ -145,7 +146,7 @@ export default async function handler(req, res) {
             }
 
             const userResult = await client.query(
-                'SELECT id, username, email, birthdate, photo_perfil_url, height_cm, initial_weight_kg FROM users WHERE id = $1',
+                'SELECT id, username, email, birthdate, photo_perfil_url, height_cm, role, initial_weight_kg FROM users WHERE id = $1',
                 [id]
             );
 
