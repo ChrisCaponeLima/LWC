@@ -51,6 +51,23 @@
                 </table>
             </div>
         </div>
+        
+        <p>
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#photoGalleryCollapse" aria-expanded="false" aria-controls="photoGalleryCollapse" id="registrosButtonCollapse">
+                Registros
+            </button>
+        </p>
+        <div class="collapse" id="photoGalleryCollapse">
+            <div id="photo-grid" class="photo-grid-gallery"></div>
+        </div>
+        <p>
+            <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formaGalleryCollapse" aria-expanded="false" aria-controls="formaGalleryCollapse" id="formaButtonCollapse">
+                Forma
+            </button>
+        </p>
+        <div class="collapse" id="formaGalleryCollapse">
+            <div id="forma-grid" class="photo-grid-gallery"></div>
+        </div>
 
         <div id="userFormCard" class="card-basic card-full-width spaced-top" style="display: none;">
             <h2 id="formTitle" class="h2-title">Adicionar Novo Usuário</h2>
@@ -83,9 +100,9 @@
                     <label for="height-cm" class="form-label">Altura (cm)</label>
                     <input type="number" class="form-control" id="height-cm" name="height-cm">
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" id="cancelBtn" class="btn btn-secondary me-2">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Salvar</button>
+                <div class="col-12 text-center mt-3 form-buttons">
+                    <button type="submit" class="btn-success">Salvar Alterações</button>
+                    <button type="button" class="btn-control cancel-button" id="cancelBtn">Cancelar</button>
                 </div>
             </form>
         </div>

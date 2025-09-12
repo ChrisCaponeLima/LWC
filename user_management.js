@@ -22,11 +22,20 @@ const userProfilePhoto = document.getElementById('userProfilePhoto');
 const adminMenuItem = document.getElementById('adminMenuItem');
 const logoutBtn = document.getElementById('logoutBtn');
 
+// Referências aos novos elementos do HTML
+const photoGrid = document.getElementById('photo-grid');
+const formaGrid = document.getElementById('forma-grid');
+const registrosButton = document.getElementById('registrosButtonCollapse');
+const formaButton = document.getElementById('formaButtonCollapse');
+
 // Função para mostrar a lista de usuários e esconder o formulário
 const showList = () => {
     userListCard.style.display = 'block';
     userFormCard.style.display = 'none';
     loadUsers(); // Recarrega a lista de usuários ao voltar
+    // Limpa os grids de fotos ao voltar para a lista
+    if (photoGrid) photoGrid.innerHTML = '';
+    if (formaGrid) formaGrid.innerHTML = '';
 };
 
 // Função para mostrar o formulário e esconder a lista
@@ -108,6 +117,8 @@ const renderUsersTable = (users) => {
 
     users.forEach(user => {
         const row = document.createElement('tr');
+        // Adiciona o evento de clique na linha para carregar os dados do usuário
+        row.setAttribute('onclick', `loadUserRecords('${user.id}')`);
         row.innerHTML = `
             <td>${user.username}</td>
             <td>${user.email}</td>
@@ -195,6 +206,94 @@ const resetPassword = async (userId) => {
         }
     }
 };
+
+// ----------------------------------------------------
+// NOVO CÓDIGO para carregar dados de registros e formas
+// ----------------------------------------------------
+
+/**
+ * Renderiza as fotos nos grids de registros ou formas.
+ * @param {Array} records - A lista de registros do usuário.
+ * @param {HTMLElement} gridElement - O elemento do grid onde as fotos serão renderizadas.
+ * @param {string} photoUrlKey - A chave do objeto de registro que contém a URL da foto (ex: 'photo_url', 'forma_url').
+ * @returns {boolean} True se houver fotos renderizadas, caso contrário, false.
+ */
+function renderPhotos(records, gridElement, photoUrlKey) {
+    gridElement.innerHTML = '';
+    let hasPhotos = false;
+    records.forEach(record => {
+        if (record[photoUrlKey]) {
+            hasPhotos = true;
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            photoItem.innerHTML = `
+                <img src="${record[photoUrlKey]}" alt="Foto de Evolução">
+                <div class="photo-date">${new Date(record.record_date).toLocaleDateString('pt-BR')}</div>
+                <button class="photo-edit-btn" data-record-id="${record.id}">
+                    <img src="https://api.iconify.design/solar:pen-bold-duotone.svg" alt="Editar" class="icon-sm">
+                </button>
+            `;
+            const editBtn = photoItem.querySelector('.photo-edit-btn');
+            editBtn.addEventListener('click', () => {
+                alert('Funcionalidade de edição em desenvolvimento.');
+            });
+            gridElement.appendChild(photoItem);
+        }
+    });
+    return hasPhotos;
+}
+
+/**
+ * Carrega e exibe os registros e formas para um usuário específico.
+ * @param {string} userId - O ID do usuário.
+ */
+async function loadUserRecords(userId) {
+    try {
+        const response = await fetch(`/api/users?id=${userId}`);
+        if (response.ok) {
+            const userData = await response.json();
+            
+            // Preenche os grids com as fotos dos registros e formas
+            const hasPhotoRecords = renderPhotos(userData.records, photoGrid, 'photo_url');
+            const hasFormaRecords = renderPhotos(userData.records, formaGrid, 'forma_url');
+
+            // Atualiza o estilo dos botões com base na existência de fotos
+            if (registrosButton) {
+                if (hasPhotoRecords) {
+                    registrosButton.classList.add('btn-with-photos');
+                    registrosButton.classList.remove('btn-no-photos');
+                } else {
+                    registrosButton.classList.add('btn-no-photos');
+                    registrosButton.classList.remove('btn-with-photos');
+                }
+            }
+            if (formaButton) {
+                if (hasFormaRecords) {
+                    formaButton.classList.add('btn-with-photos');
+                    formaButton.classList.remove('btn-no-photos');
+                } else {
+                    formaButton.classList.add('btn-no-photos');
+                    formaButton.classList.remove('btn-with-photos');
+                }
+            }
+            
+            // Exibe uma mensagem de sucesso opcional
+            console.log(`Dados de registros e formas para o usuário ${userData.username} carregados com sucesso.`);
+
+        } else {
+            console.error('Erro ao carregar dados do usuário.');
+            if (photoGrid) photoGrid.innerHTML = '<p class="text-center text-secondary">Não foi possível carregar os registros.</p>';
+            if (formaGrid) formaGrid.innerHTML = '';
+        }
+    } catch (error) {
+        console.error('Erro de conexão ao carregar dados:', error);
+        if (photoGrid) photoGrid.innerHTML = '<p class="text-center text-secondary">Erro de conexão.</p>';
+        if (formaGrid) formaGrid.innerHTML = '';
+    }
+}
+// ----------------------------------------------------
+// FIM do NOVO CÓDIGO
+// ----------------------------------------------------
 
 // Carrega os usuários quando a página é carregada
 loadUsers();
