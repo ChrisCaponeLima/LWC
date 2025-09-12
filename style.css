@@ -525,3 +525,57 @@ body {
     cursor: pointer;
     box-shadow: none;
 }
+
+/* Adicione estas regras no final do seu arquivo styles.css */
+#usersTableBody tr:nth-child(even) {
+    background-color: #f8f9fa; /* Cor cinza claro para linhas pares */
+}
+
+#usersTableBody tr:nth-child(odd) {
+    background-color: #ffffff; /* Cor branca para linhas ímpares */
+}
+
+/* Estilos para o menu suspenso */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1000;
+    list-style: none; /* Remove os marcadores de lista */
+    padding: 0;
+}
+
+.dropdown-content li {
+    padding: 0;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Ajustes para o layout da célula de botões */
+.action-buttons-cell {
+    white-space: nowrap; /* Impede que os botões quebrem a linha */
+}
+
+.action-buttons-cell .btn {
+    margin-right: 5px; /* Adiciona um pequeno espaçamento entre os botões */
+}
