@@ -36,13 +36,6 @@
             <h2 class="h2-title text-center" id="formTitle">Adicionar Novo Usuário</h2>
             <form id="userForm" class="row g-3">
                 <input type="hidden" id="userId">
-                <div class="col-12 text-center mb-3">
-                    <div class="profile-picture-container user-photo-upload">
-                        <img id="profile-preview" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg" alt="Foto de Perfil">
-                    </div>
-                    <label for="profile-photo" class="form-label mt-2">Escolher Foto</label>
-                    <input class="form-control" type="file" id="profile-photo" name="profile-photo" accept="image/*">
-                </div>
                 <div class="col-12">
                     <label for="name" class="form-label">Nome</label>
                     <input type="text" class="form-control" id="name" name="name" required>
@@ -61,6 +54,14 @@
                         <option value="admin">Admin</option>
                         <option value="user" selected>Usuário</option>
                     </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="initial-weight" class="form-label">Peso Inicial (kg)</label>
+                    <input type="number" step="0.01" class="form-control" id="initial-weight" name="initial-weight" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="height-cm" class="form-label">Altura (cm)</label>
+                    <input type="number" class="form-control" id="height-cm" name="height-cm">
                 </div>
                 <div class="col-12 text-center mt-4">
                     <button type="submit" class="btn-success">Salvar Usuário</button>
@@ -81,16 +82,17 @@
                 <table class="table user-table">
                     <thead>
                         <tr>
-                            <th>Foto</th>
                             <th>Nome</th>
                             <th>E-mail</th>
                             <th>Cargo</th>
+                            <th>Peso Inicial (kg)</th>
+                            <th>Altura (cm)</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
                         <tr>
-                            <td colspan="5" class="text-center">Carregando usuários...</td>
+                            <td colspan="6" class="text-center">Carregando usuários...</td>
                         </tr>
                     </tbody>
                 </table>

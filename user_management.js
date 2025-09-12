@@ -5,44 +5,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Se o role não for 'admin', redireciona para a página inicial
     if (userRole !== 'admin') {
-        window.location.href = 'index.html'; 
+        window.location.href = 'index.html';
     }
 });
 
-// === O RESTO DO SEU CÓDIGO DA PÁGINA user_management.js ===
-
-const userFormCard = document.getElementById('userFormCard');
 const userListCard = document.getElementById('userListCard');
+const userFormCard = document.getElementById('userFormCard');
 const addUserBtn = document.getElementById('addUserBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const userForm = document.getElementById('userForm');
 const usersTableBody = document.getElementById('usersTableBody');
 const formTitle = document.getElementById('formTitle');
 const userIdInput = document.getElementById('userId');
-const profilePhotoInput = document.getElementById('profile-photo');
-const profilePreview = document.getElementById('profile-preview');
+const userProfileName = document.getElementById('userProfileName');
+const userProfilePhoto = document.getElementById('userProfilePhoto');
+const adminMenuItem = document.getElementById('adminMenuItem');
+const logoutBtn = document.getElementById('logoutBtn');
 
-let users = [];
+// Função para mostrar a lista de usuários e esconder o formulário
+const showList = () => {
+    userListCard.style.display = 'block';
+    userFormCard.style.display = 'none';
+};
 
-profilePhotoInput.addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            profilePreview.src = e.target.result;
-        }
-        reader.readAsDataURL(file);
-    }
-});
+// Função para mostrar o formulário e esconder a lista
+const showForm = () => {
+    userListCard.style.display = 'none';
+    userFormCard.style.display = 'block';
+};
 
+// Manipuladores de eventos
 addUserBtn.addEventListener('click', () => {
-    showForm('Adicionar Novo Usuário', 'POST');
+    userForm.reset();
+    userForm.setAttribute('data-method', 'POST');
+    formTitle.textContent = 'Adicionar Novo Usuário';
+    showForm();
 });
 
 cancelBtn.addEventListener('click', () => {
+    userForm.reset();
     showList();
 });
 
+// Manipulador de envio do formulário
 userForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -76,76 +81,72 @@ userForm.addEventListener('submit', async (event) => {
     }
 });
 
-async function loadUsers() {
+// Função para carregar usuários da API
+const loadUsers = async () => {
     try {
         const response = await fetch('/api/usermanagement');
         if (!response.ok) {
-            throw new Error('Erro ao carregar a lista de usuários.');
+            throw new Error('Erro ao carregar os usuários.');
         }
-        users = await response.json();
-        renderUsers(users);
+        const users = await response.json();
+        renderUsersTable(users);
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
-        usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Erro ao carregar usuários.</td></tr>`;
+        usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Erro ao carregar usuários.</td></tr>`;
     }
-}
+};
 
-function renderUsers(users) {
+// Função para renderizar a tabela de usuários
+const renderUsersTable = (users) => {
     usersTableBody.innerHTML = '';
     if (users.length === 0) {
-        usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center">Nenhum usuário encontrado.</td></tr>`;
+        usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center">Nenhum usuário cadastrado.</td></tr>`;
         return;
     }
 
     users.forEach(user => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td data-label="Foto">
-                <img src="${user.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg'}" alt="Foto de Perfil" class="user-photo-sm">
-            </td>
-            <td data-label="Nome">${user.username}</td>
-            <td data-label="E-mail">${user.email}</td>
-            <td data-label="Cargo">${user.role}</td>
-            <td data-label="Ações">
-                <button class="btn-action edit-btn" data-id="${user.id}">
-                    <img src="https://api.iconify.design/solar:pen-bold-duotone.svg" alt="Editar">
-                </button>
-                <button class="btn-action delete-btn" data-id="${user.id}">
-                    <img src="https://api.iconify.design/solar:trash-bin-trash-bold-duotone.svg" alt="Excluir">
-                </button>
+            <td>${user.username}</td>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+            <td>${user.initial_weight_kg ? user.initial_weight_kg : 'N/A'}</td>
+            <td>${user.height_cm ? user.height_cm : 'N/A'}</td>
+            <td>
+                <button class="btn btn-sm btn-edit" onclick="editUser('${user.id}')">Editar</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">Excluir</button>
+                <button class="btn btn-sm btn-warning" onclick="resetPassword('${user.id}')">Resetar Senha</button>
             </td>
         `;
         usersTableBody.appendChild(row);
     });
+};
 
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', handleEdit);
-    });
+// Função para editar um usuário
+const editUser = async (userId) => {
+    try {
+        const response = await fetch(`/api/usermanagement?id=${userId}`);
+        const user = await response.json();
 
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', handleDelete);
-    });
-}
+        userForm.reset();
+        userIdInput.value = user.id;
+        document.getElementById('name').value = user.username;
+        document.getElementById('email').value = user.email;
+        document.getElementById('birthdate').value = user.birthdate ? user.birthdate.split('T')[0] : '';
+        document.getElementById('role').value = user.role;
+        document.getElementById('initial-weight').value = user.initial_weight_kg;
+        document.getElementById('height-cm').value = user.height_cm;
 
-async function handleEdit(event) {
-    const userId = event.currentTarget.dataset.id;
-    const userToEdit = users.find(u => u.id == userId);
-    
-    if (userToEdit) {
-        formTitle.textContent = 'Editar Usuário';
-        userIdInput.value = userToEdit.id;
-        document.getElementById('name').value = userToEdit.username;
-        document.getElementById('email').value = userToEdit.email;
-        document.getElementById('birthdate').value = userToEdit.birthdate ? userToEdit.birthdate.split('T')[0] : '';
-        document.getElementById('role').value = userToEdit.role;
-        profilePreview.src = userToEdit.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
         userForm.setAttribute('data-method', 'PUT');
+        formTitle.textContent = 'Editar Usuário';
         showForm();
+    } catch (error) {
+        alert('Erro ao carregar dados do usuário para edição.');
     }
-}
+};
 
-async function handleDelete(event) {
-    const userId = event.currentTarget.dataset.id;
+// Função para excluir um usuário
+const deleteUser = async (userId) => {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
         try {
             const response = await fetch('/api/usermanagement', {
@@ -155,36 +156,43 @@ async function handleDelete(event) {
                 },
                 body: JSON.stringify({ id: userId })
             });
-
-            const data = await response.json();
-
             if (response.ok) {
-                alert(data.message);
+                alert('Usuário excluído com sucesso!');
                 loadUsers();
             } else {
-                alert('Erro: ' + data.message);
+                const data = await response.json();
+                alert('Erro ao excluir usuário: ' + data.message);
             }
         } catch (error) {
-            console.error('Erro ao excluir usuário:', error);
-            alert('Erro ao excluir usuário. Verifique a conexão.');
+            alert('Erro de conexão ao excluir o usuário.');
         }
     }
-}
+};
 
-function showForm(title = 'Adicionar Novo Usuário') {
-    userListCard.style.display = 'none';
-    userFormCard.style.display = 'block';
-    formTitle.textContent = title;
-    userForm.reset();
-    profilePreview.src = 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
-    userForm.setAttribute('data-method', 'POST');
-    userIdInput.value = '';
-}
+// Nova função para redefinir a senha
+const resetPassword = async (userId) => {
+    if (confirm('Tem certeza que deseja redefinir a senha deste usuário?')) {
+        try {
+            const response = await fetch('/api/usermanagement', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: userId, resetPassword: true })
+            });
 
-function showList() {
-    userFormCard.style.display = 'none';
-    userListCard.style.display = 'block';
-    loadUsers();
-}
+            if (response.ok) {
+                alert('Senha redefinida com sucesso.');
+            } else {
+                const data = await response.json();
+                alert('Erro ao redefinir a senha: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro de conexão:', error);
+            alert('Erro de conexão ao redefinir a senha.');
+        }
+    }
+};
 
-loadUsers(); // Inicializa o carregamento da lista de usuários
+// Carrega os usuários quando a página é carregada
+loadUsers();
