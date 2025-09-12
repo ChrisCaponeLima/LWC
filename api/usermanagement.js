@@ -2,7 +2,6 @@ import { Pool } from 'pg';
 import pkg from 'formidable';
 const { IncomingForm } = pkg;
 import bcrypt from 'bcryptjs';
-import fs from 'fs';
 
 const pool = new Pool({
     user: process.env.PGUSER,
@@ -40,21 +39,21 @@ export default async function handler(req, res) {
                 }
 
                 try {
-                    const username = fields.name ? fields.name[0] : null;
-                    const email = fields.email ? fields.email[0] : null;
-                    const birthdate = fields.birthdate ? fields.birthdate[0] : null;
-                    const role = fields.role ? fields.role[0] : 'user';
-                    const initialWeight = fields['initial-weight'] ? parseFloat(fields['initial-weight'][0]) : null;
-                    const heightCm = fields['height-cm'] ? parseInt(fields['height-cm'][0]) : null;
+                    // Acesso direto aos campos
+                    const username = fields.name || null;
+                    const email = fields.email || null;
+                    const birthdate = fields.birthdate || null;
+                    const role = fields.role || 'user';
+                    const initialWeight = fields['initial-weight'] ? parseFloat(fields['initial-weight']) : null;
+                    const heightCm = fields['height-cm'] ? parseInt(fields['height-cm']) : null;
 
-                    if (!username || !email || !role || !initialWeight) {
+                    if (!username || !email || !role || initialWeight === null) {
                         return res.status(400).json({ message: 'Campos obrigatórios faltando: nome, e-mail, cargo e peso inicial.' });
                     }
                     
                     const hashedPassword = await bcrypt.hash('password123', 10);
-                    
                     const photo_perfil_url = null;
-                    
+
                     const result = await client.query(
                         'INSERT INTO users (username, email, password_hash, photo_perfil_url, birthdate, role, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
                         [username, email, hashedPassword, photo_perfil_url, birthdate, role, heightCm, initialWeight]
@@ -76,8 +75,9 @@ export default async function handler(req, res) {
                 }
 
                 try {
-                    const user_id = fields.id ? fields.id[0] : null;
-                    const resetPasswordFlag = fields.resetPassword ? fields.resetPassword[0] === 'true' : false;
+                    // Acesso direto aos campos
+                    const user_id = fields.id || null;
+                    const resetPasswordFlag = fields.resetPassword || false;
                     
                     if (!user_id) {
                         return res.status(400).json({ message: 'ID do usuário é obrigatório para atualização.' });
@@ -96,13 +96,14 @@ export default async function handler(req, res) {
                         return res.status(200).json({ message: 'Senha redefinida com sucesso.' });
                     }
 
-                    const username = fields.name ? fields.name[0] : null;
-                    const email = fields.email ? fields.email[0] : null;
-                    const birthdate = fields.birthdate ? fields.birthdate[0] : null;
-                    const role = fields.role ? fields.role[0] : null;
-                    const initialWeight = fields['initial-weight'] ? parseFloat(fields['initial-weight'][0]) : null;
-                    const heightCm = fields['height-cm'] ? parseInt(fields['height-cm'][0]) : null;
-                    
+                    // Acesso direto aos campos
+                    const username = fields.name || null;
+                    const email = fields.email || null;
+                    const birthdate = fields.birthdate || null;
+                    const role = fields.role || null;
+                    const initialWeight = fields['initial-weight'] ? parseFloat(fields['initial-weight']) : null;
+                    const heightCm = fields['height-cm'] ? parseInt(fields['height-cm']) : null;
+
                     const query = `
                         UPDATE users 
                         SET 
@@ -118,10 +119,10 @@ export default async function handler(req, res) {
                     const values = [
                         username,
                         email,
-                        (birthdate && birthdate.trim() !== '') ? birthdate : null,
+                        birthdate,
                         role,
-                        (heightCm && !isNaN(heightCm)) ? heightCm : null,
-                        (initialWeight && !isNaN(initialWeight)) ? initialWeight : null,
+                        heightCm,
+                        initialWeight,
                         user_id
                     ];
 
