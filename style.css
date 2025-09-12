@@ -579,3 +579,13 @@ body {
 .action-buttons-cell .btn {
     margin-right: 5px; /* Adiciona um pequeno espaçamento entre os botões */
 }
+
+/* Estilo para cards de conteúdo geral, como a tabela de usuários */
+.content-card {
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease-in-out;
+    background-color: var(--card-bg);
+    color: var(--dark-grey);
+}
