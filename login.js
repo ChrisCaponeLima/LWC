@@ -1,3 +1,4 @@
+// login.js
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');
@@ -11,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // CORREÇÃO: Usar document.getElementById para acessar os campos
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
@@ -32,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('username', data.username);
                     localStorage.setItem('role', data.role);
                     localStorage.setItem('userPhotoUrl', data.photoUrl || '');
+                    
+                    // -- Linha que garante que o apelido seja salvo --
+                    localStorage.setItem('apelido', data.apelido || '');
+                    // -- Fim da linha --
+                    
                     window.location.href = 'index.html';
                 } else {
                     // Autenticação falhou

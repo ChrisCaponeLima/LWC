@@ -1,3 +1,4 @@
+// profile.js - V3.0
 document.addEventListener('DOMContentLoaded', () => {
     const userId = localStorage.getItem('userId');
     const profileForm = document.getElementById('profileForm');
@@ -10,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userNameElement = document.getElementById('user-name');
     const photoGrid = document.getElementById('photo-grid');
     const formaGrid = document.getElementById('forma-grid');
-    
+
     const initialWeightElem = document.getElementById('initial-weight');
     const currentWeightElem = document.getElementById('current-weight');
     const userHeightElem = document.getElementById('user-height');
@@ -18,14 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const registrosButton = document.getElementById('registrosButtonCollapse');
     const formaButton = document.getElementById('formaButtonCollapse');
-    // A linha abaixo foi removida:
-    // const debugOutput = document.getElementById('debug-output');
 
     if (!userId) {
         window.location.href = 'login.html';
         return;
     }
-    
+
     function renderPhotos(records, gridElement, photoUrlKey) {
         gridElement.innerHTML = '';
         let hasPhotos = false;
@@ -56,18 +55,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/users?id=${userId}`);
             if (response.ok) {
                 const userData = await response.json();
-                
+
                 localStorage.setItem('userPhotoUrl', userData.photo_perfil_url);
 
-                userNameElement.textContent = userData.username || 'Usuário'; 
-                document.getElementById('user-email').textContent = userData.email || 'Não informado'; 
-                
+                userNameElement.textContent = userData.username || 'Usuário';
+                document.getElementById('user-email').textContent = userData.email || 'Não informado';
+
+                // Adicionadas as verificações de existência antes de tentar atualizar
+                const userNicknameElement = document.getElementById('user-nickname');
+                if (userNicknameElement) {
+                    userNicknameElement.textContent = userData.apelido || 'Não informado';
+                }
+
+                const userSexoElement = document.getElementById('user-sexo');
+                if (userSexoElement) {
+                    const displaySex = { 'M': 'Masculino', 'F': 'Feminino', null: 'Não informado' }[userData.sexo] || 'Não informado';
+                    userSexoElement.textContent = displaySex;
+                }
+
                 const userProfilePhotoElement = document.getElementById('user-profile-photo');
                 if (userProfilePhotoElement) {
-                    userProfilePhotoElement.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg'; 
+                    userProfilePhotoElement.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
                 }
                 profilePhotoPreview.src = userData.photo_perfil_url || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg';
-                
+
                 initialWeightElem.textContent = `${userData.initial_weight_kg || '--'} kg`;
                 userHeightElem.textContent = `${userData.height_cm || '--'} cm`;
                 userBmiElem.textContent = userData.bmi || '--';
@@ -80,6 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (userData.birthdate) {
                     document.getElementById('birthdate').value = new Date(userData.birthdate).toISOString().split('T')[0];
                 }
+                document.getElementById('profile-apelido').value = userData.apelido || '';
+                const sexoValue = { 'M': 'Masculino', 'F': 'Feminino', null: 'Não informado' }[userData.sexo] || 'Não informado';
+                document.getElementById('profile-sexo').value = sexoValue;
 
                 const hasPhotoRecords = renderPhotos(userData.records, photoGrid, 'photo_url');
                 const hasFormaRecords = renderPhotos(userData.records, formaGrid, 'forma_url');
@@ -118,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelEditBtn.addEventListener('click', () => {
         infoDisplay.style.display = 'grid';
         infoForm.style.display = 'none';
-        loadUserDataAndRecords(); 
+        loadUserDataAndRecords();
     });
 
     profilePhotoInput.addEventListener('change', (e) => {
@@ -132,12 +146,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // profile.js - V3.1
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const formData = new FormData(profileForm);
         formData.append('user_id', userId);
-        
+
+        // Mapeamento do sexo antes de enviar
+        const sexoMap = {
+            'Masculino': 'M',
+            'Feminino': 'F',
+            'Não informado': null
+        };
+        const sexoValue = document.getElementById('profile-sexo').value;
+        formData.set('sexo', sexoMap[sexoValue]);
+
         const passwordValue = document.getElementById('profile-password').value;
         if (passwordValue.trim() === '') {
             formData.delete('password');
@@ -152,9 +176,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const responseData = await response.json();
                 alert(responseData.message || 'Dados atualizados com sucesso!');
-                infoDisplay.style.display = 'grid'; 
+                infoDisplay.style.display = 'grid';
                 infoForm.style.display = 'none';
-                loadUserDataAndRecords(); 
+                loadUserDataAndRecords();
                 profileForm.reset();
                 document.getElementById('profile-photo-upload').value = '';
             } else {

@@ -21,9 +21,10 @@ export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-        // CORREÇÃO AQUI: A coluna que armazena a senha criptografada é 'password_hash'
+        // CORREÇÃO: A coluna que armazena a senha criptografada é 'password_hash'
         // A coluna que armazena a foto de perfil é 'photo_perfil_url'
-        const result = await client.query('SELECT id, username, password_hash, role, photo_perfil_url FROM users WHERE username = $1', [username]);
+        // -- CORRIGIDO: Adicionado 'apelido' e 'height_cm' na seleção SQL
+        const result = await client.query('SELECT id, username, password_hash, role, photo_perfil_url, height_cm, apelido FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
 
         if (!user) {
@@ -39,7 +40,10 @@ export default async function handler(req, res) {
                 userId: user.id,
                 username: user.username,
                 role: user.role,
-                photoUrl: user.photo_perfil_url
+                photoUrl: user.photo_perfil_url,
+                // -- CORRIGIDO: Incluindo 'apelido' e 'height_cm' na resposta da API
+                apelido: user.apelido,
+                heightCm: user.height_cm
             });
         } else {
             res.status(401).json({ message: 'Credenciais inválidas.' });

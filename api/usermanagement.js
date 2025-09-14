@@ -21,13 +21,15 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             const { id } = req.query;
             if (id) {
+                // -- CORRIGIDO: Selecionando todos os campos para o GET por ID
                 const userResult = await client.query('SELECT * FROM users WHERE id = $1', [id]);
                 if (userResult.rows.length === 0) {
                     return res.status(404).json({ message: 'Usuário não encontrado.' });
                 }
                 res.status(200).json(userResult.rows[0]);
             } else {
-                const usersResult = await client.query('SELECT id, username, email, photo_perfil_url, role, birthdate, height_cm, initial_weight_kg FROM users ORDER BY username ASC');
+                // -- CORRIGIDO: Adicionado 'apelido' na seleção SQL para a lista de usuários
+                const usersResult = await client.query('SELECT id, username, email, photo_perfil_url, role, birthdate, height_cm, initial_weight_kg, apelido FROM users ORDER BY username ASC');
                 res.status(200).json(usersResult.rows);
             }
 
@@ -39,13 +41,15 @@ export default async function handler(req, res) {
                 }
 
                 try {
-                    // Acesso direto aos campos
                     const username = fields.name || null;
                     const email = fields.email || null;
                     const birthdate = fields.birthdate || null;
                     const role = fields.role || 'user';
                     const initialWeight = fields['initial-weight'] ? parseFloat(fields['initial-weight']) : null;
                     const heightCm = fields['height-cm'] ? parseInt(fields['height-cm']) : null;
+                    // -- NOVO: Adicionado 'apelido' para a criação de usuário
+                    const apelido = fields.apelido || null;
+                    // -- FIM NOVO
 
                     if (!username || !email || !role || initialWeight === null) {
                         return res.status(400).json({ message: 'Campos obrigatórios faltando: nome, e-mail, cargo e peso inicial.' });
@@ -55,8 +59,9 @@ export default async function handler(req, res) {
                     const photo_perfil_url = null;
 
                     const result = await client.query(
-                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, birthdate, role, height_cm, initial_weight_kg) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-                        [username, email, hashedPassword, photo_perfil_url, birthdate, role, heightCm, initialWeight]
+                        // -- CORRIGIDO: Adicionado 'apelido' na query de INSERT
+                        'INSERT INTO users (username, email, password_hash, photo_perfil_url, birthdate, role, height_cm, initial_weight_kg, apelido) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+                        [username, email, hashedPassword, photo_perfil_url, birthdate, role, heightCm, initialWeight, apelido]
                     );
                     
                     const newUserId = result.rows[0].id;
@@ -75,7 +80,6 @@ export default async function handler(req, res) {
                 }
 
                 try {
-                    // Acesso direto aos campos
                     const user_id = fields.id || null;
                     const resetPasswordFlag = fields.resetPassword || false;
                     
@@ -96,13 +100,15 @@ export default async function handler(req, res) {
                         return res.status(200).json({ message: 'Senha redefinida com sucesso.' });
                     }
 
-                    // Acesso direto aos campos
                     const username = fields.name || null;
                     const email = fields.email || null;
                     const birthdate = fields.birthdate || null;
                     const role = fields.role || null;
                     const initialWeight = fields['initial-weight'] ? parseFloat(fields['initial-weight']) : null;
                     const heightCm = fields['height-cm'] ? parseInt(fields['height-cm']) : null;
+                    // -- NOVO: Adicionado 'apelido' para a atualização
+                    const apelido = fields.apelido || null;
+                    // -- FIM NOVO
 
                     const query = `
                         UPDATE users 
@@ -112,8 +118,9 @@ export default async function handler(req, res) {
                             birthdate = COALESCE($3, birthdate),
                             role = COALESCE($4, role),
                             height_cm = COALESCE($5, height_cm),
-                            initial_weight_kg = COALESCE($6, initial_weight_kg)
-                        WHERE id = $7
+                            initial_weight_kg = COALESCE($6, initial_weight_kg),
+                            apelido = COALESCE($7, apelido)
+                        WHERE id = $8
                     `;
                     
                     const values = [
@@ -123,6 +130,7 @@ export default async function handler(req, res) {
                         role,
                         heightCm,
                         initialWeight,
+                        apelido,
                         user_id
                     ];
 

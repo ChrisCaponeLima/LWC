@@ -1,3 +1,4 @@
+//user_management.js
 // Centraliza a verificação de permissão no topo do script
 document.addEventListener('DOMContentLoaded', () => {
     // Tenta obter o role diretamente do localStorage
