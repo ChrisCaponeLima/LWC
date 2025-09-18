@@ -1,4 +1,4 @@
-// editor.js - V1.7
+// editor.js - V1.8
 const imageUpload = document.getElementById('image-upload');
 const imageCanvas = document.getElementById('image-canvas');
 const ctx = imageCanvas.getContext('2d');
