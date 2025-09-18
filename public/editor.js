@@ -1,4 +1,4 @@
-// editor.js - V1.5
+// editor.js - V1.7
 const imageUpload = document.getElementById('image-upload');
 const imageCanvas = document.getElementById('image-canvas');
 const ctx = imageCanvas.getContext('2d');
@@ -139,40 +139,54 @@ function applyEffect(effectType) {
         ctx.drawImage(tempImage, 0, 0);
 
         if (effectType === 'blur') {
-            // NOVO ALGORITMO DE DESFOQUE: ROBUSTO E FUNCIONAL EM TODOS OS NAVEGADORES
-            
-            // 1. Pega os dados da imagem na área selecionada
             const imageData = ctx.getImageData(x, y, width, height);
             const data = imageData.data;
-            const originalData = new Uint8ClampedArray(data); // Cria uma cópia dos dados originais
-            const radius = 10; // Nível de desfoque
+            const radius = 10;
+            const originalData = new Uint8ClampedArray(data.slice());
             
-            // 2. Aplica o desfoque pixel por pixel
-            for (let i = 0; i < data.length; i += 4) {
-                let r = 0, g = 0, b = 0, count = 0;
-                const px = (i / 4) % width;
-                const py = Math.floor((i / 4) / width);
-
-                for (let dx = -radius; dx <= radius; dx++) {
-                    for (let dy = -radius; dy <= radius; dy++) {
-                        const newX = px + dx;
-                        const newY = py + dy;
-
-                        if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
-                            const newIndex = (newY * width + newX) * 4;
+            // Passo 1: Desfoque horizontal
+            for (let yPos = 0; yPos < height; yPos++) {
+                for (let xPos = 0; xPos < width; xPos++) {
+                    let r = 0, g = 0, b = 0, count = 0;
+                    for (let i = -radius; i <= radius; i++) {
+                        const newX = xPos + i;
+                        if (newX >= 0 && newX < width) {
+                            const newIndex = (yPos * width + newX) * 4;
                             r += originalData[newIndex];
                             g += originalData[newIndex + 1];
                             b += originalData[newIndex + 2];
                             count++;
                         }
                     }
+                    const currentIndex = (yPos * width + xPos) * 4;
+                    data[currentIndex] = r / count;
+                    data[currentIndex + 1] = g / count;
+                    data[currentIndex + 2] = b / count;
                 }
-                data[i] = r / count;
-                data[i + 1] = g / count;
-                data[i + 2] = b / count;
+            }
+            
+            // Passo 2: Desfoque vertical
+            const horizontalData = new Uint8ClampedArray(data.slice());
+            for (let xPos = 0; xPos < width; xPos++) {
+                for (let yPos = 0; yPos < height; yPos++) {
+                    let r = 0, g = 0, b = 0, count = 0;
+                    for (let i = -radius; i <= radius; i++) {
+                        const newY = yPos + i;
+                        if (newY >= 0 && newY < height) {
+                            const newIndex = (newY * width + xPos) * 4;
+                            r += horizontalData[newIndex];
+                            g += horizontalData[newIndex + 1];
+                            b += horizontalData[newIndex + 2];
+                            count++;
+                        }
+                    }
+                    const currentIndex = (yPos * width + xPos) * 4;
+                    data[currentIndex] = r / count;
+                    data[currentIndex + 1] = g / count;
+                    data[currentIndex + 2] = b / count;
+                }
             }
 
-            // 3. Coloca os dados de volta na imagem
             ctx.putImageData(imageData, x, y);
 
         } else if (effectType === 'censor') {
