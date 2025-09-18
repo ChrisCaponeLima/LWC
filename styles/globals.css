@@ -1,0 +1,241 @@
+/* //styles/globals.css - V1.0 */
+
+/* Estilos gerais */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
+}
+
+.main-container {
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+}
+
+/* Estilos do formulário de criação de postagem */
+.create-post-container {
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.create-post-container h3 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.create-post-container form {
+    display: flex;
+    flex-direction: column;
+}
+
+.create-post-container input[type="text"],
+.create-post-container textarea {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.create-post-container button {
+    padding: 10px 15px;
+    border: none;
+    background-color: #1877f2;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.create-post-container button:hover {
+    background-color: #1656a8;
+}
+
+/* Estilos do card de postagem */
+.post-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.post-header .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.post-header .user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.post-header .username {
+    font-weight: bold;
+    color: #333;
+}
+
+.post-header .post-date {
+    font-size: 0.8rem;
+    color: #65676b;
+}
+
+.post-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.post-message {
+    margin: 0 0 10px 0;
+    color: #1c1e21;
+}
+
+.post-image-container img {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+/* Estilos de reações e comentários */
+.post-actions-summary {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #65676b;
+    margin-top: 10px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+}
+
+.post-action-buttons {
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    margin: 10px 0;
+    padding: 5px 0;
+}
+
+.post-action-buttons button {
+    background: none;
+    border: none;
+    color: #65676b;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 8px;
+    width: 50%;
+    transition: background-color 0.3s;
+}
+
+.post-action-buttons button:hover {
+    background-color: #f0f2f5;
+    border-radius: 6px;
+}
+
+.reactions-list {
+    display: flex;
+    gap: 10px;
+    font-size: 0.8rem;
+}
+
+.reaction-item {
+    padding: 2px 6px;
+    border-radius: 12px;
+    background-color: #e4e6eb;
+    color: #050505;
+}
+
+/* Estilos de comentários */
+.comentarios-container {
+    padding: 10px 0;
+}
+
+.comentarios-container form {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.comentarios-container input {
+    flex-grow: 1;
+    padding: 8px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    margin-right: 5px;
+}
+
+.comentarios-container button {
+    background-color: #1877f2;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 15px;
+    cursor: pointer;
+}
+
+.lista-comentarios {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+}
+
+.comentario-item {
+    margin-bottom: 15px;
+}
+
+.comentario-item .comentario-header {
+    display: flex;
+    align-items: center;
+}
+
+.comentario-item .comentario-header .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.comentario-item .comentario-header .comentario-usuario {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.comentario-item p {
+    background-color: #f0f2f5;
+    padding: 8px 12px;
+    border-radius: 18px;
+    margin: 5px 0 0 38px;
+}
+
+.reply-link {
+    font-size: 0.8rem;
+    color: #65676b;
+    margin-left: 40px;
+    cursor: pointer;
+}
+
+.comentarios-aninhados {
+    margin-left: 30px;
+    padding-left: 10px;
+    border-left: 2px solid #e0e0e0;
+    margin-top: 10px;
+}

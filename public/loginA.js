@@ -1,4 +1,4 @@
-// login.js
+// login.js - V1.0
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');

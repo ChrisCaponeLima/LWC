@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LWC - Meu Perfil</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="back-to-home">
+        <a href="index.html" class="btn-back">
+            <img src="https://api.iconify.design/solar:alt-arrow-left-bold.svg" alt="Voltar" class="icon-md">
+        </a>
+    </div>
+
+    <div class="profile-settings-icon">
+        <button id="editProfileBtn" class="edit-profile-button">
+            <img src="https://api.iconify.design/solar:settings-outline.svg" alt="Configurações" class="icon-md">
+        </button>
+    </div>
+
+    <div class="white-border-wrapper">
+        <div class="grey-border-wrapper">
+            <div class="container main-content">
+                <div class="profile-header">
+                    <img id="user-profile-photo" src="https://api.iconify.design/solar:user-circle-bold-duotone.svg"
+                        alt="Foto de Perfil" class="user-photo-xl">
+                    <h2 class="h2-title" id="user-name"></h2>
+                    <p class="profile-email" id="user-email"></p>
+                </div>
+
+                <div class="kpi-card-container mb-4" id="infoDisplay">
+                    <div class="kpi-grid">
+                        <div class="card-basic card-blue">
+                            <img src="https://api.iconify.design/solar:scale-bold-duotone.svg" alt="Ícone de Escala"
+                                class="icon">
+                            <div class="kpi-info">
+                                <span class="kpi-label">Peso Inicial</span>
+                                <span class="kpi-value" id="initial-weight">-- kg</span>
+                            </div>
+                        </div>
+                        <div class="card-basic card-green">
+                            <img src="https://api.iconify.design/solar:ruler-bold-duotone.svg" alt="Ícone de Régua"
+                                class="icon">
+                            <div class="kpi-info">
+                                <span class="kpi-label">Altura</span>
+                                <span class="kpi-value" id="user-height">-- cm</span>
+                            </div>
+                        </div>
+                        <div class="card-basic card-purple">
+                            <img src="https://api.iconify.design/solar:weight-bold-duotone.svg" alt="Ícone de Peso"
+                                class="icon">
+                            <div class="kpi-info">
+                                <span class="kpi-label">IMC</span>
+                                <span class="kpi-value" id="user-bmi">--</span>
+                            </div>
+                        </div>
+                        <div class="card-basic card-orange">
+                            <img src="https://api.iconify.design/solar:calendar-bold-duotone.svg"
+                                alt="Ícone de Peso Atual" class="icon">
+                            <div class="kpi-info">
+                                <span class="kpi-label">Peso Atual</span>
+                                <span class="kpi-value" id="current-weight">-- kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="infoForm" style="display: none;">
+                    <div class="form-card">
+                        <form id="profileForm" class="row g-3" enctype="multipart/form-data">
+                            <div class="col-12 text-center mb-3">
+                                <img id="profile-photo-preview"
+                                    src="https://api.iconify.design/solar:user-circle-bold-duotone.svg"
+                                    alt="Foto de Perfil" class="user-photo-xl mb-2">
+                                <label for="profile-photo-upload" class="btn btn-sm btn-secondary d-block">Alterar Foto
+                                    de Perfil</label>
+                                <input type="file" id="profile-photo-upload" name="photo" style="display: none;"
+                                    accept="image/*">
+                            </div>
+                            <div class="col-12">
+                                <label for="profile-username" class="form-label">Nome</label>
+                                <input type="text" class="form-control" id="profile-username" name="username" disabled>
+                            </div>
+                            <div class="col-12">
+                                <label for="profile-apelido" class="form-label">Apelido
+                                    <span class="info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="O apelido será usado nas postagens públicas e com isso o usuário não será identificado se não o quiser.">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                </label>
+                                <input type="text" class="form-control" id="profile-apelido" name="apelido" placeholder="Como você quer ser chamado">
+                            </div>
+                            <div class="col-12">
+                                <label for="profile-sexo" class="form-label">Sexo</label>
+                                <select class="form-select" id="profile-sexo" name="sexo">
+                                    <option value="Não informado" selected>Não informado</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Feminino">Feminino</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="profile-email" class="form-label">E-mail</label>
+                                <input type="email" class="form-control" id="profile-email" name="user_email">
+                            </div>
+                            <div class="col-12">
+                                <label for="profile-password" class="form-label">Senha</label>
+                                <input type="password" class="form-control" id="profile-password" name="password"
+                                    placeholder="Deixe em branco para não alterar">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="height" class="form-label">Altura (cm)</label>
+                                <input type="number" class="form-control" id="height" name="height" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="initial-weight-form" class="form-label">Peso Inicial (kg)</label>
+                                <input type="number" step="0.01" class="form-control" id="initial-weight-form"
+                                    name="initial_weight" disabled>
+                            </div>
+                            <div class="col-12">
+                                <label for="birthdate" class="form-label">Data de Nascimento</label>
+                                <input type="date" class="form-control" id="birthdate" name="birthdate">
+                            </div>
+                            <div class="col-12 text-center mt-3 form-buttons">
+                                <button type="submit" class="btn-success">Salvar Alterações</button>
+                                <button type="button" class="btn-control cancel-button"
+                                    id="cancelEditBtn">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <p>
+                    <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#photoGalleryCollapse" aria-expanded="false"
+                        aria-controls="photoGalleryCollapse" id="registrosButtonCollapse">
+                        Registros
+                    </button>
+                </p>
+                <div class="collapse" id="photoGalleryCollapse">
+                    <div id="photo-grid" class="photo-grid-gallery"></div>
+                </div>
+                <p>
+                    <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#formaGalleryCollapse" aria-expanded="false"
+                        aria-controls="formaGalleryCollapse" id="formaButtonCollapse">
+                        Forma
+                    </button>
+                </p>
+                <div class="collapse" id="formaGalleryCollapse">
+                    <div id="forma-grid" class="photo-grid-gallery"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="profile.js"></script>
+    <script src="auth_menu.js"></script>
+</body>
+
+</html>

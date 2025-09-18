@@ -21,17 +21,14 @@ export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-        // CORREÇÃO: A coluna que armazena a senha criptografada é 'password_hash'
-        // A coluna que armazena a foto de perfil é 'photo_perfil_url'
-        // -- CORRIGIDO: Adicionado 'apelido' e 'height_cm' na seleção SQL
-        const result = await client.query('SELECT id, username, password_hash, role, photo_perfil_url, height_cm, apelido FROM users WHERE username = $1', [username]);
+        // CORRIGIDO: A consulta agora procura por um nome de usuário que comece com o valor enviado.
+        const result = await client.query('SELECT id, username, password_hash, role, photo_perfil_url, height_cm, apelido FROM users WHERE username ILIKE $1 || \'%\'', [username]);
         const user = result.rows[0];
 
         if (!user) {
             return res.status(401).json({ message: 'Credenciais inválidas.' });
         }
 
-        // CORREÇÃO: Usar bcrypt.compare para verificar a senha de forma segura
         const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
 
         if (isPasswordMatch) {
@@ -41,7 +38,6 @@ export default async function handler(req, res) {
                 username: user.username,
                 role: user.role,
                 photoUrl: user.photo_perfil_url,
-                // -- CORRIGIDO: Incluindo 'apelido' e 'height_cm' na resposta da API
                 apelido: user.apelido,
                 heightCm: user.height_cm
             });

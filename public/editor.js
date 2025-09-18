@@ -1,3 +1,4 @@
+// editor.js - V1.1
 const imageUpload = document.getElementById('image-upload');
 const imageCanvas = document.getElementById('image-canvas');
 const ctx = imageCanvas.getContext('2d');
@@ -5,10 +6,11 @@ const selectionBox = document.getElementById('selection-box');
 const blurButton = document.getElementById('blur-button');
 const censorButton = document.getElementById('censor-button');
 const downloadButton = document.getElementById('download-button');
-const resetButton = document.getElementById('reset-button'); // Novo botão
+const resetButton = document.getElementById('reset-button');
 
 let isSelecting = false;
 let startX, startY;
+let selectionCoords = null;
 let originalImage = new Image();
 let currentImage = new Image();
 
@@ -23,7 +25,6 @@ imageUpload.addEventListener('change', (e) => {
                 imageCanvas.width = originalImage.width;
                 imageCanvas.height = originalImage.height;
                 ctx.drawImage(originalImage, 0, 0);
-                // Salva a imagem original como o estado atual
                 currentImage.src = imageCanvas.toDataURL();
                 selectionBox.style.display = 'none';
                 downloadButton.style.display = 'none';
@@ -38,40 +39,49 @@ imageCanvas.addEventListener('mousedown', (e) => {
     if (originalImage.src) {
         isSelecting = true;
         const rect = imageCanvas.getBoundingClientRect();
-        const scaleX = imageCanvas.width / rect.width;
-        const scaleY = imageCanvas.height / rect.height;
-        startX = (e.clientX - rect.left) * scaleX;
-        startY = (e.clientY - rect.top) * scaleY;
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
         
-        selectionBox.style.left = `${e.clientX - rect.left}px`;
-        selectionBox.style.top = `${e.clientY - rect.top}px`;
+        selectionBox.style.left = `${startX}px`;
+        selectionBox.style.top = `${startY}px`;
         selectionBox.style.width = '0px';
         selectionBox.style.height = '0px';
         selectionBox.style.display = 'block';
     }
 });
 
-// Atualiza o tamanho da seleção
+// Atualiza o tamanho da seleção enquanto o mouse se move
 imageCanvas.addEventListener('mousemove', (e) => {
     if (!isSelecting) return;
     const rect = imageCanvas.getBoundingClientRect();
-    const scaleX = imageCanvas.width / rect.width;
-    const scaleY = imageCanvas.height / rect.height;
-    const currentX = (e.clientX - rect.left) * scaleX;
-    const currentY = (e.clientY - rect.top) * scaleY;
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
 
     const width = currentX - startX;
     const height = currentY - startY;
 
-    selectionBox.style.left = `${Math.min(startX, currentX) / scaleX}px`;
-    selectionBox.style.top = `${Math.min(startY, currentY) / scaleY}px`;
-    selectionBox.style.width = `${Math.abs(width) / scaleX}px`;
-    selectionBox.style.height = `${Math.abs(height) / scaleY}px`;
+    selectionBox.style.left = `${Math.min(startX, currentX)}px`;
+    selectionBox.style.top = `${Math.min(startY, currentY)}px`;
+    selectionBox.style.width = `${Math.abs(width)}px`;
+    selectionBox.style.height = `${Math.abs(height)}px`;
 });
 
-// Finaliza a seleção
+// Finaliza a seleção e armazena as coordenadas
 imageCanvas.addEventListener('mouseup', () => {
     isSelecting = false;
+    const rect = selectionBox.getBoundingClientRect();
+    const canvasRect = imageCanvas.getBoundingClientRect();
+
+    if (rect.width > 0 && rect.height > 0) {
+        const scaleX = imageCanvas.width / canvasRect.width;
+        const scaleY = imageCanvas.height / canvasRect.height;
+        selectionCoords = {
+            x: (rect.left - canvasRect.left) * scaleX,
+            y: (rect.top - canvasRect.top) * scaleY,
+            width: rect.width * scaleX,
+            height: rect.height * scaleY
+        };
+    }
 });
 
 // Aplica o desfoque na área selecionada
@@ -89,60 +99,48 @@ resetButton.addEventListener('click', () => {
     if (originalImage.src) {
         ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
         ctx.drawImage(originalImage, 0, 0);
-        currentImage.src = imageCanvas.toDataURL(); // Reseta o estado atual
+        currentImage.src = imageCanvas.toDataURL();
         downloadButton.style.display = 'none';
         selectionBox.style.display = 'none';
+        selectionCoords = null; // Reseta as coordenadas de seleção
         alert('Imagem redefinida com sucesso.');
     }
 });
 
-function applyEffect(effectType) {
-    const rect = selectionBox.getBoundingClientRect();
-    const canvasRect = imageCanvas.getBoundingClientRect();
+// editor.js - Versão 1.2
 
-    if (rect.width === 0 || rect.height === 0 || !currentImage.src) {
+// ... (todo o resto do seu código permanece igual) ...
+
+// Função para aplicar o efeito (desfoque ou tarja preta)
+function applyEffect(effectType) {
+    if (!selectionCoords) {
         alert('Por favor, selecione uma área na imagem primeiro.');
         return;
     }
 
-    let tempImage = new Image();
+    const { x, y, width, height } = selectionCoords;
+    const tempImage = new Image();
     tempImage.src = currentImage.src;
 
     tempImage.onload = () => {
-        ctx.drawImage(tempImage, 0, 0, imageCanvas.width, imageCanvas.height);
-
-        const scaleX = imageCanvas.width / canvasRect.width;
-        const scaleY = imageCanvas.height / canvasRect.height;
-        const x = (rect.left - canvasRect.left) * scaleX;
-        const y = (rect.top - canvasRect.top) * scaleY;
-        const width = rect.width * scaleX;
-        const height = rect.height * scaleY;
+        // Redesenha a imagem atual no canvas
+        ctx.drawImage(tempImage, 0, 0);
 
         if (effectType === 'blur') {
-            const imageData = ctx.getImageData(x, y, width, height);
-            const data = imageData.data;
-            const radius = 10;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                let r = 0, g = 0, b = 0, count = 0;
-                for (let dx = -radius; dx <= radius; dx++) {
-                    for (let dy = -radius; dy <= radius; dy++) {
-                        const pixelX = Math.min(width - 1, Math.max(0, (i/4 % width) + dx));
-                        const pixelY = Math.min(height - 1, Math.max(0, Math.floor(i/4 / width) + dy));
-                        const newIndex = (pixelY * width + pixelX) * 4;
-                        if (newIndex >= 0 && newIndex < data.length) {
-                            r += data[newIndex];
-                            g += data[newIndex + 1];
-                            b += data[newIndex + 2];
-                            count++;
-                        }
-                    }
-                }
-                data[i] = r / count;
-                data[i + 1] = g / count;
-                data[i + 2] = b / count;
-            }
-            ctx.putImageData(imageData, x, y);
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+
+            // Desenha a área selecionada em um canvas temporário
+            tempCtx.drawImage(tempImage, x, y, width, height, 0, 0, width, height);
+
+            // Aplica o filtro de desfoque no canvas temporário
+            tempCtx.filter = 'blur(20px)';
+            tempCtx.drawImage(tempCanvas, 0, 0);
+
+            // Desenha a área desfocada de volta no canvas principal
+            ctx.drawImage(tempCanvas, x, y);
 
         } else if (effectType === 'censor') {
             ctx.fillStyle = 'black';
@@ -151,8 +149,11 @@ function applyEffect(effectType) {
 
         currentImage.src = imageCanvas.toDataURL();
         
+        // CORRIGIDO: Agora o download é feito de forma programática.
         downloadButton.href = currentImage.src;
+        downloadButton.download = 'edited-image.png'; // Define um nome para o arquivo
         downloadButton.style.display = 'inline-block';
         selectionBox.style.display = 'none';
+        selectionCoords = null;
     };
 }
