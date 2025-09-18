@@ -1,4 +1,4 @@
-// editor.js - V1.1
+// editor.js - V1.3
 const imageUpload = document.getElementById('image-upload');
 const imageCanvas = document.getElementById('image-canvas');
 const ctx = imageCanvas.getContext('2d');
@@ -34,13 +34,13 @@ imageUpload.addEventListener('change', (e) => {
     }
 });
 
-// Inicia a seleção da área
-imageCanvas.addEventListener('mousedown', (e) => {
+// FUNÇÕES DE MANIPULAÇÃO UNIFICADAS PARA MOUSE E TOQUE
+function startSelection(clientX, clientY) {
     if (originalImage.src) {
         isSelecting = true;
         const rect = imageCanvas.getBoundingClientRect();
-        startX = e.clientX - rect.left;
-        startY = e.clientY - rect.top;
+        startX = clientX - rect.left;
+        startY = clientY - rect.top;
         
         selectionBox.style.left = `${startX}px`;
         selectionBox.style.top = `${startY}px`;
@@ -48,14 +48,13 @@ imageCanvas.addEventListener('mousedown', (e) => {
         selectionBox.style.height = '0px';
         selectionBox.style.display = 'block';
     }
-});
+}
 
-// Atualiza o tamanho da seleção enquanto o mouse se move
-imageCanvas.addEventListener('mousemove', (e) => {
+function updateSelection(clientX, clientY) {
     if (!isSelecting) return;
     const rect = imageCanvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    const currentX = clientX - rect.left;
+    const currentY = clientY - rect.top;
 
     const width = currentX - startX;
     const height = currentY - startY;
@@ -64,10 +63,9 @@ imageCanvas.addEventListener('mousemove', (e) => {
     selectionBox.style.top = `${Math.min(startY, currentY)}px`;
     selectionBox.style.width = `${Math.abs(width)}px`;
     selectionBox.style.height = `${Math.abs(height)}px`;
-});
+}
 
-// Finaliza a seleção e armazena as coordenadas
-imageCanvas.addEventListener('mouseup', () => {
+function endSelection() {
     isSelecting = false;
     const rect = selectionBox.getBoundingClientRect();
     const canvasRect = imageCanvas.getBoundingClientRect();
@@ -82,7 +80,27 @@ imageCanvas.addEventListener('mouseup', () => {
             height: rect.height * scaleY
         };
     }
-});
+}
+
+// Eventos de MOUSE
+imageCanvas.addEventListener('mousedown', (e) => startSelection(e.clientX, e.clientY));
+imageCanvas.addEventListener('mousemove', (e) => updateSelection(e.clientX, e.clientY));
+imageCanvas.addEventListener('mouseup', endSelection);
+
+// Eventos de TOQUE (adicionados para suporte mobile)
+imageCanvas.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Impede o scroll da página
+    const touch = e.touches[0];
+    startSelection(touch.clientX, touch.clientY);
+}, { passive: false });
+
+imageCanvas.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Impede o scroll da página
+    const touch = e.touches[0];
+    updateSelection(touch.clientX, touch.clientY);
+}, { passive: false });
+
+imageCanvas.addEventListener('touchend', endSelection);
 
 // Aplica o desfoque na área selecionada
 blurButton.addEventListener('click', () => {
@@ -107,11 +125,6 @@ resetButton.addEventListener('click', () => {
     }
 });
 
-// editor.js - Versão 1.2
-
-// ... (todo o resto do seu código permanece igual) ...
-
-// Função para aplicar o efeito (desfoque ou tarja preta)
 function applyEffect(effectType) {
     if (!selectionCoords) {
         alert('Por favor, selecione uma área na imagem primeiro.');
@@ -123,7 +136,6 @@ function applyEffect(effectType) {
     tempImage.src = currentImage.src;
 
     tempImage.onload = () => {
-        // Redesenha a imagem atual no canvas
         ctx.drawImage(tempImage, 0, 0);
 
         if (effectType === 'blur') {
@@ -132,14 +144,10 @@ function applyEffect(effectType) {
             tempCanvas.width = width;
             tempCanvas.height = height;
 
-            // Desenha a área selecionada em um canvas temporário
             tempCtx.drawImage(tempImage, x, y, width, height, 0, 0, width, height);
-
-            // Aplica o filtro de desfoque no canvas temporário
             tempCtx.filter = 'blur(20px)';
             tempCtx.drawImage(tempCanvas, 0, 0);
 
-            // Desenha a área desfocada de volta no canvas principal
             ctx.drawImage(tempCanvas, x, y);
 
         } else if (effectType === 'censor') {
@@ -149,9 +157,8 @@ function applyEffect(effectType) {
 
         currentImage.src = imageCanvas.toDataURL();
         
-        // CORRIGIDO: Agora o download é feito de forma programática.
         downloadButton.href = currentImage.src;
-        downloadButton.download = 'edited-image.png'; // Define um nome para o arquivo
+        downloadButton.download = 'edited-image.png';
         downloadButton.style.display = 'inline-block';
         selectionBox.style.display = 'none';
         selectionCoords = null;

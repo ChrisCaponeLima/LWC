@@ -618,3 +618,8 @@ body {
     pointer-events: none;
     display: none;
 }
+
+#image-canvas {
+    touch-action: none; /* Impede o scroll e o zoom na imagem */
+    user-select: none; /* Previne a seleção de texto ao arrastar */
+}
