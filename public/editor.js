@@ -1,4 +1,4 @@
-// editor.js - V1.3
+// editor.js - V1.4
 const imageUpload = document.getElementById('image-upload');
 const imageCanvas = document.getElementById('image-canvas');
 const ctx = imageCanvas.getContext('2d');
@@ -87,15 +87,15 @@ imageCanvas.addEventListener('mousedown', (e) => startSelection(e.clientX, e.cli
 imageCanvas.addEventListener('mousemove', (e) => updateSelection(e.clientX, e.clientY));
 imageCanvas.addEventListener('mouseup', endSelection);
 
-// Eventos de TOQUE (adicionados para suporte mobile)
+// Eventos de TOQUE
 imageCanvas.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Impede o scroll da página
+    e.preventDefault();
     const touch = e.touches[0];
     startSelection(touch.clientX, touch.clientY);
 }, { passive: false });
 
 imageCanvas.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Impede o scroll da página
+    e.preventDefault();
     const touch = e.touches[0];
     updateSelection(touch.clientX, touch.clientY);
 }, { passive: false });
@@ -120,7 +120,7 @@ resetButton.addEventListener('click', () => {
         currentImage.src = imageCanvas.toDataURL();
         downloadButton.style.display = 'none';
         selectionBox.style.display = 'none';
-        selectionCoords = null; // Reseta as coordenadas de seleção
+        selectionCoords = null;
         alert('Imagem redefinida com sucesso.');
     }
 });
@@ -145,8 +145,38 @@ function applyEffect(effectType) {
             tempCanvas.height = height;
 
             tempCtx.drawImage(tempImage, x, y, width, height, 0, 0, width, height);
-            tempCtx.filter = 'blur(20px)';
-            tempCtx.drawImage(tempCanvas, 0, 0);
+            
+            // NOVO ALGORITMO DE DESFOQUE MANUAL MAIS EFICIENTE E COMPATÍVEL
+            const imageData = tempCtx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            const radius = 10; // Nível de desfoque
+            
+            const originalData = new Uint8ClampedArray(data);
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = 0, g = 0, b = 0, count = 0;
+                const px = (i / 4) % width;
+                const py = Math.floor((i / 4) / width);
+
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        const newX = px + dx;
+                        const newY = py + dy;
+
+                        if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+                            const newIndex = (newY * width + newX) * 4;
+                            r += originalData[newIndex];
+                            g += originalData[newIndex + 1];
+                            b += originalData[newIndex + 2];
+                            count++;
+                        }
+                    }
+                }
+                data[i] = r / count;
+                data[i + 1] = g / count;
+                data[i + 2] = b / count;
+            }
+            tempCtx.putImageData(imageData, 0, 0);
 
             ctx.drawImage(tempCanvas, x, y);
 
