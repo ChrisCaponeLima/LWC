@@ -1,4 +1,4 @@
-// editor.js - V1.4
+// editor.js - V1.5
 const imageUpload = document.getElementById('image-upload');
 const imageCanvas = document.getElementById('image-canvas');
 const ctx = imageCanvas.getContext('2d');
@@ -139,20 +139,15 @@ function applyEffect(effectType) {
         ctx.drawImage(tempImage, 0, 0);
 
         if (effectType === 'blur') {
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = width;
-            tempCanvas.height = height;
-
-            tempCtx.drawImage(tempImage, x, y, width, height, 0, 0, width, height);
+            // NOVO ALGORITMO DE DESFOQUE: ROBUSTO E FUNCIONAL EM TODOS OS NAVEGADORES
             
-            // NOVO ALGORITMO DE DESFOQUE MANUAL MAIS EFICIENTE E COMPATÍVEL
-            const imageData = tempCtx.getImageData(0, 0, width, height);
+            // 1. Pega os dados da imagem na área selecionada
+            const imageData = ctx.getImageData(x, y, width, height);
             const data = imageData.data;
+            const originalData = new Uint8ClampedArray(data); // Cria uma cópia dos dados originais
             const radius = 10; // Nível de desfoque
             
-            const originalData = new Uint8ClampedArray(data);
-
+            // 2. Aplica o desfoque pixel por pixel
             for (let i = 0; i < data.length; i += 4) {
                 let r = 0, g = 0, b = 0, count = 0;
                 const px = (i / 4) % width;
@@ -176,9 +171,9 @@ function applyEffect(effectType) {
                 data[i + 1] = g / count;
                 data[i + 2] = b / count;
             }
-            tempCtx.putImageData(imageData, 0, 0);
 
-            ctx.drawImage(tempCanvas, x, y);
+            // 3. Coloca os dados de volta na imagem
+            ctx.putImageData(imageData, x, y);
 
         } else if (effectType === 'censor') {
             ctx.fillStyle = 'black';
