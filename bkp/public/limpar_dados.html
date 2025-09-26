@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Dados do Editor</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f7;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #3a3a3c;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #6c757d;
+            margin-bottom: 30px;
+        }
+        button {
+            background-color: #ff3b30;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #e63946;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Limpar Dados do Editor</h1>
+        <p>Clique no botão abaixo para apagar todos os dados de imagens salvas localmente no seu navegador. Isso resolverá o erro "QuotaExceededError" ao salvar.</p>
+        <button id="clearDataBtn">Limpar Dados</button>
+    </div>
+
+    <script>
+        document.getElementById('clearDataBtn').addEventListener('click', function() {
+            localStorage.clear();
+            alert('Dados limpos com sucesso! Agora você pode voltar para a página de edição.');
+        });
+    </script>
+
+</body>
+</html>

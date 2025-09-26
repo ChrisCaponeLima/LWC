@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste editor-integration.js</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    #formContainer {
+      display: none;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-top: 1rem;
+      background-color: #f9f9f9;
+    }
+    #formaPreviewContainer img {
+      max-width: 200px;
+      display: block;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Teste Editor Integration</h1>
+
+  <!-- Botões -->
+  <button id="openEditorBtn">Abrir Editor (selecionar foto)</button>
+  <button id="toggleFormBtn">Adicionar Novo Registro</button>
+
+  <!-- Input file hidden -->
+  <input type="file" id="formaFileUpload" accept="image/*" style="display:none;">
+
+  <!-- Container do formulário -->
+  <div id="formContainer">
+    <p>Formulário de teste aqui dentro…</p>
+    <input type="hidden" id="formaInput">
+    <div id="formaPreviewContainer" style="display:none;">
+      <img id="formaPreview" src="" alt="Prévia">
+    </div>
+  </div>
+
+  <!-- Script JS -->
+  <script src="editor-integration.js"></script>
+</body>
+</html>

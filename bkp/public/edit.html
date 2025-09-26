@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Imagem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 90%;
+            width: 800px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        #image-upload {
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #image-container {
+            position: relative;
+            margin: 20px 0;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            overflow: hidden;
+            display: inline-block;
+        }
+        #image-canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        #selection-box {
+            position: absolute;
+            border: 2px dashed red;
+            background-color: rgba(255, 0, 0, 0.2);
+            cursor: move;
+            display: none;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button, a {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #blur-button {
+            background-color: #007bff;
+        }
+        #blur-button:hover {
+            background-color: #0056b3;
+        }
+        #censor-button {
+            background-color: #28a745;
+        }
+        #censor-button:hover {
+            background-color: #218838;
+        }
+        #download-button {
+            background-color: #6c757d;
+        }
+        #download-button:hover {
+            background-color: #5a6268;
+        }
+        .info {
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Editor de Imagem</h1>
+        <p>Selecione uma imagem para começar a editar.</p>
+
+        <input type="file" id="image-upload" accept="image/*" />
+
+        <div id="image-container">
+            <canvas id="image-canvas"></canvas>
+            <div id="selection-box"></div>
+        </div>
+
+        <div class="controls">
+            <button id="blur-button">Desfocar Área</button>
+            <button id="censor-button">Aplicar Tarja Preta</button>
+            <a id="download-button" download="imagem_editada.png">Baixar Imagem</a>
+        </div>
+        <p class="info">Clique e arraste na imagem para selecionar uma área para editar.</p>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('image-upload');
+        const imageCanvas = document.getElementById('image-canvas');
+        const ctx = imageCanvas.getContext('2d');
+        const selectionBox = document.getElementById('selection-box');
+        const blurButton = document.getElementById('blur-button');
+        const censorButton = document.getElementById('censor-button');
+        const downloadButton = document.getElementById('download-button');
+
+        let isSelecting = false;
+        let startX, startY;
+        let originalImage = new Image();
+        let currentImage = new Image();
+
+        // Carrega a imagem do input de arquivo
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    originalImage.src = event.target.result;
+                    originalImage.onload = () => {
+                        imageCanvas.width = originalImage.width;
+                        imageCanvas.height = originalImage.height;
+                        ctx.drawImage(originalImage, 0, 0);
+                        currentImage.src = imageCanvas.toDataURL();
+                        selectionBox.style.display = 'none';
+                        downloadButton.style.display = 'none';
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Inicia a seleção da área
+        imageCanvas.addEventListener('mousedown', (e) => {
+            if (originalImage.src) {
+                isSelecting = true;
+                const rect = imageCanvas.getBoundingClientRect();
+                const scaleX = imageCanvas.width / rect.width;
+                const scaleY = imageCanvas.height / rect.height;
+                startX = (e.clientX - rect.left) * scaleX;
+                startY = (e.clientY - rect.top) * scaleY;
+                
+                selectionBox.style.left = `${e.clientX - rect.left}px`;
+                selectionBox.style.top = `${e.clientY - rect.top}px`;
+                selectionBox.style.width = '0px';
+                selectionBox.style.height = '0px';
+                selectionBox.style.display = 'block';
+            }
+        });
+
+        // Atualiza o tamanho da seleção
+        imageCanvas.addEventListener('mousemove', (e) => {
+            if (!isSelecting) return;
+            const rect = imageCanvas.getBoundingClientRect();
+            const scaleX = imageCanvas.width / rect.width;
+            const scaleY = imageCanvas.height / rect.height;
+            const currentX = (e.clientX - rect.left) * scaleX;
+            const currentY = (e.clientY - rect.top) * scaleY;
+
+            const width = currentX - startX;
+            const height = currentY - startY;
+
+            selectionBox.style.left = `${Math.min(startX, currentX) / scaleX}px`;
+            selectionBox.style.top = `${Math.min(startY, currentY) / scaleY}px`;
+            selectionBox.style.width = `${Math.abs(width) / scaleX}px`;
+            selectionBox.style.height = `${Math.abs(height) / scaleY}px`;
+        });
+
+        // Finaliza a seleção
+        imageCanvas.addEventListener('mouseup', () => {
+            isSelecting = false;
+        });
+
+        // Aplica o desfoque na área selecionada
+        blurButton.addEventListener('click', () => {
+            applyEffect('blur');
+        });
+
+        // Aplica a tarja preta na área selecionada
+        censorButton.addEventListener('click', () => {
+            applyEffect('censor');
+        });
+
+        function applyEffect(effectType) {
+            const rect = selectionBox.getBoundingClientRect();
+            const canvasRect = imageCanvas.getBoundingClientRect();
+
+            if (rect.width === 0 || rect.height === 0 || !originalImage.src) {
+                alert('Por favor, selecione uma área na imagem primeiro.');
+                return;
+            }
+
+            // Redesenha a imagem original no canvas para garantir que o efeito seja aplicado sobre a versão original e não sobre uma já editada.
+            ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height);
+
+            const scaleX = imageCanvas.width / canvasRect.width;
+            const scaleY = imageCanvas.height / canvasRect.height;
+            const x = (rect.left - canvasRect.left) * scaleX;
+            const y = (rect.top - canvasRect.top) * scaleY;
+            const width = rect.width * scaleX;
+            const height = rect.height * scaleY;
+
+            if (effectType === 'blur') {
+                ctx.filter = 'blur(10px)'; // Nível de desfoque
+                ctx.drawImage(originalImage, x, y, width, height, x, y, width, height);
+                ctx.filter = 'none'; // Reseta o filtro para não afetar o resto da imagem
+            } else if (effectType === 'censor') {
+                ctx.fillStyle = 'black'; // Cor da tarja
+                ctx.fillRect(x, y, width, height);
+            }
+
+            downloadButton.href = imageCanvas.toDataURL('image/png');
+            downloadButton.style.display = 'inline-block';
+            selectionBox.style.display = 'none'; // Esconde a caixa de seleção após aplicar o efeito
+        }
+    </script>
+</body>
+</html>
