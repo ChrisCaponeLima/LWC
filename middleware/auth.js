@@ -3,11 +3,10 @@ import bcrypt from 'bcryptjs';
 
 // Função auxiliar para definir cabeçalhos CORS
 const setCorsHeaders = (res) => {
-    // Permite qualquer origem durante o desenvolvimento.
-    // Em produção, você pode restringir isso para o seu domínio Nuxt, se quiser.
+    // CRÍTICO: Permite qualquer origem (*), necessário para que o localhost:3000 acesse a API
     res.setHeader('Access-Control-Allow-Origin', '*'); 
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 };
 
 const pool = new Pool({
@@ -27,10 +26,10 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
-    // 1. Aplica os cabeçalhos CORS
+    // 1. Aplica os cabeçalhos CORS no início da resposta
     setCorsHeaders(res);
     
-    // Tratamento de requisições OPTIONS (Preflight, exigido pelo CORS)
+    // 2. Tratamento de requisições OPTIONS (Preflight, exigido pelo CORS)
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -63,14 +62,12 @@ export default async function handler(req, res) {
         const user = result.rows[0];
 
         if (!user) {
-            // Mantém o cabeçalho CORS antes do return
             return res.status(401).json({ message: 'Credenciais inválidas.' });
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
 
         if (isPasswordMatch) {
-            // Mantém o cabeçalho CORS antes do return
             res.status(200).json({
                 message: 'Login bem-sucedido.',
                 userId: user.id,
@@ -82,13 +79,11 @@ export default async function handler(req, res) {
                 initialWeight: user.initial_weight_kg 
             });
         } else {
-            // Mantém o cabeçalho CORS antes do return
             res.status(401).json({ message: 'Credenciais inválidas.' });
         }
 
     } catch (error) {
         console.error('Erro de autenticação/conexão:', error);
-        // Mantém o cabeçalho CORS antes do return
         res.status(500).json({ message: 'Erro interno do servidor. Falha na conexão com o DB.', details: error.message });
     } finally {
         if (client) {
@@ -96,3 +91,5 @@ export default async function handler(req, res) {
         }
     }
 }
+
+
