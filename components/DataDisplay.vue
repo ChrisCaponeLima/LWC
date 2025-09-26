@@ -28,14 +28,15 @@
       <button v-for="filter in filters" :key="filter.key" 
               @click="filterData(filter.key)" 
               :class="['px-4 py-2 rounded-full text-sm font-semibold transition', 
-                       currentFilter === filter.key ? 'bg-btn-secundario text-btn-font-secundario' : 'bg-gray-200 text-gray-700 hover:bg-gray-300']">
+                      currentFilter === filter.key ? 'bg-btn-secundario text-btn-font-secundario' : 'bg-gray-200 text-gray-700 hover:bg-gray-300']">
         {{ filter.label }}
       </button>
     </div>
 
     <div class="charts-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <LineChart v-if="filteredWeightData" :chart-data="filteredWeightData" />
-      <LineChart v-if="filteredWaistData" :chart-data="filteredWaistData" />
+      <LineChart v-if="filteredWeightData.datasets.length" :chart-data="filteredWeightData" />
+      <LineChart v-if="filteredWaistData.datasets.length" :chart-data="filteredWaistData" />
+      <p v-if="!filteredWeightData.datasets.length" class="col-span-full text-center text-gray-500">Carregando dados de evolução...</p>
     </div>
   </div>
 </template>
@@ -56,7 +57,7 @@ const activeGallery = ref(null);
 const currentFilter = ref('all');
 
 const filters = [
-  { key: '3', label: 'Últimos 3 Registros' }, // Mudei para "Registros" em vez de "Meses" para simplificar a lógica de filtro
+  { key: '3', label: 'Últimos 3 Registros' },
   { key: '6', label: 'Últimos 6 Registros' },
   { key: 'all', label: 'Ver Tudo' }
 ];
@@ -69,17 +70,30 @@ const filterData = (key) => {
   currentFilter.value = key;
 };
 
+// **INÍCIO DA CORREÇÃO**
+
+// Função auxiliar para retornar um objeto de gráfico vazio
+const emptyChartData = () => ({ labels: [], datasets: [] });
+
 // 2. PROPRIEDADE COMPUTADA PARA DADOS DE PESO
 const filteredWeightData = computed(() => {
-  const dataLength = props.rawChartData.weights.length;
+  // CRÍTICO: Verifica se os dados necessários existem antes de prosseguir
+  const weights = props.rawChartData?.weights;
+  const labels = props.rawChartData?.labels;
+  
+  if (!weights || !labels || weights.length === 0) {
+    return emptyChartData();
+  }
+  
+  const dataLength = weights.length;
   const filterCount = currentFilter.value === 'all' ? dataLength : parseInt(currentFilter.value);
   
   // O slice garante que sempre pegamos os últimos 'filterCount' elementos
-  const data = props.rawChartData.weights.slice(-filterCount);
-  const labels = props.rawChartData.labels.slice(-filterCount);
+  const data = weights.slice(-filterCount);
+  const labelsFiltered = labels.slice(-filterCount);
 
   return {
-    labels: labels,
+    labels: labelsFiltered,
     datasets: [{
       label: 'Peso (kg)',
       data: data,
@@ -95,14 +109,22 @@ const filteredWeightData = computed(() => {
 
 // 3. PROPRIEDADE COMPUTADA PARA DADOS DE CINTURA
 const filteredWaistData = computed(() => {
-  const dataLength = props.rawChartData.waists.length;
+  // CRÍTICO: Verifica se os dados necessários existem antes de prosseguir
+  const waists = props.rawChartData?.waists;
+  const labels = props.rawChartData?.labels;
+  
+  if (!waists || !labels || waists.length === 0) {
+    return emptyChartData();
+  }
+  
+  const dataLength = waists.length;
   const filterCount = currentFilter.value === 'all' ? dataLength : parseInt(currentFilter.value);
 
-  const data = props.rawChartData.waists.slice(-filterCount);
-  const labels = props.rawChartData.labels.slice(-filterCount);
+  const data = waists.slice(-filterCount);
+  const labelsFiltered = labels.slice(-filterCount);
 
   return {
-    labels: labels,
+    labels: labelsFiltered,
     datasets: [{
       label: 'Cintura (cm)',
       data: data,
@@ -115,4 +137,6 @@ const filteredWaistData = computed(() => {
     }]
   };
 });
+
+// **FIM DA CORREÇÃO**
 </script>

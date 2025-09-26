@@ -52,13 +52,13 @@
           />
   
           <KpiCard
-            label="IMC"
-            :value="kpiData.imc.toFixed(2)"
-            color="verde"
-            font-color="verde"
-            icon-url="https://api.iconify.design/solar:ruler-bold-duotone.svg"
-            icon-alt="Ícone de Régua"
-          />
+          label="IMC"
+          :value="kpiData.imc?.toFixed(2) || '---'" 
+          color="verde"
+          font-color="verde"
+          icon-url="https://api.iconify.design/solar:ruler-bold-duotone.svg"
+          icon-alt="Ícone de Régua"
+        />
         </div>
         
         <div class="mt-8 text-center">
