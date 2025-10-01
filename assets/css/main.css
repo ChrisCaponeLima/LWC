@@ -1,3 +1,5 @@
+// assets/css/main.css - V1.1 - Adiciona estilos para botões dinâmicos de fotos
+
 /*
   assets/css/main.css V1.0 Estilos globais
   - Copie todo o conteúdo do seu arquivo CSS antigo para cá.
@@ -293,6 +295,7 @@ body {
     width: 100%;
 }
 
+/* 🚨 CLASSES NOVAS/IMPORTANTES PARA O REQUISITO */
 .btn-with-photos {
     background-color: var(--btn-with-photos-bg) !important;
     color: var(--btn-with-photos-font) !important;
@@ -302,6 +305,7 @@ body {
     background-color: var(--btn-no-photos-bg) !important;
     color: var(--btn-no-photos-font) !important;
 }
+/* FIM DAS CLASSES NOVAS */
 
 .profile-page {
     padding-top: 2rem;

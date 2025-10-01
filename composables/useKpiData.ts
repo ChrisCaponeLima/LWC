@@ -1,4 +1,4 @@
-// ~/composables/useKpiData.ts
+// ~/composables/useKpiData.ts - V1.1 - Adiciona status de fotos para mudança de cor dos cards.
 
 import { ref, reactive, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
@@ -13,6 +13,10 @@ export function useKpiData() {
   
   const isLoading = ref<boolean>(true);
   const error = ref<string | null>(null);
+
+  // 🚨 NOVO: Status reativo para indicar se há fotos (Necessário para a mudança de cor do card)
+  const hasRegistroPhotos = ref<boolean>(false);
+  const hasFormaPhotos = ref<boolean>(false);
 
   // Tipagem simples para os dados reativos
   const kpiData = reactive({ 
@@ -85,7 +89,11 @@ export function useKpiData() {
       if (records && records.length > 0) {
         records.sort((a, b) => new Date(a.record_date).getTime() - new Date(b.record_date).getTime());
         
-        // 🚨 NOVO: Armazena o array de registros completo para uso em DataDisplay.vue (galerias)
+        // 🚨 NOVO: Lógica para verificar a existência de fotos (!!record.photo_url verifica se a string não é null/vazia)
+        hasRegistroPhotos.value = records.some(record => !!record.photo_url);
+        hasFormaPhotos.value = records.some(record => !!record.forma_url);
+        
+        // Armazena o array de registros completo para uso em DataDisplay.vue (galerias)
         chartData.records = records;
 
         const latestRecord = records[records.length - 1];
@@ -106,7 +114,6 @@ export function useKpiData() {
             
             if (parts.length === 3) {
                 // Cria a data usando Date.UTC para evitar problemas de fuso horário
-                // Mês é base 0, então MM - 1
                 const date = new Date(Date.UTC(
                     parseInt(parts[0]), // Ano
                     parseInt(parts[1]) - 1, // Mês (0-11)
@@ -114,7 +121,7 @@ export function useKpiData() {
                 ));
                 
                 if (!isNaN(date.getTime())) {
-                    // Retorna a data formatada, garantindo que seja no fuso horário do usuário
+                    // Retorna a data formatada
                     return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', timeZone: 'UTC' });
                 }
             }
@@ -155,6 +162,9 @@ export function useKpiData() {
       } else {
         error.value = 'Nenhum registro de evolução encontrado.';
         chartData.records = []; // Garante array vazio para DataDisplay
+        // 🚨 NOVO: Zera o status das fotos
+        hasRegistroPhotos.value = false;
+        hasFormaPhotos.value = false;
         kpiData.currentWeight = authStore.user?.initialWeight || 0;
         kpiData.height = authStore.user?.heightCm || 0;
         kpiData.imc = calculateIMC(kpiData.currentWeight, kpiData.height);
@@ -178,6 +188,9 @@ export function useKpiData() {
     chartData,
     isLoading,
     error,
-    fetchData
+    fetchData,
+    // 🚨 NOVO: Retorna os status das fotos para o componente Vue
+    hasRegistroPhotos,
+    hasFormaPhotos
   };
 }
