@@ -34,26 +34,39 @@
     </div>
 
     <div class="charts-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <LineChart v-if="filteredWeightData.datasets.length" :chart-data="filteredWeightData" />
-      <LineChart v-if="filteredWaistData.datasets.length" :chart-data="filteredWaistData" />
-      <p v-if="!filteredWeightData.datasets.length" class="col-span-full text-center text-gray-500">Carregando dados de evolução...</p>
+      
+      <div v-for="chart in chartSeriesArray" :key="chart.label" class="bg-white p-6 shadow-xl rounded-lg">
+        <LineChart 
+          v-if="chart.datasets.length" 
+          :chart-data="chart" 
+          :chart-title="chart.label"
+        />
+      </div>
+
+      <p v-if="!chartSeriesArray.length && Object.keys(rawChartData.series).length === 0" class="col-span-full text-center text-gray-500">Nenhum dado de evolução disponível para gráficos.</p>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import LineChart from './LineChart.vue';
 
-// 1. DEFINE A PROP (A propriedade que recebe os dados do Composable)
+// Definição de Tipos para a Prop
+interface ChartSeries {
+    labels: string[];
+    series: Record<string, (number | null)[]>; // Permite null para pontos faltantes
+}
+
 const props = defineProps({
   rawChartData: {
-    type: Object,
-    required: true
+    type: Object as () => ChartSeries,
+    required: true,
+    default: () => ({ labels: [], series: {} })
   }
 });
 
-const activeGallery = ref(null);
+const activeGallery = ref<string | null>(null);
 const currentFilter = ref('all');
 
 const filters = [
@@ -62,81 +75,60 @@ const filters = [
   { key: 'all', label: 'Ver Tudo' }
 ];
 
-const toggleGallery = (name) => {
+const toggleGallery = (name: string) => {
   activeGallery.value = activeGallery.value === name ? null : name;
 };
 
-const filterData = (key) => {
+const filterData = (key: string) => {
   currentFilter.value = key;
 };
 
-// **INÍCIO DA CORREÇÃO**
+// Cores predefinidas para os gráficos
+const colors: Record<string, { border: string, background: string, unit: string }> = {
+    'weight': { border: '#070FFC', background: 'rgba(7, 15, 252, 0.1)', unit: 'kg' },
+    'cintura': { border: '#F3934F', background: 'rgba(243, 147, 79, 0.1)', unit: 'cm' },
+    'braço': { border: '#60A5FA', background: 'rgba(96, 165, 250, 0.1)', unit: 'cm' },
+    'perna': { border: '#10B981', background: 'rgba(16, 185, 129, 0.1)', unit: 'cm' },
+    'default': { border: '#EC4899', background: 'rgba(236, 72, 153, 0.1)', unit: 'unid.' }
+};
 
-// Função auxiliar para retornar um objeto de gráfico vazio
-const emptyChartData = () => ({ labels: [], datasets: [] });
+// Transforma o objeto 'series' em um array de dados filtrados
+const chartSeriesArray = computed(() => {
+  const allSeries = props.rawChartData?.series || {};
+  const labels = props.rawChartData?.labels || [];
+  const seriesArray = [];
 
-// 2. PROPRIEDADE COMPUTADA PARA DADOS DE PESO
-const filteredWeightData = computed(() => {
-  // CRÍTICO: Verifica se os dados necessários existem antes de prosseguir
-  const weights = props.rawChartData?.weights;
-  const labels = props.rawChartData?.labels;
-  
-  if (!weights || !labels || weights.length === 0) {
-    return emptyChartData();
-  }
-  
-  const dataLength = weights.length;
+  const dataLength = labels.length;
   const filterCount = currentFilter.value === 'all' ? dataLength : parseInt(currentFilter.value);
   
-  // O slice garante que sempre pegamos os últimos 'filterCount' elementos
-  const data = weights.slice(-filterCount);
-  const labelsFiltered = labels.slice(-filterCount);
+  // Itera sobre cada série de dados (peso, cintura, braço...)
+  for (const [name, data] of Object.entries(allSeries)) {
+    if (!data || data.length === 0) continue;
 
-  return {
-    labels: labelsFiltered,
-    datasets: [{
-      label: 'Peso (kg)',
-      data: data,
-      borderColor: '#070FFC',
-      backgroundColor: 'rgba(7, 15, 252, 0.1)',
-      tension: 0.3,
-      pointStyle: 'circle',
-      pointRadius: 5,
-      pointHoverRadius: 8
-    }]
-  };
-});
+    const filteredData = (data as (number | null)[]).slice(-filterCount);
+    const labelsFiltered = labels.slice(-filterCount);
+    
+    const key = name.toLowerCase();
+    const color = colors[key] || colors['default'];
+    const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
 
-// 3. PROPRIEDADE COMPUTADA PARA DADOS DE CINTURA
-const filteredWaistData = computed(() => {
-  // CRÍTICO: Verifica se os dados necessários existem antes de prosseguir
-  const waists = props.rawChartData?.waists;
-  const labels = props.rawChartData?.labels;
-  
-  if (!waists || !labels || waists.length === 0) {
-    return emptyChartData();
+    seriesArray.push({
+      label: `${formattedName} (${color.unit})`,
+      labels: labelsFiltered,
+      datasets: [{
+        label: formattedName,
+        data: filteredData,
+        borderColor: color.border,
+        backgroundColor: color.background,
+        tension: 0.3,
+        pointStyle: 'circle',
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        spanGaps: true, // Garante que as linhas continuem se houver um 'null' no meio
+      }]
+    });
   }
-  
-  const dataLength = waists.length;
-  const filterCount = currentFilter.value === 'all' ? dataLength : parseInt(currentFilter.value);
 
-  const data = waists.slice(-filterCount);
-  const labelsFiltered = labels.slice(-filterCount);
-
-  return {
-    labels: labelsFiltered,
-    datasets: [{
-      label: 'Cintura (cm)',
-      data: data,
-      borderColor: '#F3934F',
-      backgroundColor: 'rgba(243, 147, 79, 0.1)',
-      tension: 0.3,
-      pointStyle: 'circle',
-      pointRadius: 5,
-      pointHoverRadius: 8
-    }]
-  };
+  return seriesArray;
 });
-
-// **FIM DA CORREÇÃO**
 </script>

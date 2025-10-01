@@ -58,85 +58,79 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import { useRuntimeConfig } from '#app'; 
+// useRuntimeConfig não é necessário se não usarmos API_BASE_URL
+// import { useRuntimeConfig } from '#app'; 
 
 definePageMeta({
-layout: false 
+ layout: false 
 });
-
-const config = useRuntimeConfig();
-const API_BASE_URL = config.public.apiBaseUrl;
 
 const authStore = useAuthStore();
 const credentials = reactive({
-username: '',
-password: ''
+ username: '',
+ password: ''
 });
 const isLoading = ref(false);
 const error = ref(null);
 
 const handleLogin = async () => {
-error.value = null;
-isLoading.value = true;
+ error.value = null;
+ isLoading.value = true;
 
-// CRÍTICO: Verifica se a URL foi configurada corretamente
-if (!API_BASE_URL || API_BASE_URL.includes('seu-dominio')) {
- error.value = 'ERRO DE CONFIGURAÇÃO: API_BASE_URL não está definida corretamente.';
- isLoading.value = false;
- return;
-}
+ try {
+  // Comunicação OK, sem baseURL
+  const apiResponse = await $fetch('/api/auth', { 
+   method: 'POST', 
+   body: credentials,
+   headers: { 'Content-Type': 'application/json' }
+  });
+    
+    // Tentativa de obter o token (que deve vir do backend)
+    const tokenValue = apiResponse.token || apiResponse.authToken;
 
-try {
- // CORREÇÃO: Usa o endpoint correto (/api/auth)
- const apiResponse = await $fetch('/api/auth', { 
- baseURL: API_BASE_URL, 
- method: 'POST', 
- body: credentials,
- headers: { 'Content-Type': 'application/json' }
- });
+  // Mapeamento da resposta (usando o que o backend retornou)
+  const userPayload = {
+   userId: apiResponse.userId,
+   username: apiResponse.username,
+   apelido: apiResponse.apelido || apiResponse.username,
+   heightCm: apiResponse.heightCm, 
+   initialWeight: apiResponse.initialWeight || 90.0,
+   email: apiResponse.email || '', 
+  };
+  
+  const loginPayload = {
+    token: tokenValue, // Usamos o valor obtido acima
+    user: userPayload
+  };
 
-    // CORREÇÃO: Mapeamento da resposta da API (direto do handler) para o Pinia Store.
-    const loggedInUser = {
-        userId: apiResponse.userId,
-        username: apiResponse.username,
-        role: apiResponse.role,
-        photo_perfil_url: apiResponse.photoUrl || 'https://api.iconify.design/solar:user-circle-bold-duotone.svg',
-        apelido: apiResponse.apelido || apiResponse.username,
-        
-        // Mapeamento de campos esperados (heightCm)
-        heightCm: apiResponse.heightCm, 
-        
-        // CRÍTICO: initialWeight. Usamos o valor retornado ou 90.0 como fallback.
-        initialWeight: apiResponse.initialWeight || 90.0, 
-    };
- 
- if (loggedInUser && loggedInUser.userId) {
- authStore.login(loggedInUser); 
- await navigateTo('/', { replace: true });
- } else {
- throw new Error('Resposta de login inválida do servidor.');
+    // CORREÇÃO: Lógica de validação que lança um erro específico
+  if (loginPayload.token && loginPayload.user.userId) {
+   // SUCESSO!
+   authStore.login(loginPayload); 
+   await navigateTo('/', { replace: true });
+  } else {
+        // Agora, se a resposta foi 200, mas sem token, lançamos um erro claro.
+   throw new Error('ERRO_TOKEN: O login foi bem-sucedido, mas o token de autenticação não foi encontrado na resposta do servidor.');
+  }
+
+ } catch (e) {
+  // Tratamento de erro detalhado.
+  const status = e.response?.status;
+  const message = e.response?._data?.message;
+
+  if (status === 401 || status === 403) {
+   // Credenciais inválidas (Funciona OK)
+   error.value = message || 'Nome de usuário ou senha incorretos.';
+  } else if (e.message.includes('ERRO_TOKEN')) {
+        // Diagnóstico Final: O backend precisa ser corrigido para enviar o token.
+        error.value = e.message;
+    } else {
+        // Problema de rede real (O backend está offline, roteamento mudou, etc.)
+     console.error('Falha de Comunicação/Roteamento no Nuxt:', e);
+     error.value = 'Falha na comunicação com o servidor. O backend está online?';
+  }
+ } finally {
+  isLoading.value = false;
  }
-
-} catch (e) {
- // Tratamento de erro detalhado.
- const status = e.response?.status;
- const message = e.response?._data?.message;
-
- if (status === 401 || status === 403) {
- error.value = message || 'Nome de usuário ou senha incorretos.';
- } else if (status === 404) {
- error.value = 'Endpoint de login não encontrado. Verifique se o domínio da API está correto.';
- } else {
- error.value = e.message || 'Falha na comunicação com o servidor. Verifique se o backend está online.';
- }
-} finally {
- isLoading.value = false;
-}
 };
 </script>
-
-<style scoped>
-.form-card {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-</style>

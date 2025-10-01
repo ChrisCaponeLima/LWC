@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model attention_point_treatments {
+  attention_point_id Int
+  treatment_id       Int
+  treatment_date     DateTime?        @db.Date
+  attention_points   attention_points @relation(fields: [attention_point_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  treatments         treatments       @relation(fields: [treatment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([attention_point_id, treatment_id])
+}
+
+model attention_points {
+  id                         Int                          @id @default(autoincrement())
+  user_id                    Int
+  photo_url                  String
+  point_of_attention_type    String?                      @db.VarChar(255)
+  notes                      String?
+  created_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
+  attention_point_treatments attention_point_treatments[]
+  users                      users                        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model comentarios {
+  id                Int           @id @default(autoincrement())
+  id_usuario        Int
+  id_post           Int
+  mensagem          String
+  criado_em         DateTime      @default(now()) @db.Timestamptz(6)
+  id_comentario_pai Int?
+  comentarios       comentarios?  @relation("comentariosTocomentarios", fields: [id_comentario_pai], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_comentarios comentarios[] @relation("comentariosTocomentarios")
+  posts             posts         @relation(fields: [id_post], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users         @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model measurements {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(255)
+  unit                String?               @db.VarChar(50)
+  record_measurements record_measurements[]
+}
+
+model posts {
+  id           Int            @id @default(autoincrement())
+  titulo       String?        @db.VarChar(255)
+  mensagem     String
+  imagem_url   String?
+  id_usuario   Int
+  criado_em    DateTime       @default(now()) @db.Timestamptz(6)
+  comentarios  comentarios[]
+  users        users          @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reacoes_post reacoes_post[]
+}
+
+model reacoes_post {
+  id_usuario   Int
+  id_post      Int
+  id_reacao    Int
+  criado_em    DateTime     @default(now()) @db.Timestamptz(6)
+  posts        posts        @relation(fields: [id_post], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tipos_reacao tipos_reacao @relation(fields: [id_reacao], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users        @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_usuario, id_post])
+}
+
+model record_measurements {
+  id             Int           @id @default(autoincrement())
+  record_id      Int?
+  measurement_id Int?
+  value          Decimal       @db.Decimal(5, 2)
+  measurements   measurements? @relation(fields: [measurement_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  records        records?      @relation(fields: [record_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model records {
+  id                  Int                   @id @default(autoincrement())
+  record_date         DateTime              @db.Date
+  weight              Decimal?              @db.Decimal(5, 2)
+  event               String?               @db.VarChar(255)
+  weekly_action       String?               @db.VarChar(255)
+  workout_days        String?               @db.VarChar(255)
+  observations        String?
+  photo_url           String?               @db.VarChar(255)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  user_id             Int?
+  forma_url           String?               @db.VarChar(255)
+  record_measurements record_measurements[]
+  users               users?                @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_id")
+}
+
+model tipos_reacao {
+  id           Int            @id @default(autoincrement())
+  nome_reacao  String         @unique @db.VarChar(50)
+  reacoes_post reacoes_post[]
+}
+
+model treatments {
+  id                         Int                          @id @default(autoincrement())
+  treatment_name             String                       @unique @db.VarChar(255)
+  attention_point_treatments attention_point_treatments[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                Int                @id @default(autoincrement())
+  username          String             @unique @db.VarChar(255)
+  password_hash     String?            @db.VarChar(255)
+  role              String             @default("user") @db.VarChar(50)
+  email             String             @unique @db.VarChar(255)
+  birthdate         DateTime?          @db.Date
+  created_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  photo_perfil_url  String?
+  height_cm         Int?
+  initial_weight_kg Decimal?           @db.Decimal(5, 2)
+  apelido           String?            @db.VarChar(255)
+  sexo              String?            @db.VarChar(50)
+  attention_points  attention_points[]
+  comentarios       comentarios[]
+  posts             posts[]
+  reacoes_post      reacoes_post[]
+  records           records[]
+}

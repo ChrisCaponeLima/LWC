@@ -1,9 +1,12 @@
+// /server/utils/api.ts
+
 import { useAuthStore } from '~/stores/auth';
 
 // 1. Defina a URL base da sua API
 // Para desenvolvimento, pode ser 'http://localhost:3000/api'
 // Para produção, mude para o endereço real do seu backend
-const API_BASE_URL = 'https://sua-api-real.com/v1'; 
+const API_BASE_URL = process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+
 
 /**
  * Função utilitária para fazer chamadas de API com autenticação.
