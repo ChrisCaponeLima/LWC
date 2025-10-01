@@ -1,78 +1,141 @@
 <template>
-  <header class="flex justify-between items-center p-4 shadow-md bg-white">
-    <h1 class="text-xl font-bold text-gray-800">LWC - LIMA</h1>
+  <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
+    <h1 class="text-xl font-bold text-gray-800">Meu App</h1>
 
-    <ClientOnly>
-      <div v-if="authStore.user" class="flex items-center relative">
-        <div class="group">
-          <button @click="toggleMenu" class="flex items-center no-underline text-gray-700 focus:outline-none">
-            <strong class="mr-2">{{ displayFirstName }}</strong>
-            <img
-              :src="profilePhotoUrl" 
-              alt="Foto de Perfil"
-              
-              class="h-16 w-16 rounded-full object-cover flex-shrink-0 border-4 border-red-500"
-            />
-          </button>
+    <div class="flex items-center gap-4 relative">
+      <!-- Nome do usuário -->
+      <span class="font-medium text-gray-700">
+        {{ firstName }}
+      </span>
 
-          <ul v-if="isMenuOpen" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-            <li><NuxtLink to="/profile" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Meu Perfil</NuxtLink></li>
-            
-            <li v-if="authStore.user.role?.toLowerCase() === 'admin'" class="border-t border-gray-200 mt-2 pt-2">
-              <NuxtLink to="/user_management" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Gerenciar Usuários</NuxtLink>
+      <!-- Foto de Perfil com Dropdown -->
+      <div class="relative">
+        <button @click="toggleMenu" class="w-10 h-10 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-gray-200 focus:outline-none">
+          <img
+            v-if="authStore.user?.photo_perfil_url"
+            :src="authStore.user.photo_perfil_url"
+            alt="Foto de Perfil"
+            class="w-full h-full object-cover"
+            @error="handleImgError"
+          />
+          <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div
+          v-if="menuOpen"
+          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+        >
+          <ul class="py-2">
+            <li>
+              <button
+                @click="goToProfile"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+              >
+                Meu Perfil
+              </button>
             </li>
-            
-            <li><hr class="border-t border-gray-200 my-2"></li>
-            <li><a @click.prevent="logout" class="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer">Sair</a></li>
+
+            <!-- Se for admin, mostra submenu -->
+            <li v-if="authStore.user?.role === 'admin'" class="relative group">
+              <div
+                class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
+              >
+                Administrar
+                <span class="text-gray-500">▶</span>
+              </div>
+              <!-- Submenu -->
+              <ul
+                class="absolute top-0 left-full ml-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block"
+              >
+                <li>
+                  <button
+                    @click="goToUserAdmin"
+                    class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                  >
+                    Administração de Usuários
+                  </button>
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <button
+                @click="logout"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-semibold"
+              >
+                Sair
+              </button>
+            </li>
           </ul>
         </div>
       </div>
-      <div v-else class="text-gray-500">Carregando...</div>
-    </ClientOnly>
-
+    </div>
   </header>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useAuthStore } from '~/stores/auth';
-import { navigateTo } from '#app'; 
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { navigateTo } from '#app'
 
-const authStore = useAuthStore();
-const isMenuOpen = ref(false);
+const authStore = useAuthStore()
+const menuOpen = ref(false)
 
-// Ícone SVG de usuário universal como fallback (base64)
-const DEFAULT_AVATAR_URL = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#a0a0a0"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+// Somente o primeiro nome
+const firstName = computed(() => {
+  if (authStore.user?.username) {
+    return authStore.user.username.split(' ')[0]
+  }
+  return 'Usuário'
+})
 
-// Lógica do Primeiro Nome (Correta)
-const displayFirstName = computed(() => {
-    const sourceName = authStore.user?.username || 'Usuário';
-    return sourceName.split(' ')[0];
-});
+// Iniciais para fallback
+const initials = computed(() => {
+  if (authStore.user?.username) {
+    return authStore.user.username.charAt(0).toUpperCase()
+  }
+  return 'U'
+})
 
-// Lógica da Foto (Com trim() e fallback)
-const profilePhotoUrl = computed(() => {
-    const url = authStore.user?.photoUrl?.trim();
-    
-    // Verifica se a URL é minimamente válida.
-    let finalUrl = DEFAULT_AVATAR_URL;
-    if (typeof url === 'string' && url.length > 5 && url.startsWith('http')) {
-        finalUrl = url;
-    }
-    
-    // 🛑 LOG DE DIAGNÓSTICO
-    console.log('URL da Foto (Debug Final):', finalUrl);
-    
-    return finalUrl;
-});
-
+const handleImgError = () => {
+  if (authStore.user) {
+    authStore.user.photo_perfil_url = ''
+  }
+}
 
 const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value;
-};
+  menuOpen.value = !menuOpen.value
+}
+
+const closeMenu = (event) => {
+  if (!event.target.closest('.relative')) {
+    menuOpen.value = false
+  }
+}
+
+// Fecha menu ao clicar fora
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMenu)
+})
+
+// Navegação
+const goToProfile = () => {
+  menuOpen.value = false
+  navigateTo('/profile')
+}
+
+const goToUserAdmin = () => {
+  menuOpen.value = false
+  navigateTo('/admin/users')
+}
 
 const logout = () => {
-  authStore.logout();
-  navigateTo('/login', { replace: true }); 
-};
+  authStore.logout()
+  menuOpen.value = false
+  navigateTo('/login')
+}
 </script>

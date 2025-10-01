@@ -58,79 +58,70 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-// useRuntimeConfig não é necessário se não usarmos API_BASE_URL
-// import { useRuntimeConfig } from '#app'; 
 
 definePageMeta({
- layout: false 
+  layout: false 
 });
 
 const authStore = useAuthStore();
 const credentials = reactive({
- username: '',
- password: ''
+  username: '',
+  password: ''
 });
 const isLoading = ref(false);
 const error = ref(null);
 
 const handleLogin = async () => {
- error.value = null;
- isLoading.value = true;
+  error.value = null;
+  isLoading.value = true;
 
- try {
-  // Comunicação OK, sem baseURL
-  const apiResponse = await $fetch('/api/auth', { 
-   method: 'POST', 
-   body: credentials,
-   headers: { 'Content-Type': 'application/json' }
-  });
+  try {
+    const apiResponse = await $fetch('/api/auth', { 
+      method: 'POST', 
+      body: credentials,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // 🔥 Correção: mapear photoUrl -> photo_perfil_url
+    const userPayload = {
+      userId: apiResponse.userId,
+      username: apiResponse.username,
+      apelido: apiResponse.apelido || apiResponse.username,
+      heightCm: apiResponse.heightCm, 
+      initialWeight: apiResponse.initialWeight || 90.0,
+      email: apiResponse.email || '', 
+      photo_perfil_url: apiResponse.photoUrl || '' // 👈 mapeamento correto
+    };
     
-    // Tentativa de obter o token (que deve vir do backend)
-    const tokenValue = apiResponse.token || apiResponse.authToken;
+    const loginPayload = {
+      token: apiResponse.token, 
+      user: userPayload
+    };
 
-  // Mapeamento da resposta (usando o que o backend retornou)
-  const userPayload = {
-   userId: apiResponse.userId,
-   username: apiResponse.username,
-   apelido: apiResponse.apelido || apiResponse.username,
-   heightCm: apiResponse.heightCm, 
-   initialWeight: apiResponse.initialWeight || 90.0,
-   email: apiResponse.email || '', 
-  };
-  
-  const loginPayload = {
-    token: tokenValue, // Usamos o valor obtido acima
-    user: userPayload
-  };
-
-    // CORREÇÃO: Lógica de validação que lança um erro específico
-  if (loginPayload.token && loginPayload.user.userId) {
-   // SUCESSO!
-   authStore.login(loginPayload); 
-   await navigateTo('/', { replace: true });
-  } else {
-        // Agora, se a resposta foi 200, mas sem token, lançamos um erro claro.
-   throw new Error('ERRO_TOKEN: O login foi bem-sucedido, mas o token de autenticação não foi encontrado na resposta do servidor.');
-  }
-
- } catch (e) {
-  // Tratamento de erro detalhado.
-  const status = e.response?.status;
-  const message = e.response?._data?.message;
-
-  if (status === 401 || status === 403) {
-   // Credenciais inválidas (Funciona OK)
-   error.value = message || 'Nome de usuário ou senha incorretos.';
-  } else if (e.message.includes('ERRO_TOKEN')) {
-        // Diagnóstico Final: O backend precisa ser corrigido para enviar o token.
-        error.value = e.message;
+    if (userPayload.userId) {
+      authStore.login(loginPayload); 
+      await navigateTo('/', { replace: true });
     } else {
-        // Problema de rede real (O backend está offline, roteamento mudou, etc.)
-     console.error('Falha de Comunicação/Roteamento no Nuxt:', e);
-     error.value = 'Falha na comunicação com o servidor. O backend está online?';
+      throw new Error('Resposta de login inválida do servidor.');
+    }
+
+  } catch (e) {
+    const status = e.response?.status;
+    const message = e.response?._data?.message;
+
+    if (status === 401 || status === 403) {
+      error.value = message || 'Nome de usuário ou senha incorretos.';
+    } else {
+      error.value = 'Falha na comunicação com o servidor. Verifique se o backend está online.';
+    }
+  } finally {
+    isLoading.value = false;
   }
- } finally {
-  isLoading.value = false;
- }
 };
 </script>
+
+<style scoped>
+.form-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+</style>
