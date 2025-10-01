@@ -1,7 +1,7 @@
 // /components/Header.vue - V1.2 - Correção de CSS para o submenu não sair da tela
 <template>
   <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
-    <h1 class="text-xl font-bold text-gray-800">Meu App</h1>
+    <h1 class="text-xl font-bold text-gray-800">WLC - G & C</h1>
 
     <div class="flex items-center gap-4 relative">
       <span class="font-medium text-gray-700">

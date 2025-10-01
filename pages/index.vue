@@ -1,10 +1,10 @@
-// /pages/index.vue - V1.1 - Remoção da prop 'font-color' para corrigir o warning
+// /pages/index.vue - V1.4 - Passa weatherCode para KpiCard para estilização dinâmica
 <template>
   <div>
     <Header />
 
     <div class="container mx-auto px-4 my-8">
-      <div class="text-center my-8">
+      <div class="my-8">
         <ClientOnly>
           <h2 class="text-3xl font-bold text-gray-800">
             Olá, {{ authStore.user?.apelido || authStore.user?.username || 'Usuário' }}!
@@ -18,11 +18,14 @@
       <div class="mb-4">
         <KpiCard
           label="Clima Atual"
-          value="25ºC - Ensolarado"
+          :value="weatherData.value"
           color="terracota"
-          icon-url="https://api.iconify.design/solar:sun-bold-duotone.svg"
+          :icon-url="weatherData.iconUrl"
           icon-alt="Ícone de Clima"
+          :weather-code="weatherData.code"
         />
+        <p v-if="isWeatherLoading" class="text-sm text-gray-500 mt-1">Carregando clima em **{{ weatherData.city || 'localização padrão' }}**...</p>
+        <p v-else-if="weatherError" class="text-sm text-red-500 mt-1">Erro ao carregar clima: {{ weatherError || 'verifique o console' }}.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -80,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useKpiData } from '~/composables/useKpiData';
 
@@ -91,12 +94,74 @@ definePageMeta({
 const authStore = useAuthStore();
 const showForm = ref(false);
 
-// Chama o Composable para obter os dados reativos
+// --- Lógica KPI ---
 const { kpiData, chartData, isLoading, error, fetchData } = useKpiData();
 
-// Função que recarrega os dados após o formulário emitir o evento de salvamento
+// --- Lógica Clima (Migrada) ---
+const weatherData = ref({ 
+    value: '---', 
+    iconUrl: 'https://api.iconify.design/solar:sun-bold-duotone.svg', 
+    description: '',
+    city: 'N/A',
+    code: null // 🚨 NOVO: Propriedade para guardar o código do clima para estilização
+});
+const isWeatherLoading = ref(false);
+const weatherError = ref(null);
+
+
+const fetchWeather = () => {
+    isWeatherLoading.value = true;
+    weatherError.value = null;
+    
+    if (process.client && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                callWeatherApi(position.coords.latitude, position.coords.longitude);
+            },
+            () => {
+                callWeatherApi();
+            }
+        );
+    } else {
+        callWeatherApi();
+    }
+};
+
+const callWeatherApi = async (lat = null, lon = null) => {
+    try {
+        const params = {};
+        if (lat && lon) {
+            params.lat = lat;
+            params.lon = lon;
+        }
+
+        const response = await $fetch('/api/weather', { params });
+        
+        weatherData.value.value = `${response.temperature} - ${response.description}`;
+        weatherData.value.iconUrl = `https://openweathermap.org/img/wn/${response.iconCode}@2x.png`;
+        weatherData.value.description = response.description;
+        weatherData.value.city = response.city; 
+        weatherData.value.code = response.iconCode; // 🚨 Salva o código para estilização
+
+    } catch (e) {
+        weatherError.value = e.statusMessage || 'Falha na comunicação com o serviço de clima.';
+        weatherData.value.value = 'N/A';
+        weatherData.value.iconUrl = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg'; 
+        weatherData.value.city = 'Localização Desconhecida';
+        weatherData.value.code = 'error'; // Código para indicar erro/fallback
+    } finally {
+        isWeatherLoading.value = false;
+    }
+}
+
+
 const handleRecordSaved = () => {
   fetchData();
   showForm.value = false; 
 };
+
+onMounted(() => {
+    fetchData(); 
+    fetchWeather(); 
+});
 </script>
