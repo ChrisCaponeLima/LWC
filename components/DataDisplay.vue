@@ -1,3 +1,4 @@
+// components/DataDisplay.vue - V1.1 - Adiciona lógica para renderizar fotos de evolução e forma
 <template>
   <div>
     <div class="mt-8 space-y-4">
@@ -6,9 +7,15 @@
         <i :class="{'fas fa-chevron-up': activeGallery === 'photo', 'fas fa-chevron-down': activeGallery !== 'photo'}"></i>
       </button>
       <div v-if="activeGallery === 'photo'" id="photo-grid" class="mt-2 photo-grid-gallery grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-        <div v-for="n in 4" :key="n" class="relative pb-[100%]">
-          <img :src="`https://picsum.photos/200/200?random=${n}`" alt="Foto de Evolução" class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md">
-        </div>
+        <template v-if="photoUrls.length > 0">
+          <div v-for="photo in photoUrls" :key="photo.url" class="relative pb-[100%] cursor-pointer group">
+            <img :src="photo.url" :alt="`Foto de Evolução (${formatDate(photo.date)})`" class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-hover:shadow-lg transition-shadow">
+            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {{ formatDate(photo.date) }}
+            </div>
+          </div>
+        </template>
+        <p v-else class="text-gray-500 col-span-full text-center py-4">Nenhuma foto de evolução registrada.</p>
       </div>
 
       <button @click="toggleGallery('forma')" class="w-full px-4 py-3 bg-gray-200 text-gray-800 rounded-lg font-bold hover:bg-gray-300 transition duration-150 flex justify-between items-center">
@@ -16,7 +23,15 @@
         <i :class="{'fas fa-chevron-up': activeGallery === 'forma', 'fas fa-chevron-down': activeGallery !== 'forma'}"></i>
       </button>
       <div v-if="activeGallery === 'forma'" id="forma-grid" class="mt-2 photo-grid-gallery grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-        <p class="text-gray-500">Nenhuma foto de forma registrada.</p>
+        <template v-if="formaUrls.length > 0">
+          <div v-for="forma in formaUrls" :key="forma.url" class="relative pb-[100%] cursor-pointer group">
+            <img :src="forma.url" :alt="`Foto de Forma (${formatDate(forma.date)})`" class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-hover:shadow-lg transition-shadow">
+             <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {{ formatDate(forma.date) }}
+            </div>
+          </div>
+        </template>
+        <p v-else class="text-gray-500 col-span-full text-center py-4">Nenhuma foto de forma registrada.</p>
       </div>
     </div>
 
@@ -26,8 +41,8 @@
 
     <div class="flex space-x-2 my-4">
       <button v-for="filter in filters" :key="filter.key" 
-              @click="filterData(filter.key)" 
-              :class="['px-4 py-2 rounded-full text-sm font-semibold transition', 
+            @click="filterData(filter.key)" 
+            :class="['px-4 py-2 rounded-full text-sm font-semibold transition', 
                       currentFilter === filter.key ? 'bg-btn-secundario text-btn-font-secundario' : 'bg-gray-200 text-gray-700 hover:bg-gray-300']">
         {{ filter.label }}
       </button>
@@ -52,17 +67,27 @@
 import { ref, computed } from 'vue';
 import LineChart from './LineChart.vue';
 
-// Definição de Tipos para a Prop
+// 🚨 NOVO: Definição de Tipos para o Registro (Baseado na estrutura do banco)
+interface RecordData {
+    record_date: string;
+    weight: number;
+    photo_url: string | null;
+    forma_url: string | null;
+    // Adicionar outros campos que o backend retorna para records
+}
+
+// 🚨 ATUALIZADO: Inclui a lista de records no objeto de dados
 interface ChartSeries {
     labels: string[];
-    series: Record<string, (number | null)[]>; // Permite null para pontos faltantes
+    series: Record<string, (number | null)[]>;
+    records: RecordData[]; // Lista completa de registros
 }
 
 const props = defineProps({
   rawChartData: {
     type: Object as () => ChartSeries,
     required: true,
-    default: () => ({ labels: [], series: {} })
+    default: () => ({ labels: [], series: {}, records: [] }) // 🚨 Default atualizado
   }
 });
 
@@ -83,7 +108,43 @@ const filterData = (key: string) => {
   currentFilter.value = key;
 };
 
-// Cores predefinidas para os gráficos
+// --- Lógica de Imagens ---
+
+// 🚨 NOVO: Computa a lista de URLs de fotos de evolução (photo_url)
+const photoUrls = computed(() => {
+    return (props.rawChartData.records || [])
+        .filter(record => record.photo_url)
+        .map(record => ({ 
+            url: record.photo_url as string, 
+            date: record.record_date // Mantém a data para exibição
+        }))
+        .reverse(); // Opção: Exibe o mais recente primeiro na galeria
+});
+
+// 🚨 NOVO: Computa a lista de URLs de fotos de forma (forma_url)
+const formaUrls = computed(() => {
+    return (props.rawChartData.records || [])
+        .filter(record => record.forma_url)
+        .map(record => ({ 
+            url: record.forma_url as string,
+            date: record.record_date 
+        }))
+        .reverse(); // Opção: Exibe o mais recente primeiro na galeria
+});
+
+const formatDate = (dateString: string) => {
+    if (!dateString) return 'S/D';
+    try {
+        // Converte a string de data (ex: YYYY-MM-DD) para o formato local (ex: DD/MM/YYYY)
+        return new Date(dateString).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    } catch {
+        return dateString;
+    }
+};
+
+
+// --- Lógica de Gráficos (Existente) ---
+
 const colors: Record<string, { border: string, background: string, unit: string }> = {
     'weight': { border: '#070FFC', background: 'rgba(7, 15, 252, 0.1)', unit: 'kg' },
     'cintura': { border: '#F3934F', background: 'rgba(243, 147, 79, 0.1)', unit: 'cm' },

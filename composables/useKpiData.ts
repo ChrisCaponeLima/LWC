@@ -27,7 +27,9 @@ export function useKpiData() {
   const chartData = reactive({
     labels: [] as string[],
     // Usaremos um objeto dinâmico para as séries de dados
-    series: {} as Record<string, (number | null)[]> 
+    series: {} as Record<string, (number | null)[]>,
+    // 🚨 NOVO: Armazena os registros brutos (inclui as URLs das fotos)
+    records: [] as Record[] 
   });
   
   const calculateIMC = (weight: number, heightCm: number) => {
@@ -68,6 +70,10 @@ export function useKpiData() {
         weight: number;
         event: string | null;
         weekly_action: string | null;
+        // 🚨 ATUALIZADO: Adiciona as URLs das fotos do banco
+        photo_url: string | null;
+        forma_url: string | null;
+        // Fim das adições
         record_measurements: RecordMeasurement[]; // Array de medidas extras
       }
 
@@ -79,6 +85,9 @@ export function useKpiData() {
       if (records && records.length > 0) {
         records.sort((a, b) => new Date(a.record_date).getTime() - new Date(b.record_date).getTime());
         
+        // 🚨 NOVO: Armazena o array de registros completo para uso em DataDisplay.vue (galerias)
+        chartData.records = records;
+
         const latestRecord = records[records.length - 1];
 
         // Processa KPIs
@@ -145,6 +154,7 @@ export function useKpiData() {
 
       } else {
         error.value = 'Nenhum registro de evolução encontrado.';
+        chartData.records = []; // Garante array vazio para DataDisplay
         kpiData.currentWeight = authStore.user?.initialWeight || 0;
         kpiData.height = authStore.user?.heightCm || 0;
         kpiData.imc = calculateIMC(kpiData.currentWeight, kpiData.height);

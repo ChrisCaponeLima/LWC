@@ -1,4 +1,4 @@
-// /server/api/records/user/[userId].get.ts
+// /server/api/records/user/[userId].get.ts - Corrigido
 
 import { defineEventHandler, createError } from 'h3';
 import { prisma } from '~/server/utils/db'; 
@@ -28,6 +28,9 @@ export default defineEventHandler(async (event) => {
         weight: true,
         event: true,
         weekly_action: true,
+        // 🚨 CORREÇÃO: Adicionando as colunas de URL das fotos
+        photo_url: true, 
+        forma_url: true,
         // Incluindo a relação record_measurements
         record_measurements: {
           select: {
