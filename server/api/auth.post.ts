@@ -1,4 +1,4 @@
-// /server/api/auth.post.ts
+// /server/api/auth.post.ts - V1.1 - Garantia do campo photo_perfil_url no retorno
 
 // ⚠️ Se você ainda não tem, crie uma variável de ambiente JWT_SECRET no seu .env.
 // Por exemplo: JWT_SECRET="sua_chave_secreta_aqui"
@@ -6,7 +6,7 @@
 import { defineEventHandler, readBody, createError } from 'h3';
 import { prisma } from '~/server/utils/db'; // Mantido: '~/server/utils/db'
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken'; // 1. NOVO: Importa a biblioteca JWT
+import jwt from 'jsonwebtoken';
 
 export default defineEventHandler(async (event) => {
     try {
@@ -39,19 +39,20 @@ export default defineEventHandler(async (event) => {
         // Usa o ID e a role do usuário para o payload do token
         const token = jwt.sign(
             { userId: user.id, role: user.role }, 
-            process.env.JWT_SECRET || 'fallback_secret_NAO_USAR_EM_PRODUCAO', // Usa a chave secreta (deve ser carregada via runtimeConfig se for no frontend)
-            { expiresIn: '1d' } // Expira em 1 dia
+            process.env.JWT_SECRET || 'fallback_secret_NAO_USAR_EM_PRODUCAO', 
+            { expiresIn: '1d' }
         );
 
         // 4. Retorna os dados do usuário JUNTO COM O TOKEN
+        // 🚨 Double Check: Todos os campos importantes estão aqui, especialmente 'role' e 'photo_perfil_url'
         return {
-            token: token, // <--- O CAMPO QUE O FRONTEND ESTAVA ESPERANDO!
+            token: token,
             userId: user.id,
             username: user.username,
             email: user.email,
-            role: user.role,
+            role: user.role, // O CAMPO CRÍTICO PARA O MENU ADMIN
             apelido: user.apelido,
-            photoUrl: user.photo_perfil_url,
+            photo_perfil_url: user.photo_perfil_url, // Corrigido para corresponder ao DB e Store
             heightCm: user.height_cm,
             initialWeight: user.initial_weight_kg, 
         };

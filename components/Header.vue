@@ -1,14 +1,13 @@
+// /components/Header.vue - V1.2 - Correção de CSS para o submenu não sair da tela
 <template>
   <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
-    <h1 class="text-xl font-bold text-gray-800">LWC</h1>
+    <h1 class="text-xl font-bold text-gray-800">Meu App</h1>
 
     <div class="flex items-center gap-4 relative">
-      <!-- Nome do usuário -->
       <span class="font-medium text-gray-700">
         {{ firstName }}
       </span>
 
-      <!-- Foto de Perfil com Dropdown -->
       <div class="relative">
         <button @click="toggleMenu" class="w-10 h-10 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-gray-200 focus:outline-none">
           <img
@@ -21,7 +20,6 @@
           <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
         </button>
 
-        <!-- Dropdown Menu -->
         <div
           v-if="menuOpen"
           class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
@@ -36,17 +34,15 @@
               </button>
             </li>
 
-            <!-- Se for admin, mostra submenu -->
-            <li v-if="authStore.user?.role === 'admin'" class="relative group">
+            <li v-if="authStore.isAdmin" class="relative group">
               <div
                 class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
               >
                 Administrar
                 <span class="text-gray-500">▶</span>
               </div>
-              <!-- Submenu -->
               <ul
-                class="absolute top-0 left-full ml-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block"
+                class="absolute top-0 right-full mr-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block"
               >
                 <li>
                   <button
@@ -99,8 +95,9 @@ const initials = computed(() => {
 })
 
 const handleImgError = () => {
+  // Define a URL como nula para que o v-else exiba as iniciais
   if (authStore.user) {
-    authStore.user.photo_perfil_url = ''
+    authStore.user.photo_perfil_url = null 
   }
 }
 

@@ -1,3 +1,4 @@
+// pages/login.vue - V1.1 - Inclusão da role e photo_perfil_url no payload de login
 <template>
   <div class="min-h-screen flex flex-col">
     <header class="flex justify-between items-center p-4 shadow-md bg-white">
@@ -82,7 +83,7 @@ const handleLogin = async () => {
       headers: { 'Content-Type': 'application/json' }
     });
 
-    // 🔥 Correção: mapear photoUrl -> photo_perfil_url
+    // 🚨 CORREÇÃO CRÍTICA: Mapeia todos os campos necessários, incluindo role e photo_perfil_url
     const userPayload = {
       userId: apiResponse.userId,
       username: apiResponse.username,
@@ -90,7 +91,8 @@ const handleLogin = async () => {
       heightCm: apiResponse.heightCm, 
       initialWeight: apiResponse.initialWeight || 90.0,
       email: apiResponse.email || '', 
-      photo_perfil_url: apiResponse.photoUrl || '' // 👈 mapeamento correto
+      role: apiResponse.role || 'user', // <--- CAMPO 'ROLE' INCLUÍDO AQUI
+      photo_perfil_url: apiResponse.photo_perfil_url || '' // Mapeamento direto
     };
     
     const loginPayload = {

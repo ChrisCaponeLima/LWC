@@ -1,0 +1,296 @@
+
+
+================= FILE: pages/login.vue =================
+
+// pages/login.vue - V1.1 - Inclusão da role e photo_perfil_url no payload de login
+<template>
+  <div class="min-h-screen flex flex-col">
+    <header class="flex justify-between items-center p-4 shadow-md bg-white">
+      <h1 class="text-xl font-bold text-gray-800">Login</h1>
+    </header>
+
+    <div class="flex flex-grow justify-center items-center p-4 bg-gray-50">
+      <ClientOnly>
+        <div class="w-full max-w-md form-card login-card p-8 bg-white rounded-xl shadow-2xl">
+          <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Acesse sua conta</h2>
+          
+          <form @submit.prevent="handleLogin" class="space-y-4">
+            <div>
+              <label for="username" class="block text-sm font-medium text-gray-700">Nome de Usuário</label>
+              <input
+                type="text"
+                id="username"
+                v-model="credentials.username"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+              <input
+                type="password"
+                id="password"
+                v-model="credentials.password"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+                required
+              />
+            </div>
+            
+            <div v-if="error" class="text-red-600 text-sm p-2 bg-red-100 rounded">
+              {{ error }}
+            </div>
+
+            <div class="pt-4">
+              <button
+                type="submit"
+                :disabled="isLoading"
+                class="w-full py-3 bg-btn-secundario text-btn-font-secundario rounded-md font-bold hover:opacity-80 disabled:bg-btn-desativado disabled:text-btn-font-desativado transition duration-150"
+              >
+                {{ isLoading ? 'Entrando...' : 'Entrar' }}
+              </button>
+            </div>
+          </form>
+        </div>
+        <template #fallback>
+          <div class="text-center p-8">Carregando formulário de login...</div>
+        </template>
+      </ClientOnly>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref } from 'vue';
+import { useAuthStore } from '~/stores/auth';
+
+definePageMeta({
+  layout: false 
+});
+
+const authStore = useAuthStore();
+const credentials = reactive({
+  username: '',
+  password: ''
+});
+const isLoading = ref(false);
+const error = ref(null);
+
+const handleLogin = async () => {
+  error.value = null;
+  isLoading.value = true;
+
+  try {
+    const apiResponse = await $fetch('/api/auth', { 
+      method: 'POST', 
+      body: credentials,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // 🚨 CORREÇÃO CRÍTICA: Mapeia todos os campos necessários, incluindo role e photo_perfil_url
+    const userPayload = {
+      userId: apiResponse.userId,
+      username: apiResponse.username,
+      apelido: apiResponse.apelido || apiResponse.username,
+      heightCm: apiResponse.heightCm, 
+      initialWeight: apiResponse.initialWeight || 90.0,
+      email: apiResponse.email || '', 
+      role: apiResponse.role || 'user', // <--- CAMPO 'ROLE' INCLUÍDO AQUI
+      photo_perfil_url: apiResponse.photo_perfil_url || '' // Mapeamento direto
+    };
+    
+    const loginPayload = {
+      token: apiResponse.token, 
+      user: userPayload
+    };
+
+    if (userPayload.userId) {
+      authStore.login(loginPayload); 
+      await navigateTo('/', { replace: true });
+    } else {
+      throw new Error('Resposta de login inválida do servidor.');
+    }
+
+  } catch (e) {
+    const status = e.response?.status;
+    const message = e.response?._data?.message;
+
+    if (status === 401 || status === 403) {
+      error.value = message || 'Nome de usuário ou senha incorretos.';
+    } else {
+      error.value = 'Falha na comunicação com o servidor. Verifique se o backend está online.';
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
+</script>
+
+<style scoped>
+.form-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+</style>
+
+================= FILE: stores/auth.ts =================
+
+// ~/stores/auth.ts - V1.2 - Adição de role e getter isAdmin para menu de admin
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue'; // 👈 Importação do computed adicionada
+
+// Definição de Tipagem para o Objeto de Usuário
+interface User {
+  userId: number;
+  username: string;
+  apelido: string | null;
+  email: string;
+  initialWeight: number;
+  heightCm: number;
+  photo_perfil_url?: string;
+  role?: string; // 👈 Adicionado o campo role
+}
+
+export const useAuthStore = defineStore('auth', () => {
+  // Estado
+  const user = ref<User | null>(null);
+  const token = ref<string | null>(null);
+  const isAuthenticated = ref(false);
+
+  // Getters
+  // 🚨 NOVO GETTER: Verifica se o usuário é admin de forma robusta
+  const isAdmin = computed(() => {
+    // Retorna true se a role existir e for estritamente igual a 'admin' (em minúsculas)
+    return user.value?.role?.toLowerCase() === 'admin'; 
+  });
+
+  // Ação de Login
+  // A tipagem de 'data' deve refletir o que vem da API, incluindo o role
+  const login = (data: { token?: string, user: User & { role: string } }) => {
+    token.value = data.token || null;
+    user.value = { 
+        ...data.user,
+        // Garante que a role esteja sempre presente (o banco pode não ter enviado)
+        role: data.user.role || 'user' 
+    };
+    isAuthenticated.value = true;
+    
+    if (process.client) {
+      if (data.token) localStorage.setItem('authToken', data.token);
+      localStorage.setItem('authUser', JSON.stringify(user.value));
+    }
+  };
+
+  // Ação de Logout
+  const logout = () => {
+    token.value = null;
+    user.value = null;
+    isAuthenticated.value = false;
+    
+    if (process.client) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
+    }
+  };
+
+  // Ação de Inicialização
+  const init = () => {
+    if (process.client) {
+      const savedToken = localStorage.getItem('authToken');
+      const savedUser = localStorage.getItem('authUser');
+
+      if (savedToken && savedUser) {
+        token.value = savedToken;
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          // 🚨 Garante que a role exista ao carregar do storage
+          user.value = { ...parsedUser, role: parsedUser.role || 'user' } as User;
+          isAuthenticated.value = true;
+        } catch (e) {
+          console.error("Erro ao fazer parse dos dados de usuário salvos:", e);
+          logout();
+        }
+      } else {
+        isAuthenticated.value = false;
+      }
+    }
+  };
+
+  return {
+    user,
+    token,
+    isAuthenticated,
+    isAdmin, // 👈 Exportação do novo getter
+    login,
+    logout,
+    init
+  };
+});
+
+================= FILE: server/api/auth.post.ts =================
+
+// /server/api/auth.post.ts - V1.1 - Garantia do campo photo_perfil_url no retorno
+
+// ⚠️ Se você ainda não tem, crie uma variável de ambiente JWT_SECRET no seu .env.
+// Por exemplo: JWT_SECRET="sua_chave_secreta_aqui"
+
+import { defineEventHandler, readBody, createError } from 'h3';
+import { prisma } from '~/server/utils/db'; // Mantido: '~/server/utils/db'
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+export default defineEventHandler(async (event) => {
+    try {
+        const { username, password } = await readBody(event);
+        
+        // Validação básica
+        if (!username || !password) {
+            throw createError({ statusCode: 400, statusMessage: 'Nome de usuário e senha são obrigatórios.' });
+        }
+
+        // 1. Busca o usuário
+        const user = await prisma.users.findUnique({
+            where: { username },
+        });
+
+        if (!user) {
+            throw createError({ statusCode: 401, statusMessage: 'Credenciais inválidas.' });
+        }
+
+        // 2. Compara a senha
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        
+        if (!isMatch) {
+            throw createError({ statusCode: 401, statusMessage: 'Credenciais inválidas.' });
+        }
+        
+        // --- NOVO PASSO CRÍTICO: Geração do Token ---
+        
+        // 3. Gera o Token JWT após autenticação bem-sucedida
+        // Usa o ID e a role do usuário para o payload do token
+        const token = jwt.sign(
+            { userId: user.id, role: user.role }, 
+            process.env.JWT_SECRET || 'fallback_secret_NAO_USAR_EM_PRODUCAO', 
+            { expiresIn: '1d' }
+        );
+
+        // 4. Retorna os dados do usuário JUNTO COM O TOKEN
+        // 🚨 Double Check: Todos os campos importantes estão aqui, especialmente 'role' e 'photo_perfil_url'
+        return {
+            token: token,
+            userId: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role, // O CAMPO CRÍTICO PARA O MENU ADMIN
+            apelido: user.apelido,
+            photo_perfil_url: user.photo_perfil_url, // Corrigido para corresponder ao DB e Store
+            heightCm: user.height_cm,
+            initialWeight: user.initial_weight_kg, 
+        };
+    } catch (error) {
+        if (error.statusCode) {
+            throw error;
+        }
+        console.error('Erro de autenticação:', error);
+        throw createError({ statusCode: 500, statusMessage: 'Erro interno do servidor.' });
+    }
+});

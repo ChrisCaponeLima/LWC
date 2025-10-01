@@ -1,6 +1,6 @@
-// ~/stores/auth.ts
+// ~/stores/auth.ts - V1.2 - Adição de role e getter isAdmin para menu de admin
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue'; // 👈 Importação do computed adicionada
 
 // Definição de Tipagem para o Objeto de Usuário
 interface User {
@@ -10,7 +10,8 @@ interface User {
   email: string;
   initialWeight: number;
   heightCm: number;
-  photo_perfil_url?: string; // 👈 adicionado para garantir tipagem correta
+  photo_perfil_url?: string;
+  role?: string; // 👈 Adicionado o campo role
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -19,15 +20,27 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null);
   const isAuthenticated = ref(false);
 
+  // Getters
+  // 🚨 NOVO GETTER: Verifica se o usuário é admin de forma robusta
+  const isAdmin = computed(() => {
+    // Retorna true se a role existir e for estritamente igual a 'admin' (em minúsculas)
+    return user.value?.role?.toLowerCase() === 'admin'; 
+  });
+
   // Ação de Login
-  const login = (data: { token?: string, user: User }) => {
+  // A tipagem de 'data' deve refletir o que vem da API, incluindo o role
+  const login = (data: { token?: string, user: User & { role: string } }) => {
     token.value = data.token || null;
-    user.value = data.user;
+    user.value = { 
+        ...data.user,
+        // Garante que a role esteja sempre presente (o banco pode não ter enviado)
+        role: data.user.role || 'user' 
+    };
     isAuthenticated.value = true;
     
     if (process.client) {
       if (data.token) localStorage.setItem('authToken', data.token);
-      localStorage.setItem('authUser', JSON.stringify(data.user));
+      localStorage.setItem('authUser', JSON.stringify(user.value));
     }
   };
 
@@ -52,7 +65,9 @@ export const useAuthStore = defineStore('auth', () => {
       if (savedToken && savedUser) {
         token.value = savedToken;
         try {
-          user.value = JSON.parse(savedUser) as User;
+          const parsedUser = JSON.parse(savedUser);
+          // 🚨 Garante que a role exista ao carregar do storage
+          user.value = { ...parsedUser, role: parsedUser.role || 'user' } as User;
           isAuthenticated.value = true;
         } catch (e) {
           console.error("Erro ao fazer parse dos dados de usuário salvos:", e);
@@ -68,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     isAuthenticated,
+    isAdmin, // 👈 Exportação do novo getter
     login,
     logout,
     init

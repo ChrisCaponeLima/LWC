@@ -1,3 +1,4 @@
+// /pages/index.vue - V1.1 - Remoção da prop 'font-color' para corrigir o warning
 <template>
   <div>
     <Header />
@@ -19,7 +20,6 @@
           label="Clima Atual"
           value="25ºC - Ensolarado"
           color="terracota"
-          font-color="terracota"
           icon-url="https://api.iconify.design/solar:sun-bold-duotone.svg"
           icon-alt="Ícone de Clima"
         />
@@ -30,7 +30,6 @@
           label="Peso Atual"
           :value="`${kpiData.currentWeight} kg`"
           color="azul"
-          font-color="azul"
           icon-url="https://api.iconify.design/solar:scale-bold-duotone.svg"
           icon-alt="Ícone de Escala"
         />
@@ -39,7 +38,6 @@
           label="Perda Total"
           :value="`${kpiData.totalLoss} kg`"
           color="roxo"
-          font-color="roxo"
           icon-url="https://api.iconify.design/solar:minus-square-bold-duotone.svg"
           icon-alt="Ícone de Perda"
         />
@@ -48,7 +46,6 @@
           label="Status Semanal"
           value="Estável"
           color="amarelo"
-          font-color="amarelo"
           icon-url="https://api.iconify.design/solar:calendar-bold-duotone.svg"
           icon-alt="Ícone de Calendário"
         />
@@ -57,7 +54,6 @@
           label="IMC"
           :value="kpiData.imc?.toFixed(2) || '---'" 
           color="verde"
-          font-color="verde"
           icon-url="https://api.iconify.design/solar:ruler-bold-duotone.svg"
           icon-alt="Ícone de Régua"
         />

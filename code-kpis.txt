@@ -1,0 +1,319 @@
+
+
+================= FILE: pages/index.vue =================
+
+// /pages/index.vue - V1.1 - Remoção da prop 'font-color' para corrigir o warning
+<template>
+  <div>
+    <Header />
+
+    <div class="container mx-auto px-4 my-8">
+      <div class="text-center my-8">
+        <ClientOnly>
+          <h2 class="text-3xl font-bold text-gray-800">
+            Olá, {{ authStore.user?.apelido || authStore.user?.username || 'Usuário' }}!
+          </h2>
+          <p v-if="isLoading" class="text-gray-500">carregando seus dados...</p>
+          <p v-else-if="error" class="text-red-500">{{ error }}</p>
+          <p v-else class="text-gray-500">Dados atualizados com sucesso.</p>
+        </ClientOnly>
+      </div>
+
+      <div class="mb-4">
+        <KpiCard
+          label="Clima Atual"
+          value="25ºC - Ensolarado"
+          color="terracota"
+          icon-url="https://api.iconify.design/solar:sun-bold-duotone.svg"
+          icon-alt="Ícone de Clima"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="Peso Atual"
+          :value="`${kpiData.currentWeight} kg`"
+          color="azul"
+          icon-url="https://api.iconify.design/solar:scale-bold-duotone.svg"
+          icon-alt="Ícone de Escala"
+        />
+
+        <KpiCard
+          label="Perda Total"
+          :value="`${kpiData.totalLoss} kg`"
+          color="roxo"
+          icon-url="https://api.iconify.design/solar:minus-square-bold-duotone.svg"
+          icon-alt="Ícone de Perda"
+        />
+
+        <KpiCard
+          label="Status Semanal"
+          value="Estável"
+          color="amarelo"
+          icon-url="https://api.iconify.design/solar:calendar-bold-duotone.svg"
+          icon-alt="Ícone de Calendário"
+        />
+
+        <KpiCard
+          label="IMC"
+          :value="kpiData.imc?.toFixed(2) || '---'" 
+          color="verde"
+          icon-url="https://api.iconify.design/solar:ruler-bold-duotone.svg"
+          icon-alt="Ícone de Régua"
+        />
+      </div>
+
+      <div class="mt-8 text-center">
+        <button
+          @click="showForm = !showForm"
+          class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80"
+        >
+          <i class="fas fa-plus-circle mr-2"></i> Adicionar Novo Registro
+        </button>
+      </div>
+
+      <DataForm v-if="showForm" @recordSaved="handleRecordSaved" />
+
+      <DataDisplay 
+        :raw-chart-data="chartData" 
+      />
+    </div>
+
+    <Footer />
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useAuthStore } from '~/stores/auth';
+import { useKpiData } from '~/composables/useKpiData';
+
+definePageMeta({
+  middleware: ['auth'] 
+});
+
+const authStore = useAuthStore();
+const showForm = ref(false);
+
+// Chama o Composable para obter os dados reativos
+const { kpiData, chartData, isLoading, error, fetchData } = useKpiData();
+
+// Função que recarrega os dados após o formulário emitir o evento de salvamento
+const handleRecordSaved = () => {
+  fetchData();
+  showForm.value = false; 
+};
+</script>
+
+================= FILE: components/Header.vue =================
+
+// /components/Header.vue - V1.2 - Correção de CSS para o submenu não sair da tela
+<template>
+  <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
+    <h1 class="text-xl font-bold text-gray-800">Meu App</h1>
+
+    <div class="flex items-center gap-4 relative">
+      <span class="font-medium text-gray-700">
+        {{ firstName }}
+      </span>
+
+      <div class="relative">
+        <button @click="toggleMenu" class="w-10 h-10 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-gray-200 focus:outline-none">
+          <img
+            v-if="authStore.user?.photo_perfil_url"
+            :src="authStore.user.photo_perfil_url"
+            alt="Foto de Perfil"
+            class="w-full h-full object-cover"
+            @error="handleImgError"
+          />
+          <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
+        </button>
+
+        <div
+          v-if="menuOpen"
+          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+        >
+          <ul class="py-2">
+            <li>
+              <button
+                @click="goToProfile"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+              >
+                Meu Perfil
+              </button>
+            </li>
+
+            <li v-if="authStore.isAdmin" class="relative group">
+              <div
+                class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
+              >
+                Administrar
+                <span class="text-gray-500">▶</span>
+              </div>
+              <ul
+                class="absolute top-0 right-full mr-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block"
+              >
+                <li>
+                  <button
+                    @click="goToUserAdmin"
+                    class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                  >
+                    Administração de Usuários
+                  </button>
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <button
+                @click="logout"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-semibold"
+              >
+                Sair
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { navigateTo } from '#app'
+
+const authStore = useAuthStore()
+const menuOpen = ref(false)
+
+// Somente o primeiro nome
+const firstName = computed(() => {
+  if (authStore.user?.username) {
+    return authStore.user.username.split(' ')[0]
+  }
+  return 'Usuário'
+})
+
+// Iniciais para fallback
+const initials = computed(() => {
+  if (authStore.user?.username) {
+    return authStore.user.username.charAt(0).toUpperCase()
+  }
+  return 'U'
+})
+
+const handleImgError = () => {
+  // Define a URL como nula para que o v-else exiba as iniciais
+  if (authStore.user) {
+    authStore.user.photo_perfil_url = null 
+  }
+}
+
+const toggleMenu = () => {
+  menuOpen.value = !menuOpen.value
+}
+
+const closeMenu = (event) => {
+  if (!event.target.closest('.relative')) {
+    menuOpen.value = false
+  }
+}
+
+// Fecha menu ao clicar fora
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMenu)
+})
+
+// Navegação
+const goToProfile = () => {
+  menuOpen.value = false
+  navigateTo('/profile')
+}
+
+const goToUserAdmin = () => {
+  menuOpen.value = false
+  navigateTo('/admin/users')
+}
+
+const logout = () => {
+  authStore.logout()
+  menuOpen.value = false
+  navigateTo('/login')
+}
+</script>
+
+================= FILE: components/KpiCard.vue =================
+
+<template>
+  <div :class="['rounded-xl shadow-md p-4 flex items-center justify-center space-x-4', cardClasses]">
+    <img :src="iconUrl" :alt="iconAlt" class="w-10 h-10" />
+    <div class="flex flex-col items-center justify-center">
+      <span :class="['text-sm font-semibold', fontClasses]">{{ label }}</span>
+      <span :class="['text-lg font-bold', fontClasses]">{{ value }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+  label: {
+    type: String,
+    required: true,
+  },
+  value: {
+    type: [String, Number],
+    required: true,
+  },
+  color: {
+    type: String,
+    required: true,
+    validator: (value) => ['terracotta', 'azul', 'roxo', 'amarelo', 'verde', 'rosa', 'gelo', 'laranja'].includes(value),
+  },
+  iconUrl: {
+    type: String,
+    required: true,
+  },
+  iconAlt: {
+    type: String,
+    default: 'Ícone de KPI',
+  },
+});
+
+const cardClasses = computed(() => {
+  const colorMap = {
+    terracotta: 'bg-card-terracota',
+    azul: 'bg-card-azul',
+    roxo: 'bg-card-roxo',
+    amarelo: 'bg-card-amarelo',
+    verde: 'bg-card-verde',
+    rosa: 'bg-card-rosa',
+    gelo: 'bg-card-gelo',
+    laranja: 'bg-card-laranja',
+  };
+  return colorMap[props.color];
+});
+
+const fontClasses = computed(() => {
+  const colorMap = {
+    terracotta: 'text-font-terracota',
+    azul: 'text-font-azul',
+    roxo: 'text-font-roxo',
+    amarelo: 'text-font-amarelo',
+    verde: 'text-font-verde',
+    rosa: 'text-font-rosa',
+    gelo: 'text-font-gelo',
+    laranja: 'text-font-laranja',
+  };
+  return colorMap[props.color];
+});
+</script>
+
+<style scoped>
+/* Nenhum estilo necessário aqui, pois estamos usando classes do Tailwind */
+</style>

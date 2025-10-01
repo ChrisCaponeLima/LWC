@@ -1,50 +1,79 @@
-// concat.js
+// concat.js - Versão Otimizada por Módulos
 import fs from "fs";
 import path from "path";
 
-// Arquivo final
-const outFile = "PROJETO_BOOK.txt";
+// ==========================================================
+// 🚨 CONFIGURAÇÃO DOS MÓDULOS 🚨
+// Defina aqui o nome do arquivo de saída e a lista de arquivos para cada módulo.
+// Use paths relativos à raiz do projeto.
+// ==========================================================
+const modules = {
+  "code-auth.txt": [
+    "pages/login.vue",
+    "stores/auth.ts",
+    "server/api/auth.post.ts",
+    "server/middleware/auth.ts",
+  ],
+  "code-users.txt": [
+    "pages/user_management.vue",
+    "components/UserTable.vue",
+    "server/api/users.get.ts",
+    "server/api/users/[id].put.ts",
+    "server/api/users/[id].delete.ts",
+  ],
+  "code-kpis.txt": [
+    "pages/index.vue",
+    "components/Header.vue",
+    "components/KpiCard.vue",
+    "server/api/kpis.get.ts",
+  ],
+  "code-config.txt": [
+    "nuxt.config.ts",
+    "tailwind.config.js",
+    "prisma/schema.prisma",
+    "package.json",
+    ".env",
+  ],
+};
 
-// Extensões que vamos incluir no "book"
-const validExtensions = [
-  ".ts",
-  ".js",
-  ".vue",
-  ".json",
-  ".prisma",
-  ".css",
-  ".env",
-  ".md"
-];
+// ==========================================================
+// FUNÇÕES DE GERAÇÃO
+// ==========================================================
 
-// Pastas que devem ser ignoradas
-const ignoreDirs = ["node_modules", ".nuxt", ".git", "dist", ".output", "bkp", "concat.js","PROJETO_BOOK.txt"];
+function generateModule(outFile, fileList) {
+  let output = "";
+  let filesFoundCount = 0;
 
-// Função recursiva para varrer diretórios
-function walkDir(dir, callback) {
-  fs.readdirSync(dir).forEach((file) => {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
+  for (const relativePath of fileList) {
+    const fullPath = path.resolve(relativePath);
 
-    if (stat.isDirectory()) {
-      if (!ignoreDirs.includes(file)) {
-        walkDir(filePath, callback);
-      }
+    // Verifica se o arquivo existe antes de tentar ler
+    if (fs.existsSync(fullPath)) {
+      output += `\n\n================= FILE: ${relativePath} =================\n\n`;
+      output += fs.readFileSync(fullPath, "utf8");
+      filesFoundCount++;
     } else {
-      callback(filePath);
+      console.warn(`⚠️ Aviso: Arquivo não encontrado para o módulo ${outFile}: ${relativePath}`);
     }
-  });
+  }
+
+  // Só cria o arquivo se houver conteúdo
+  if (filesFoundCount > 0) {
+    fs.writeFileSync(outFile, output, "utf8");
+    console.log(`✅ Pacote gerado: ${outFile} (${filesFoundCount} arquivos)`);
+  } else {
+    console.log(`❕ Pacote ${outFile} ignorado: Nenhum arquivo encontrado.`);
+  }
 }
 
-let output = "";
+// ==========================================================
+// EXECUÇÃO PRINCIPAL
+// ==========================================================
+console.log("Iniciando geração de pacotes de código...");
 
-walkDir(".", function (filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  if (validExtensions.includes(ext)) {
-    output += `\n\n================= FILE: ${filePath} =================\n\n`;
-    output += fs.readFileSync(filePath, "utf8");
-  }
-});
+// Este loop itera sobre todas as chaves do objeto 'modules'
+for (const outFile in modules) {
+  generateModule(outFile, modules[outFile]);
+}
 
-fs.writeFileSync(outFile, output, "utf8");
-console.log(`✅ Arquivo único gerado em ${outFile}`);
+console.log("Geração de pacotes concluída.");
