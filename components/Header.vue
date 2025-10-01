@@ -1,6 +1,6 @@
 <template>
   <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
-    <h1 class="text-xl font-bold text-gray-800">Meu App</h1>
+    <h1 class="text-xl font-bold text-gray-800">LWC</h1>
 
     <div class="flex items-center gap-4 relative">
       <!-- Nome do usuário -->
