@@ -87,7 +87,7 @@ model records {
   weight              Decimal?              @db.Decimal(5, 2)
   event               String?               @db.VarChar(255)
   weekly_action       String?               @db.VarChar(255)
-  workout_days        String?               @db.VarChar(255)
+  workout_days        Int?                  
   observations        String?
   photo_url           String?               @db.VarChar(255)
   created_at          DateTime?             @default(now()) @db.Timestamptz(6)

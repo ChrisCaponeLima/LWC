@@ -1,3 +1,4 @@
+// /components/DataForm.vue - V2.3 - Correção campo userId no salvamento de registros
 <template>
   <div class="form-container bg-white p-6 rounded-lg shadow-xl mt-6">
     <h3 class="text-xl font-bold mb-4 text-gray-800">Adicionar Novo Registro</h3>
@@ -44,7 +45,7 @@
           <p class="mt-1 text-xs text-gray-500">Opcional, importante para gráficos.</p>
         </div>
         <div>
-          <label for="event" class="block text-sm font-medium text-gray-700">Evento (Novo Campo)</label>
+          <label for="event" class="block text-sm font-medium text-gray-700">Evento</label>
           <input 
             type="text" 
             id="event" 
@@ -57,20 +58,18 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label for="weeklyAction" class="block text-sm font-medium text-gray-700">Ação Semanal (Novo Campo)</label>
-          <select 
+          <label for="weeklyAction" class="block text-sm font-medium text-gray-700">Ação Semanal</label>
+          <input 
+            type="text" 
             id="weeklyAction" 
             v-model="formData.weeklyAction" 
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border bg-white"
-          >
-            <option value="">Selecione uma opção</option>
-            <option value="Manutenção">Manutenção</option>
-            <option value="Déficit">Déficit (Perda de peso)</option>
-            <option value="Superávit">Superávit (Ganho de massa)</option>
-          </select>
+            placeholder="Ex: Dieta cutting, Fase de manutenção"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+          />
         </div>
+        
         <div>
-          <label for="workoutDays" class="block text-sm font-medium text-gray-700">Dias de Treino (Novo Campo)</label>
+          <label for="workoutDays" class="block text-sm font-medium text-gray-700">Dias de Treino</label>
           <input 
             type="number" 
             id="workoutDays" 
@@ -84,7 +83,7 @@
       </div>
 
       <div>
-        <label for="observations" class="block text-sm font-medium text-gray-700">Observações (Novo Campo)</label>
+        <label for="observations" class="block text-sm font-medium text-gray-700">Observações</label>
         <textarea 
           id="observations" 
           v-model="formData.observations" 
@@ -133,6 +132,7 @@
 </template>
 
 <script setup>
+// /components/DataForm.vue - V2.3 - Correção campo userId no salvamento de registros
 import { reactive, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth'; 
 
@@ -148,9 +148,8 @@ const formData = reactive({
   record_date: today,
   weight: null,
   waist: null, 
-  // NOVOS CAMPOS PARA CORRESPONDER AO BACKEND
   event: '',
-  weeklyAction: '',
+  weeklyAction: '', 
   workoutDays: null,
   observations: '',
 });
@@ -170,51 +169,44 @@ const submitRecord = async () => {
   submissionError.value = null;
   isSubmitting.value = true;
   
-  if (!authStore.user?.id) {
-    submissionError.value = 'Erro: Usuário não logado.';
+  // 🔹 CORRIGIDO: pega userId corretamente
+  const userId = authStore.user?.userId;
+  const token = authStore.token;
+
+  if (!userId || !token) {
+    submissionError.value = 'Erro de Autenticação: Usuário não logado ou token indisponível.';
     isSubmitting.value = false;
+    authStore.logout();
     return;
   }
 
-  // 1. Cria o objeto FormData para enviar texto e arquivos
   const data = new FormData();
-  // CRÍTICO: Usa 'user_id' e 'record_date' para corresponder aos ajustes no Backend
-  data.append('user_id', authStore.user.id);
+  data.append('user_id', String(userId));
   data.append('record_date', formData.record_date);
   data.append('weight', formData.weight);
-  
-  // Adiciona NOVOS CAMPOS
   data.append('event', formData.event || '');
   data.append('weeklyAction', formData.weeklyAction || '');
-  data.append('workoutDays', formData.workoutDays || '');
+  data.append('workoutDays', formData.workoutDays ? String(formData.workoutDays) : '');
   data.append('observations', formData.observations || '');
 
-  // 2. Lida com Medidas Adicionais (Cintura)
   const measurements = [];
   if (formData.waist) {
-    // ID 2 é um PLACEHOLDER para 'Cintura'. A API de records usará isso.
-    // É essencial que a tabela 'measurements' no seu NeonDB tenha um registro com ID=2 para 'Cintura'.
     measurements.push({ measurement_id: 2, value: formData.waist }); 
   }
   data.append('measurements', JSON.stringify(measurements)); 
   
-  // 3. Adiciona Fotos
-  if (photoFile.value) {
-    data.append('photo', photoFile.value);
-  }
-  if (formaFile.value) {
-    data.append('forma', formaFile.value);
-  }
+  if (photoFile.value) data.append('photo', photoFile.value);
+  if (formaFile.value) data.append('forma', formaFile.value);
 
-  // 4. Envia para a API (Endpoint /api/records)
   try {
     const response = await fetch('/api/records', {
       method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
       body: data,
     });
     
     if (response.ok) {
-      // Limpa os dados (exceto a data) e emite o evento
+      // limpa dados
       formData.weight = null;
       formData.waist = null;
       formData.event = '';
@@ -224,17 +216,16 @@ const submitRecord = async () => {
       
       photoFile.value = null;
       formaFile.value = null;
-      // Reinicializa o input de arquivos
       document.getElementById('photo').value = null;
       document.getElementById('forma').value = null;
       
       emit('recordSaved');
     } else {
       const errorData = await response.json();
-      submissionError.value = `Falha ao salvar: ${errorData.message || 'Erro desconhecido.'}`;
+      submissionError.value = `Falha ao salvar. Detalhe: ${errorData.message || 'Erro desconhecido.'}`;
     }
   } catch (error) {
-    submissionError.value = 'Erro ao conectar com o servidor de API.';
+    submissionError.value = 'Erro de rede: Não foi possível conectar com o servidor.';
     console.error('Erro de submissão:', error);
   } finally {
     isSubmitting.value = false;

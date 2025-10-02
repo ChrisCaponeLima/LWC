@@ -1,15 +1,18 @@
-// /server/utils/db.ts
+// ~/server/utils/db.ts
 import { PrismaClient } from '@prisma/client'
 
-// Evita múltiplas instâncias em dev
-declare global {
-  var prisma: PrismaClient | undefined
-}
+/**
+ * Em ambiente de desenvolvimento, criamos o client no escopo global
+ * para evitar múltiplas instâncias quando o Nuxt reinicia em HMR.
+ */
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
 export const prisma =
-  global.prisma ??
+  globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['query', 'info', 'warn', 'error']
+    log: ['query', 'info', 'warn', 'error'], // opcional: logs do prisma
   })
 
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
