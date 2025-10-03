@@ -1,4 +1,4 @@
-// /components/DataForm.vue - V2.3 - Correção campo userId no salvamento de registros
+// /components/DataForm.vue - V2.5 - Correção ID Cintura (2 -> 4) e Inclusão de Privacy Flag
 <template>
   <div class="form-container bg-white p-6 rounded-lg shadow-xl mt-6">
     <h3 class="text-xl font-bold mb-4 text-gray-800">Adicionar Novo Registro</h3>
@@ -94,7 +94,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+        <div class="flex flex-col">
           <label for="photo" class="block text-sm font-medium text-gray-700">Foto de Evolução (Opcional)</label>
           <input 
             type="file" 
@@ -103,8 +103,13 @@
             accept="image/*"
             class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
           />
+          <div v-if="photoFile" class="mt-2 flex items-center">
+            <input type="checkbox" id="photo_private" v-model="formData.photo_is_private" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+            <label for="photo_private" class="ml-2 text-sm text-gray-700">Tornar Foto de Evolução privada (🔒)</label>
+          </div>
         </div>
-        <div>
+        
+        <div class="flex flex-col">
           <label for="forma" class="block text-sm font-medium text-gray-700">Foto de Forma (Opcional)</label>
           <input 
             type="file" 
@@ -113,6 +118,10 @@
             accept="image/*"
             class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
           />
+          <div v-if="formaFile" class="mt-2 flex items-center">
+            <input type="checkbox" id="forma_private" v-model="formData.forma_is_private" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+            <label for="forma_private" class="ml-2 text-sm text-gray-700">Tornar Foto de Forma privada (🔒)</label>
+          </div>
         </div>
       </div>
 
@@ -132,7 +141,7 @@
 </template>
 
 <script setup>
-// /components/DataForm.vue - V2.3 - Correção campo userId no salvamento de registros
+// /components/DataForm.vue - V2.5 - Correção ID Cintura (2 -> 4) e Inclusão de Privacy Flag
 import { reactive, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth'; 
 
@@ -152,6 +161,9 @@ const formData = reactive({
   weeklyAction: '', 
   workoutDays: null,
   observations: '',
+  // NOVOS CAMPOS DE PRIVACIDADE
+  photo_is_private: false,
+  forma_is_private: false,
 });
 
 const photoFile = ref(null);
@@ -159,17 +171,20 @@ const formaFile = ref(null);
 
 const handlePhotoUpload = (event) => {
   photoFile.value = event.target.files ? event.target.files[0] : null;
+  // Reseta o flag de privacidade se o arquivo for removido/trocado
+  if (!photoFile.value) formData.photo_is_private = false;
 };
 
 const handleFormaUpload = (event) => {
   formaFile.value = event.target.files ? event.target.files[0] : null;
+  // Reseta o flag de privacidade se o arquivo for removido/trocado
+  if (!formaFile.value) formData.forma_is_private = false;
 };
 
 const submitRecord = async () => {
   submissionError.value = null;
   isSubmitting.value = true;
   
-  // 🔹 CORRIGIDO: pega userId corretamente
   const userId = authStore.user?.userId;
   const token = authStore.token;
 
@@ -189,14 +204,22 @@ const submitRecord = async () => {
   data.append('workoutDays', formData.workoutDays ? String(formData.workoutDays) : '');
   data.append('observations', formData.observations || '');
 
+  // 🚨 CORREÇÃO CRÍTICA: ID 4 é Cintura (conforme measurements.csv)
   const measurements = [];
   if (formData.waist) {
-    measurements.push({ measurement_id: 2, value: formData.waist }); 
+    measurements.push({ measurement_id: 4, value: formData.waist }); 
   }
   data.append('measurements', JSON.stringify(measurements)); 
   
-  if (photoFile.value) data.append('photo', photoFile.value);
-  if (formaFile.value) data.append('forma', formaFile.value);
+  // Envia os arquivos e os flags de privacidade (como string 'true'/'false')
+  if (photoFile.value) {
+    data.append('photo', photoFile.value);
+    data.append('photo_is_private', String(formData.photo_is_private));
+  }
+  if (formaFile.value) {
+    data.append('forma', formaFile.value);
+    data.append('forma_is_private', String(formData.forma_is_private));
+  }
 
   try {
     const response = await fetch('/api/records', {
@@ -213,9 +236,12 @@ const submitRecord = async () => {
       formData.weeklyAction = '';
       formData.workoutDays = null;
       formData.observations = '';
+      formData.photo_is_private = false; // Limpa flags
+      formData.forma_is_private = false;
       
       photoFile.value = null;
       formaFile.value = null;
+      // Limpa inputs de arquivo nativos
       document.getElementById('photo').value = null;
       document.getElementById('forma').value = null;
       

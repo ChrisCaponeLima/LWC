@@ -2,31 +2,33 @@
 
 ================= FILE: pages/index.vue =================
 
-// /pages/index.vue - V1.1 - Remoção da prop 'font-color' para corrigir o warning
+// /pages/index.vue - V1.7 - Clima e Saudação Dinâmica
 <template>
   <div>
     <Header />
 
     <div class="container mx-auto px-4 my-8">
-      <div class="text-center my-8">
+      <div class="my-8">
         <ClientOnly>
           <h2 class="text-3xl font-bold text-gray-800">
-            Olá, {{ authStore.user?.apelido || authStore.user?.username || 'Usuário' }}!
+            {{ greetingMessage }}, {{ authStore.user?.apelido || authStore.user?.username || 'Usuário' }}!
           </h2>
           <p v-if="isLoading" class="text-gray-500">carregando seus dados...</p>
           <p v-else-if="error" class="text-red-500">{{ error }}</p>
-          <p v-else class="text-gray-500">Dados atualizados com sucesso.</p>
-        </ClientOnly>
+          </ClientOnly>
       </div>
 
       <div class="mb-4">
         <KpiCard
           label="Clima Atual"
-          value="25ºC - Ensolarado"
+          :value="weatherData.value"
           color="terracota"
-          icon-url="https://api.iconify.design/solar:sun-bold-duotone.svg"
+          :icon-url="weatherData.iconUrl"
           icon-alt="Ícone de Clima"
+          :weather-code="weatherData.code"
         />
+        <p v-if="isWeatherLoading" class="text-sm text-gray-500 mt-1">Carregando clima em **{{ weatherData.city || 'localização padrão' }}**...</p>
+        <p v-else-if="weatherError" class="text-sm text-red-500 mt-1">Erro ao carregar clima: {{ weatherError || 'verifique o console' }}.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -65,17 +67,20 @@
 
       <div class="mt-8 text-center">
         <button
-          @click="showForm = !showForm"
+          @click="startNewRecord"
           class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80"
         >
           <i class="fas fa-plus-circle mr-2"></i> Adicionar Novo Registro
         </button>
       </div>
 
-      <DataForm v-if="showForm" @recordSaved="handleRecordSaved" />
+      <DataForm v-if="showForm" :record-id="editingRecordId" @recordSaved="handleRecordSaved" />
 
       <DataDisplay 
         :raw-chart-data="chartData" 
+        :has-registro-photos="hasRegistroPhotos" 
+        :has-forma-photos="hasFormaPhotos" 
+        @editRecord="handleEditRecord"
       />
     </div>
 
@@ -84,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue'; // Adicionado 'computed'
 import { useAuthStore } from '~/stores/auth';
 import { useKpiData } from '~/composables/useKpiData';
 
@@ -94,15 +99,122 @@ definePageMeta({
 
 const authStore = useAuthStore();
 const showForm = ref(false);
+const editingRecordId = ref(null); 
 
-// Chama o Composable para obter os dados reativos
-const { kpiData, chartData, isLoading, error, fetchData } = useKpiData();
+// --- Lógica KPI ---
+const { 
+  kpiData, 
+  chartData, 
+  isLoading, 
+  error, 
+  fetchData,
+  hasRegistroPhotos, 
+  hasFormaPhotos 
+} = useKpiData();
 
-// Função que recarrega os dados após o formulário emitir o evento de salvamento
-const handleRecordSaved = () => {
-  fetchData();
-  showForm.value = false; 
+// --- NOVO: Saudação Dinâmica ---
+const greetingMessage = computed(() => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    // Manhã
+    const options = ["Bom dia", "Lindo dia", "Excelente manhã"];
+    return options[Math.floor(Math.random() * options.length)];
+  } else if (hour >= 12 && hour < 18) {
+    // Tarde
+    const options = ["Boa tarde", "Excelente dia", "Que tarde agradável"];
+    return options[Math.floor(Math.random() * options.length)];
+  } else {
+    // Noite/Madrugada
+    const options = ["Boa noite", "Bom te ver", "Esperamos que tenha tido um bom dia"];
+    return options[Math.floor(Math.random() * options.length)];
+  }
+});
+
+// --- Lógica Clima (Otimizada e Isolada) ---
+const weatherData = ref({ 
+  value: '---', 
+  iconUrl: 'https://api.iconify.design/solar:sun-bold-duotone.svg', 
+  description: '',
+  city: 'N/A',
+  code: null 
+});
+const isWeatherLoading = ref(false);
+const weatherError = ref(null);
+
+
+const fetchWeather = () => {
+  // Corrigindo o bug: Reseta o erro do clima a cada tentativa de busca
+  isWeatherLoading.value = true;
+  weatherError.value = null;
+  
+  if (process.client && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        callWeatherApi(position.coords.latitude, position.coords.longitude);
+      },
+      () => {
+        // Fallback: se a localização for negada ou falhar
+        callWeatherApi();
+      }
+    );
+  } else {
+    // Fallback: se não estiver no cliente (SSR) ou não tiver geolocalização
+    callWeatherApi();
+  }
 };
+
+const callWeatherApi = async (lat = null, lon = null) => {
+  try {
+    const params = {};
+    if (lat && lon) {
+      params.lat = lat;
+      params.lon = lon;
+    }
+
+    const response = await $fetch('/api/weather', { params });
+    
+    weatherData.value.value = `${response.temperature} - ${response.description}`;
+    weatherData.value.iconUrl = `https://openweathermap.org/img/wn/${response.iconCode}@2x.png`;
+    weatherData.value.description = response.description;
+    weatherData.value.city = response.city; 
+    weatherData.value.code = response.iconCode; 
+
+  } catch (e) {
+    // Corrigindo o bug: Tratamento mais robusto do erro da API
+    weatherError.value = e.statusMessage || 'Falha na comunicação com o serviço de clima.';
+    weatherData.value.value = 'N/A';
+    weatherData.value.iconUrl = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg'; 
+    weatherData.value.city = 'Localização Desconhecida';
+    weatherData.value.code = 'error'; 
+  } finally {
+    isWeatherLoading.value = false;
+  }
+}
+
+
+// --- Handlers de Ação (Mantidos da correção anterior) ---
+
+const startNewRecord = () => {
+  editingRecordId.value = null;
+  showForm.value = true;
+};
+
+const handleEditRecord = (recordId) => {
+  editingRecordId.value = recordId;
+  showForm.value = true;
+};
+
+const handleRecordSaved = () => {
+  fetchData(); 
+  showForm.value = false; 
+  editingRecordId.value = null; 
+};
+
+onMounted(() => {
+  // Buscas separadas para garantir que o clima não bloqueie os dados
+  fetchData(); 
+  fetchWeather(); 
+});
 </script>
 
 ================= FILE: components/Header.vue =================
@@ -110,7 +222,7 @@ const handleRecordSaved = () => {
 // /components/Header.vue - V1.2 - Correção de CSS para o submenu não sair da tela
 <template>
   <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
-    <h1 class="text-xl font-bold text-gray-800">Meu App</h1>
+    <h1 class="text-xl font-bold text-gray-800">WLC - G & C</h1>
 
     <div class="flex items-center gap-4 relative">
       <span class="font-medium text-gray-700">
@@ -248,10 +360,11 @@ const logout = () => {
 
 ================= FILE: components/KpiCard.vue =================
 
+// components/KpiCard.vue - V1.1 - Adiciona lógica de estilização dinâmica para o clima e alinhamento à esquerda
 <template>
-  <div :class="['rounded-xl shadow-md p-4 flex items-center justify-center space-x-4', cardClasses]">
+  <div :class="['rounded-xl shadow-md p-4 flex items-center space-x-4', isWeatherCard ? 'justify-start' : 'justify-center', cardClasses]">
     <img :src="iconUrl" :alt="iconAlt" class="w-10 h-10" />
-    <div class="flex flex-col items-center justify-center">
+    <div :class="['flex flex-col', isWeatherCard ? 'items-start' : 'items-center', 'justify-center']">
       <span :class="['text-sm font-semibold', fontClasses]">{{ label }}</span>
       <span :class="['text-lg font-bold', fontClasses]">{{ value }}</span>
     </div>
@@ -273,7 +386,7 @@ const props = defineProps({
   color: {
     type: String,
     required: true,
-    validator: (value) => ['terracotta', 'azul', 'roxo', 'amarelo', 'verde', 'rosa', 'gelo', 'laranja'].includes(value),
+    validator: (value) => ['terracota', 'azul', 'roxo', 'amarelo', 'verde', 'rosa', 'gelo', 'laranja'].includes(value),
   },
   iconUrl: {
     type: String,
@@ -283,11 +396,63 @@ const props = defineProps({
     type: String,
     default: 'Ícone de KPI',
   },
+  // 🚨 NOVO: Propriedade para receber o código do clima
+  weatherCode: {
+    type: String,
+    default: null,
+  }
 });
 
+// Checa se este card é o card do clima (que usa 'terracota' no pages/index.vue)
+const isWeatherCard = computed(() => props.color === 'terracota');
+
+// 🚨 Mapeamento de códigos do OpenWeatherMap para classes Tailwind de Fundo
+const weatherBgMap = {
+  '01d': 'bg-card-weather-sun', '02d': 'bg-card-weather-sun',
+  '03d': 'bg-card-weather-cloudy', '04d': 'bg-card-weather-cloudy',
+  '09d': 'bg-card-weather-rain', '10d': 'bg-card-weather-rain',
+  '11d': 'bg-card-weather-thunder',
+  '13d': 'bg-card-weather-snow',
+  '50d': 'bg-card-weather-mist',
+  '01n': 'bg-card-weather-night', '02n': 'bg-card-weather-night',
+  '03n': 'bg-card-weather-cloudy', '04n': 'bg-card-weather-cloudy',
+  '09n': 'bg-card-weather-rain', '10n': 'bg-card-weather-rain',
+  '11n': 'bg-card-weather-thunder',
+  '13n': 'bg-card-weather-snow',
+  '50n': 'bg-card-weather-mist',
+  'error': 'bg-card-weather-error', // Fallback para erro
+  'default': 'bg-card-terracota'
+};
+
+// 🚨 Mapeamento de códigos do OpenWeatherMap para classes Tailwind de Fonte
+const weatherFontMap = {
+  '01d': 'text-font-weather-sun', '02d': 'text-font-weather-sun',
+  '03d': 'text-font-weather-cloudy', '04d': 'text-font-weather-cloudy',
+  '09d': 'text-font-weather-rain', '10d': 'text-font-weather-rain',
+  '11d': 'text-font-weather-thunder',
+  '13d': 'text-font-weather-snow',
+  '50d': 'text-font-weather-mist',
+  '01n': 'text-font-weather-night', '02n': 'text-font-weather-night',
+  '03n': 'text-font-weather-cloudy', '04n': 'text-font-weather-cloudy',
+  '09n': 'text-font-weather-rain', '10n': 'text-font-weather-rain',
+  '11n': 'text-font-weather-thunder',
+  '13n': 'text-font-weather-snow',
+  '50n': 'text-font-weather-mist',
+  'error': 'text-font-weather-error',
+  'default': 'text-font-terracota'
+};
+
+
 const cardClasses = computed(() => {
+  // 1. Lógica para o card do clima (terracota)
+  if (isWeatherCard.value && props.weatherCode) {
+    const code = props.weatherCode in weatherBgMap ? props.weatherCode : 'default';
+    return weatherBgMap[code];
+  }
+  
+  // 2. Lógica padrão para outros cards
   const colorMap = {
-    terracotta: 'bg-card-terracota',
+    terracota: 'bg-card-terracota', // Fallback se não for clima, mas for 'terracota'
     azul: 'bg-card-azul',
     roxo: 'bg-card-roxo',
     amarelo: 'bg-card-amarelo',
@@ -300,8 +465,15 @@ const cardClasses = computed(() => {
 });
 
 const fontClasses = computed(() => {
+  // 1. Lógica para o card do clima (terracota)
+  if (isWeatherCard.value && props.weatherCode) {
+    const code = props.weatherCode in weatherFontMap ? props.weatherCode : 'default';
+    return weatherFontMap[code];
+  }
+
+  // 2. Lógica padrão para outros cards
   const colorMap = {
-    terracotta: 'text-font-terracota',
+    terracota: 'text-font-terracota', // Fallback se não for clima, mas for 'terracota'
     azul: 'text-font-azul',
     roxo: 'text-font-roxo',
     amarelo: 'text-font-amarelo',

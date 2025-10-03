@@ -1,4 +1,4 @@
-// /server/api/records.post.ts
+// /server/api/records.post.ts - V2.7 - Correção de Variáveis e Resiliência
 import { defineEventHandler, createError, readMultipartFormData } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { uploadToCloudinary } from '~/server/utils/cloudinary'
@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
   const getFieldValue = (name: string): string | null => {
     const field = formData.find((item) => item.name === name)
     if (field && field.data && !field.filename) {
+      // Retorna o valor como string, ou null se não for encontrado ou for arquivo.
       return field.data.toString('utf-8')
     }
     return null
@@ -30,6 +31,10 @@ export default defineEventHandler(async (event) => {
   const record_date = getFieldValue('record_date')
   const weightStr = getFieldValue('weight')
   const measurementsJson = getFieldValue('measurements')
+  
+  // NOVOS CAMPOS DE PRIVACIDADE: Se o campo for ausente no frontend, getFieldValue retorna null.
+  const photoPrivateInput = getFieldValue('photo_is_private')
+  const formaPrivateInput = getFieldValue('forma_is_private')
 
   if (!userIdStr || !record_date || !weightStr) {
     throw createError({
@@ -55,6 +60,11 @@ export default defineEventHandler(async (event) => {
   const workoutDaysStr = getFieldValue('workoutDays')
   const observations = getFieldValue('observations')
   const workout_days = workoutDaysStr ? Number(workoutDaysStr) : null
+  
+  // Converte os strings 'true'/'false' para booleano. Se for null (campo ausente), o default é false.
+  // Este é um ponto chave de resiliência.
+  const photo_is_private = photoPrivateInput === 'true';
+  const forma_is_private = formaPrivateInput === 'true';
 
   // Arquivos
   const photoFile = formData.find((item) => item.name === 'photo' && item.filename)
@@ -91,6 +101,9 @@ export default defineEventHandler(async (event) => {
         observations,
         photo_url,
         forma_url,
+        // SALVA OS NOVOS FLAGS: Se houver URL, salva o status, senão, salva 'false'.
+        photo_is_private: photo_url ? photo_is_private : false,
+        forma_is_private: forma_url ? forma_is_private : false,
       },
     })
 
@@ -101,7 +114,7 @@ export default defineEventHandler(async (event) => {
           (m: { measurement_id: number; value: number }) => ({
             record_id: newRecord.id,
             measurement_id: m.measurement_id,
-            value: m.value,
+            value: m.value, 
           })
         )
 
@@ -115,9 +128,10 @@ export default defineEventHandler(async (event) => {
     return { message: 'Registro salvo com sucesso!', recordId: newRecord.id }
   } catch (dbError: any) {
     console.error('Erro de DB ao salvar registro:', dbError)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Erro de banco de dados ao salvar registro.',
+    // Mensagem de erro explícita para o problema mais provável.
+    throw createError({ 
+        statusCode: 500, 
+        statusMessage: 'Erro de banco de dados ao salvar registro. Verifique se as novas colunas de privacidade (photo_is_private, forma_is_private) existem na tabela `records`.',
     })
   }
 })

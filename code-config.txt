@@ -2,27 +2,36 @@
 
 ================= FILE: nuxt.config.ts =================
 
-// nuxt.config.ts
+// nuxt.config.ts - V1.3 (seguro para Prisma + Cloudinary + Bcrypt)
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
   devtools: { enabled: true },
+
   nitro: {
     compatibilityDate: '2025-09-30',
     externals: {
-      packages: ['cloudinary', 'bcryptjs', '@prisma/client'],
+      inline: ['cloudinary', 'bcryptjs'], // empacotar dentro do Nitro
+      external: ['@prisma/client'],       // manter prisma como dependência externa
     },
   },
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@pinia/nuxt'
-  ],
+
+  runtimeConfig: {
+    openWeatherApiKey: process.env.OPENWEATHER_API_KEY,
+    public: {
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL,
+    },
+  },
+
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+
   css: ['~/assets/css/main.css'],
 })
 
 
 ================= FILE: tailwind.config.js =================
 
+// tailwind.config.js - V1.1 - Adição de cores dinâmicas para o clima
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -35,7 +44,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Cores dos Cards
+        // Cores dos Cards (Existente)
         'card-azul': '#E0F2FE',
         'card-roxo': '#E6E1FF',
         'card-amarelo': '#EDE5D6',
@@ -45,7 +54,17 @@ module.exports = {
         'card-gelo': '#E6E6EE',
         'card-laranja': '#D78159',
 
-        // Cores das Fontes
+        // 🚨 NOVAS CORES DO CLIMA (Fundo)
+        'card-weather-sun': '#E6F7FF',        // Sol (Dia - 01d, 02d)
+        'card-weather-night': '#1F2937',      // Noite (01n, 02n)
+        'card-weather-cloudy': '#F3F4F6',     // Nublado (03x, 04x)
+        'card-weather-rain': '#BFDBFE',       // Chuva (09x, 10x)
+        'card-weather-thunder': '#4B0082',    // Tempestade (11x)
+        'card-weather-snow': '#FFFFFF',       // Neve (13x)
+        'card-weather-mist': '#F9FAFB',       // Névoa (50x)
+        'card-weather-error': '#FEE2E2',      // Erro/Fallback
+
+        // Cores das Fontes (Existente)
         'font-azul': '#9AB3E5',
         'font-roxo': '#B014EA',
         'font-amarelo': '#F3934F',
@@ -54,6 +73,17 @@ module.exports = {
         'font-rosa': '#D7B4B6',
         'font-gelo': '#5D5D5D',
         'font-laranja': '#ffffff',
+        
+        // 🚨 NOVAS CORES DO CLIMA (Fonte)
+        'font-weather-sun': '#36A2EB',
+        'font-weather-night': '#F3F4F6',
+        'font-weather-cloudy': '#4B5563',
+        'font-weather-rain': '#1D4ED8',
+        'font-weather-thunder': '#FFD700',
+        'font-weather-snow': '#1E3A8A',
+        'font-weather-mist': '#4B5563',
+        'font-weather-error': '#EF4444',
+
 
         // Cores dos Botões
         'btn-principal': '#E9E9FF',
@@ -156,19 +186,24 @@ model record_measurements {
 }
 
 model records {
-  id                  Int                   @id @default(autoincrement())
-  record_date         DateTime              @db.Date
-  weight              Decimal?              @db.Decimal(5, 2)
-  event               String?               @db.VarChar(255)
-  weekly_action       String?               @db.VarChar(255)
-  workout_days        String?               @db.VarChar(255)
-  observations        String?
-  photo_url           String?               @db.VarChar(255)
-  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
-  user_id             Int?
-  forma_url           String?               @db.VarChar(255)
-  record_measurements record_measurements[]
-  users               users?                @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_id")
+ id         Int          @id @default(autoincrement())
+ record_date     DateTime       @db.Date
+ weight       Decimal?       @db.Decimal(5, 2)
+ event        String?        @db.VarChar(255)
+ weekly_action    String?        @db.VarChar(255)
+ workout_days    Int?         
+ observations    String?
+ photo_url      String?        @db.VarChar(255)
+ created_at     DateTime?       @default(now()) @db.Timestamptz(6)
+ user_id       Int?
+ forma_url      String?        @db.VarChar(255)
+ 
+ // NOVOS CAMPOS: GARANTA QUE ESTAS DUAS LINHAS ESTÃO NO SEU ARQUIVO
+ photo_is_private  Boolean        @default(false)
+ forma_is_private  Boolean        @default(false)
+
+ record_measurements record_measurements[]
+ users        users?        @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_id")
 }
 
 model tipos_reacao {
@@ -217,7 +252,7 @@ model users {
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "book": "node concat.js" 
+    "book": "node concat.js"
   },
   "dependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",
@@ -226,6 +261,7 @@ model users {
     "@vueuse/core": "^13.9.0",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.5.0",
+    "cloudinary": "^2.7.0",
     "jsonwebtoken": "^9.0.2",
     "nuxt": "^4.1.2",
     "pinia": "^3.0.3",
@@ -256,3 +292,8 @@ NUXT_PUBLIC_API_BASE_URL="http://localhost:3000"
 # See the documentation for all the connection string options: https://pris.ly/d/connection-strings
 
 DATABASE_URL="postgres://neondb_owner:npg_cq7aYX8VCAQJ@ep-odd-king-ad9ty1h8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+OPENWEATHER_API_KEY="7266ddb3d14331910bdc98966924d8d0"
+
+CLOUDINARY_CLOUD_NAME=dh3z4ic30
+CLOUDINARY_API_KEY=423979354312522
+CLOUDINARY_API_SECRET=Sll6BQxjg5RLdd2LRXbs0u1ckK0
