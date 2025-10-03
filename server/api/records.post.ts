@@ -1,4 +1,4 @@
-// /server/api/records.post.ts - V2.7 - Correção de Variáveis e Resiliência
+// /server/api/records.post.ts - V3.0 - Migração para tabela `files`
 import { defineEventHandler, createError, readMultipartFormData } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { uploadToCloudinary } from '~/server/utils/cloudinary'
@@ -16,14 +16,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Helper para extrair valores de campos de texto
   const getFieldValue = (name: string): string | null => {
     const field = formData.find((item) => item.name === name)
-    if (field && field.data && !field.filename) {
-      // Retorna o valor como string, ou null se não for encontrado ou for arquivo.
-      return field.data.toString('utf-8')
-    }
-    return null
+    return field && !field.filename ? field.data.toString('utf-8') : null
   }
 
   // Campos obrigatórios
@@ -31,27 +26,18 @@ export default defineEventHandler(async (event) => {
   const record_date = getFieldValue('record_date')
   const weightStr = getFieldValue('weight')
   const measurementsJson = getFieldValue('measurements')
-  
-  // NOVOS CAMPOS DE PRIVACIDADE: Se o campo for ausente no frontend, getFieldValue retorna null.
-  const photoPrivateInput = getFieldValue('photo_is_private')
-  const formaPrivateInput = getFieldValue('forma_is_private')
 
   if (!userIdStr || !record_date || !weightStr) {
     throw createError({
       statusCode: 400,
-      statusMessage:
-        'Dados essenciais (ID do usuário, data ou peso) não fornecidos no corpo da requisição.',
+      statusMessage: 'Dados essenciais não fornecidos.',
     })
   }
 
   const user_id = Number(userIdStr)
   const weight = parseFloat(weightStr)
-
   if (isNaN(user_id) || isNaN(weight)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'ID do usuário ou Peso fornecidos em formato inválido.',
-    })
+    throw createError({ statusCode: 400, statusMessage: 'ID ou Peso inválidos.' })
   }
 
   // Campos opcionais
@@ -60,15 +46,15 @@ export default defineEventHandler(async (event) => {
   const workoutDaysStr = getFieldValue('workoutDays')
   const observations = getFieldValue('observations')
   const workout_days = workoutDaysStr ? Number(workoutDaysStr) : null
-  
-  // Converte os strings 'true'/'false' para booleano. Se for null (campo ausente), o default é false.
-  // Este é um ponto chave de resiliência.
-  const photo_is_private = photoPrivateInput === 'true';
-  const forma_is_private = formaPrivateInput === 'true';
+
+  const photoPrivateInput = getFieldValue('photo_is_private')
+  const formaPrivateInput = getFieldValue('forma_is_private')
+  const photo_is_private = photoPrivateInput === 'true' ? 1 : 0
+  const forma_is_private = formaPrivateInput === 'true' ? 1 : 0
 
   // Arquivos
-  const photoFile = formData.find((item) => item.name === 'photo' && item.filename)
-  const formaFile = formData.find((item) => item.name === 'forma' && item.filename)
+  const photoFile = formData.find((i) => i.name === 'photo' && i.filename)
+  const formaFile = formData.find((i) => i.name === 'forma' && i.filename)
 
   let photo_url: string | null = null
   let forma_url: string | null = null
@@ -82,13 +68,9 @@ export default defineEventHandler(async (event) => {
     }
   } catch (uploadError) {
     console.error('Erro ao fazer upload de fotos:', uploadError)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Erro ao fazer upload de fotos. Verifique a configuração do Cloudinary.',
-    })
+    throw createError({ statusCode: 500, statusMessage: 'Erro no upload das fotos.' })
   }
 
-  // Transação de banco de dados
   try {
     const newRecord = await prisma.records.create({
       data: {
@@ -99,39 +81,50 @@ export default defineEventHandler(async (event) => {
         weekly_action: weeklyAction,
         workout_days,
         observations,
-        photo_url,
-        forma_url,
-        // SALVA OS NOVOS FLAGS: Se houver URL, salva o status, senão, salva 'false'.
-        photo_is_private: photo_url ? photo_is_private : false,
-        forma_is_private: forma_url ? forma_is_private : false,
       },
     })
 
+    // Inserir medições
     if (measurementsJson) {
-      const parsedMeasurements = JSON.parse(measurementsJson)
-      if (Array.isArray(parsedMeasurements) && parsedMeasurements.length > 0) {
-        const measurementInserts = parsedMeasurements.map(
-          (m: { measurement_id: number; value: number }) => ({
+      const parsed = JSON.parse(measurementsJson)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        await prisma.record_measurements.createMany({
+          data: parsed.map((m: { measurement_id: number; value: number }) => ({
             record_id: newRecord.id,
             measurement_id: m.measurement_id,
-            value: m.value, 
-          })
-        )
-
-        await prisma.record_measurements.createMany({
-          data: measurementInserts,
+            value: m.value,
+          })),
         })
       }
+    }
+
+    // Inserir arquivos vinculados
+    const fileInserts: any[] = []
+    if (photo_url) {
+      fileInserts.push({
+        record_id: newRecord.id,
+        file_url: photo_url,
+        file_type: 1,
+        is_private: photo_is_private,
+      })
+    }
+    if (forma_url) {
+      fileInserts.push({
+        record_id: newRecord.id,
+        file_url: forma_url,
+        file_type: 2,
+        is_private: forma_is_private,
+      })
+    }
+
+    if (fileInserts.length > 0) {
+      await prisma.files.createMany({ data: fileInserts })
     }
 
     event.node.res.statusCode = 201
     return { message: 'Registro salvo com sucesso!', recordId: newRecord.id }
   } catch (dbError: any) {
     console.error('Erro de DB ao salvar registro:', dbError)
-    // Mensagem de erro explícita para o problema mais provável.
-    throw createError({ 
-        statusCode: 500, 
-        statusMessage: 'Erro de banco de dados ao salvar registro. Verifique se as novas colunas de privacidade (photo_is_private, forma_is_private) existem na tabela `records`.',
-    })
+    throw createError({ statusCode: 500, statusMessage: 'Erro de banco de dados ao salvar registro.' })
   }
 })
