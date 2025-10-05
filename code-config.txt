@@ -225,6 +225,7 @@ model users {
   initial_weight_kg Decimal?           @db.Decimal(5, 2)
   apelido           String?            @db.VarChar(255)
   sexo              String?            @db.VarChar(50)
+  last_login        DateTime?          @db.Timestamptz(6)
   attention_points  attention_points[]
   comentarios       comentarios[]
   posts             posts[]

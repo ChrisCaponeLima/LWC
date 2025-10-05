@@ -1,10 +1,10 @@
-// ~/plugins/auth-init.client.ts
+// /plugins/auth-init.client.ts - V1.4 - Garante init() no cliente (idempotente)
+import { useAuthStore } from '~/stores/auth'
 
-import { useAuthStore } from '~/stores/auth';
-
-export default defineNuxtPlugin(nuxtApp => {
-  // Chamada de inicialização da store APENAS no navegador (client-side)
+export default defineNuxtPlugin(async () => {
   const authStore = useAuthStore();
-  // Esta chamada agora deve funcionar
-  authStore.init(); 
+  // Segurança: apenas tenta inicializar se ainda não inicializado
+  if (!authStore.initialized && process.client) {
+    await authStore.init();
+  }
 });

@@ -2,20 +2,22 @@
 
 ================= FILE: pages/user_management.vue =================
 
+// /pages/user_management.vue - V1.15 - Medidas completas, galerias colapsáveis, responsivo e init guard
 <template>
-    <div>
-      <Header />
-  
-      <div class="container mx-auto px-4 my-8">
-        <h2 class="text-3xl font-bold text-gray-800 mb-6">Gerenciamento de Usuários</h2>
-  
-        <div class="flex justify-between items-center mb-6">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Buscar usuários..."
-            class="p-2 border border-gray-300 rounded-md w-1/3"
-          />
+  <div>
+    <Header />
+
+    <div class="container mx-auto px-4 my-8">
+      <h2 class="text-3xl font-bold text-gray-800 mb-6">Gerenciamento de Usuários</h2>
+
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Buscar usuários por nome ou email..."
+          class="p-2 border border-gray-300 rounded-md w-full md:w-1/3 focus:ring-btn-secundario focus:border-btn-secundario transition"
+        />
+        <div class="flex-shrink-0">
           <button
             @click="openAddUserModal"
             class="px-4 py-2 bg-btn-secundario text-btn-font-secundario rounded-md font-semibold hover:opacity-80 transition"
@@ -23,123 +25,478 @@
             Adicionar Novo Usuário
           </button>
         </div>
-  
-        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+      </div>
+
+      <div v-if="isLoading" class="text-center p-8">
+        <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+        <p class="text-gray-500 mt-2">Carregando lista de usuários...</p>
+      </div>
+
+      <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong class="font-bold">Erro:</strong>
+        <span class="block sm:inline"> {{ error }}</span>
+        <button @click="fetchUsers" class="ml-4 underline font-semibold">Tentar Novamente</button>
+      </div>
+
+      <div v-else class="bg-white shadow-lg rounded-xl overflow-hidden">
+        <!-- garante responsividade sem scroll lateral forçado -->
+        <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome de Usuário</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Último Login</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-              <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.username }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="{'px-2 inline-flex text-xs leading-5 font-semibold rounded-full': true, 'bg-green-100 text-green-800': user.role === 'admin', 'bg-blue-100 text-blue-800': user.role === 'user'}">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.lastLogin }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  <button @click="editUser(user)" class="text-indigo-600 hover:text-indigo-900">Editar</button>
-                  <button @click="deleteUser(user.id)" class="text-red-600 hover:text-red-900">Excluir</button>
-                </td>
-              </tr>
+              <template v-for="(user, index) in filteredUsers" :key="user.id">
+                <tr 
+                  @click="selectUser(user)" 
+                  :class="[
+                    'cursor-pointer hover:bg-gray-200 transition',
+                    index % 2 === 0 ? 'bg-white' : 'bg-[#ECECEC]', 
+                    selectedUser?.id === user.id ? 'bg-blue-50 hover:bg-blue-100' : ''
+                  ]"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ user.username }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span :class="roleBadgeClass(user.role)">
+                      {{ user.role }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatLastLogin(user.lastLogin) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button @click.stop="editUser(user)" title="Editar" class="text-indigo-600 hover:text-indigo-900 transition">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button @click.stop="deleteUser(user.id)" title="Excluir" class="text-red-600 hover:text-red-900 transition">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Detalhes expansíveis -->
+                <tr v-if="selectedUser?.id === user.id">
+                  <td :colspan="6" class="p-6 bg-gray-50 border-t border-b border-gray-200">
+                    <div class="p-4 bg-white rounded-lg shadow-xl">
+                      <h4 class="text-xl font-bold mb-4 border-b pb-2 text-gray-700">Detalhes de: {{ selectedUser.username }}</h4>
+
+                      <div class="flex flex-col lg:flex-row gap-6">
+                        <div class="flex-grow grid grid-cols-2 gap-x-8 gap-y-3 text-gray-700">
+                          <p class="col-span-1"><strong>Nome:</strong> {{ selectedUser.username }}</p>
+                          <p class="col-span-1"><strong>E-mail:</strong> {{ selectedUser.email }}</p>
+
+                          <p class="col-span-1"><strong>Data de Nascimento:</strong> {{ formatBirthDate(selectedUser.birthdate) }}</p>
+                          <p class="col-span-1"><strong>Sexo:</strong> {{ selectedUser.sexo || 'Não informado' }}</p>
+
+                          <p class="col-span-1"><strong>Peso Inicial:</strong> {{ formatWeight(selectedUser.initialWeight) }}</p>
+                          <p class="col-span-1"><strong>Peso Atual:</strong> {{ formatWeight(selectedUser.currentWeight) }}</p>
+
+                          <p class="col-span-2"><strong>Cargo:</strong>
+                            <span :class="roleBadgeClass(selectedUser.role)">
+                              {{ selectedUser.role }}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div class="flex-shrink-0 w-full lg:w-64 flex flex-col items-center">
+                          <p class="font-medium text-gray-600 mb-2">Foto de Perfil:</p>
+                          <img
+                            :src="selectedUser.photo_perfil_url || '/default-profile.png'"
+                            alt="Foto de Perfil"
+                            class="w-32 h-32 rounded-full object-cover border-2 border-gray-300"
+                            @error="selectedUser.photo_perfil_url = '/default-profile.png'"
+                          />
+                          <span v-if="!selectedUser.photo_perfil_url" class="text-sm text-gray-500 mt-2">Sem foto</span>
+
+                          <div class="mt-4 w-full p-2 border rounded-lg bg-gray-100">
+                            <p class="font-semibold text-gray-700 mb-1 border-b">Medidas Corporais Atuais:</p>
+                            <div v-if="selectedUser.latestMeasurements && Object.keys(selectedUser.latestMeasurements).length > 0" class="text-sm">
+                              <p v-for="(value, name) in selectedUser.latestMeasurements" :key="name" class="flex justify-between">
+                                <span>{{ name }}:</span>
+                                <span class="font-medium">{{ formatMeasurement(value) }} {{ measurementUnit(name) }}</span>
+                              </p>
+                            </div>
+                            <p v-else class="text-sm text-gray-500">Nenhuma medida registrada.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Galerias: botões colapsáveis, empilhadas (como index) -->
+                      <h5 class="text-md font-semibold mt-6 mb-2 pt-4 border-t text-gray-700">Galerias de Imagens</h5>
+
+                      <div class="flex flex-col gap-4">
+                        <button
+                          @click="toggleGallery('registro')"
+                          class="w-full flex justify-between items-center px-4 py-3 bg-white border rounded-md shadow-sm"
+                        >
+                          <div>
+                            <p class="font-medium text-gray-700">Fotos de Registro</p>
+                            <p class="text-xs text-gray-500">{{ (selectedUser.publicPhotos || []).length }} imagens públicas</p>
+                          </div>
+                          <i :class="activeGallery === 'registro' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                        </button>
+
+                        <div v-if="activeGallery === 'registro'" class="bg-gray-100 p-3 rounded-md border border-gray-200">
+                          <div v-if="selectedUser.publicPhotos?.length" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <div v-for="(p, i) in selectedUser.publicPhotos" :key="i" class="relative group">
+                              <img :src="p.url" class="w-full h-36 object-cover rounded-md cursor-pointer hover:opacity-80 transition" @click="openFullImage(p.url)" />
+                              <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {{ formatDate(p.date) }}
+                              </div>
+                            </div>
+                          </div>
+                          <p v-else class="text-sm text-gray-500">Nenhuma foto pública disponível.</p>
+                        </div>
+
+                        <button
+                          @click="toggleGallery('forma')"
+                          class="w-full flex justify-between items-center px-4 py-3 bg-white border rounded-md shadow-sm"
+                        >
+                          <div>
+                            <p class="font-medium text-gray-700">Fotos de Forma</p>
+                            <p class="text-xs text-gray-500">{{ (selectedUser.publicFormas || []).length }} imagens públicas</p>
+                          </div>
+                          <i :class="activeGallery === 'forma' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                        </button>
+
+                        <div v-if="activeGallery === 'forma'" class="bg-gray-100 p-3 rounded-md border border-gray-200">
+                          <div v-if="selectedUser.publicFormas?.length" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <div v-for="(p, i) in selectedUser.publicFormas" :key="i" class="relative group">
+                              <img :src="p.url" class="w-full h-36 object-cover rounded-md cursor-pointer hover:opacity-80 transition" @click="openFullImage(p.url)" />
+                              <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {{ formatDate(p.date) }}
+                              </div>
+                            </div>
+                          </div>
+                          <p v-else class="text-sm text-gray-500">Nenhuma foto pública disponível.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
-          
-          <div v-if="filteredUsers.length === 0" class="p-4 text-center text-gray-500">
-            Nenhum usuário encontrado.
-          </div>
+        </div>
+
+        <div v-if="filteredUsers.length === 0 && !isLoading" class="p-4 text-center text-gray-500">
+          Nenhum usuário encontrado que corresponda à busca.
         </div>
       </div>
-  
-      <Footer />
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed } from 'vue';
-  import { useAuthStore } from '~/stores/auth';
-  
-  // --- 1. Proteção de Rota Específica para Admin ---
-  definePageMeta({
-    middleware: [
-      'auth', // Garante que o usuário esteja logado
-      async (to, from) => {
-        const authStore = useAuthStore();
-        authStore.loadUser(); // Garante que o estado mais recente seja carregado
-  
-        if (!authStore.isAdmin) {
-          // Redireciona para a página inicial se não for admin
-          return navigateTo('/');
-        }
-      }
-    ]
-  });
-  
-  // --- 2. Simulação de Dados de Usuário ---
-  const users = ref([
-    { id: 1, username: 'admin', role: 'admin', email: 'admin@app.com', lastLogin: '2025-09-25' },
-    { id: 2, username: 'usuario1', role: 'user', email: 'user1@app.com', lastLogin: '2025-09-24' },
-    { id: 3, username: 'cliente_vip', role: 'user', email: 'vip@app.com', lastLogin: '2025-09-23' },
-    { id: 4, username: 'teste_user', role: 'user', email: 'teste@app.com', lastLogin: '2025-09-21' },
-  ]);
-  
-  const searchQuery = ref('');
-  
-  // --- 3. Lógica de Filtro Reativo ---
-  const filteredUsers = computed(() => {
-    if (!searchQuery.value) {
-      return users.value;
+
+    <!-- Modal fullscreen -->
+    <div v-if="fullImageUrl" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" @click="closeFullImage">
+      <img :src="fullImageUrl" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg" />
+      <button class="absolute top-5 right-5 text-white text-3xl" @click.stop="closeFullImage">✕</button>
+    </div>
+
+    <Footer />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { useRuntimeConfig, navigateTo } from '#app'
+
+definePageMeta({
+  middleware: ['admin-auth']
+})
+
+const authStore = useAuthStore()
+const config = useRuntimeConfig()
+const users = ref([])
+const searchQuery = ref('')
+const isLoading = ref(false)
+const error = ref(null)
+const selectedUser = ref(null)
+const fullImageUrl = ref(null)
+
+const activeGallery = ref(null) // 'registro' | 'forma' | null
+
+const openFullImage = (url) => (fullImageUrl.value = url)
+const closeFullImage = () => (fullImageUrl.value = null)
+const toggleGallery = (which) => {
+  activeGallery.value = activeGallery.value === which ? null : which
+}
+
+const roleBadgeClass = (role) => {
+  const r = (role || '').toString().toLowerCase()
+  if (r === 'owner') return 'px-2 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800'
+  if (r === 'admin') return 'px-2 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800'
+  return 'px-2 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800'
+}
+
+const formatWeight = (weightString) => {
+  if (!weightString) return 'Não registrado'
+  try {
+    const weight = parseFloat(weightString)
+    return isNaN(weight) ? 'Inválido' : `${weight.toFixed(2)} kg`
+  } catch {
+    return 'Inválido'
+  }
+}
+
+const formatMeasurement = (valueString) => {
+  if (!valueString) return '0.00'
+  try {
+    const value = parseFloat(valueString)
+    return isNaN(value) ? 'Inválido' : value.toFixed(2)
+  } catch {
+    return 'Inválido'
+  }
+}
+
+const measurementUnit = (_name) => 'cm'
+
+const formatBirthDate = (dateString) => {
+  if (!dateString) return 'Não informado'
+  try {
+    const parts = dateString.split('-')
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+  } catch { }
+  return dateString
+}
+
+const formatLastLogin = (dateString) => {
+  if (!dateString) return 'Nunca'
+  try {
+    const parts = dateString.split('-')
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+  } catch { }
+  return dateString
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'S/D'
+  try {
+    const d = new Date(dateString)
+    if (isNaN(d.getTime())) return dateString
+    return d.toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  } catch {
+    return dateString
+  }
+}
+
+const fetchUsers = async () => {
+  isLoading.value = true
+  error.value = null
+  try {
+    // garante a inicialização da store para evitar perda de sessão no refresh
+    if (!authStore.initialized) await authStore.init()
+
+    const token = authStore.token
+    if (!token) {
+      error.value = "Usuário sem token de autenticação. Tente relogar."
+      return
     }
-    const query = searchQuery.value.toLowerCase();
-    return users.value.filter(user => 
-      user.username.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query)
-    );
-  });
-  
-  // --- 4. Funções de Ação (simulação) ---
-  const openAddUserModal = () => {
-    alert('Funcionalidade: Abrir modal para adicionar novo usuário. Você implementará a API aqui.');
-    // Aqui você abriria um componente modal para a criação de usuário
-  };
-  
-  const editUser = (user) => {
-    alert(`Funcionalidade: Editar usuário ${user.username}.`);
-  };
-  
-  const deleteUser = (userId) => {
-    if (confirm('Tem certeza de que deseja excluir este usuário?')) {
-      // Lógica para chamar a API de exclusão
-      users.value = users.value.filter(user => user.id !== userId);
-      alert(`Usuário ${userId} excluído com sucesso (simulação).`);
+
+    const response = await $fetch('/api/users', {
+      baseURL: config.public.apiBaseUrl,
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    // garante estrutura mínima
+    users.value = Array.isArray(response) ? response : []
+  } catch (e) {
+    console.error('Erro ao buscar usuários (Frontend):', e)
+    const fetchError = (e?.data || e?.response || e)
+    error.value = fetchError?.statusMessage || fetchError?.message || 'Falha desconhecida ao carregar usuários.'
+    if (e?.status === 401 || e?.status === 403) {
+      error.value += '. Tente refazer o login.'
     }
-  };
-  </script>
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const filteredUsers = computed(() => {
+  if (!searchQuery.value) return users.value
+  const query = searchQuery.value.toLowerCase()
+  return users.value.filter(user =>
+    (user.username || '').toLowerCase().includes(query) ||
+    (user.email || '').toLowerCase().includes(query)
+  )
+})
+
+const selectUser = (user) => {
+  if (selectedUser.value && selectedUser.value.id === user.id) {
+    selectedUser.value = null
+    activeGallery.value = null
+  } else {
+    selectedUser.value = user
+    activeGallery.value = null
+  }
+}
+
+const openAddUserModal = () => { alert('Funcionalidade: Abrir modal para adicionar novo usuário.') }
+const editUser = (user) => { alert(`Funcionalidade: Editar usuário ${user.username}.`) }
+const deleteUser = async (userId) => {
+  if (confirm('Tem certeza de que deseja excluir este usuário?')) {
+    alert(`Funcionalidade: Chamada de API para excluir usuário ${userId} (simulação).`)
+    users.value = users.value.filter(u => u.id !== userId)
+    if (selectedUser.value?.id === userId) selectedUser.value = null
+  }
+}
+
+onMounted(() => { fetchUsers() })
+</script>
+
 
 ================= FILE: server/api/users.get.ts =================
 
-// /server/api/users.get.ts
-import { defineEventHandler } from 'h3';
-import { prisma } from '~/server/utils/db';
+// /server/api/users.get.ts - V1.8 - Retorna fotos (inclui privadas quando requester é 'owner') e medidas completas
+import { defineEventHandler, createError, H3Event } from 'h3'
+import { prisma } from '~/server/utils/db.ts'
+import { verifyToken } from '~/server/utils/auth.ts'
 
-export default defineEventHandler(async () => {
-  return await prisma.users.findMany({
-    select: {
-      id: true,
-      username: true,
-      email: true,
-      role: true,
-      apelido: true,
-      photo_perfil_url: true,
-      created_at: true,
-    },
-  });
-});
+// Tipo de dados esperado no token
+interface AuthPayload {
+  userId: number
+  role: string
+}
+
+export default defineEventHandler(async (event: H3Event) => {
+  const token = event.headers.get('Authorization')?.split(' ')[1]
+
+  if (!token) {
+    throw createError({ statusCode: 401, statusMessage: 'Não autorizado. Token não fornecido.' })
+  }
+
+  let payload: AuthPayload
+  try {
+    payload = verifyToken(token) as AuthPayload
+  } catch (e) {
+    throw createError({ statusCode: 401, statusMessage: 'Token inválido ou expirado.' })
+  }
+
+  // Somente admin/owner tem permissão de consultar este endpoint
+  if (payload.role !== 'admin' && payload.role !== 'owner') {
+    throw createError({ statusCode: 403, statusMessage: 'Acesso Proibido. Requer cargo de Administrador.' })
+  }
+
+  try {
+    // Exclui explicitamente usuários com role 'owner' da lista (não aparecem)
+    const users = await prisma.users.findMany({
+      where: {
+        role: { not: 'owner' }
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        last_login: true,
+        birthdate: true,
+        photo_perfil_url: true,
+        initial_weight_kg: true,
+        sexo: true,
+
+        // BUSCA TODOS os records (ordenados desc) com medidas e arquivos
+        records: {
+          orderBy: { record_date: 'desc' },
+          select: {
+            id: true,
+            record_date: true,
+            weight: true,
+            record_measurements: {
+              select: {
+                value: true,
+                measurements: {
+                  select: {
+                    name: true,
+                    unit: true
+                  }
+                }
+              }
+            },
+            files: {
+              select: {
+                file_url: true,
+                file_type: true,
+                is_private: true,
+                created_at: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { id: 'asc' }
+    })
+
+    // se caller for owner, permitimos incluir privados
+    const callerIsOwner = payload.role === 'owner'
+
+    const formattedUsers = users.map(user => {
+      const records = user.records || []
+      const latestRecord = records.length > 0 ? records[0] : null
+
+      // --- Medidas corporais do último record (se houver) ---
+      const latestMeasurements: Record<string, string> = {}
+      if (latestRecord?.record_measurements) {
+        latestRecord.record_measurements.forEach(m => {
+          if (m.measurements?.name !== undefined && m.value !== undefined) {
+            latestMeasurements[m.measurements.name] = m.value.toString()
+          }
+        })
+      }
+
+      // --- Galerias (agrega TODOS os records)
+      const registroTypes = [1, 0] // 1 (registro) preferencial, 0 fallback histórico
+      const formaTypes = [2]       // 2 => forma
+
+      const publicPhotos = records
+        .flatMap(r => (r.files || [])
+          .filter(f => registroTypes.includes(f.file_type) && (callerIsOwner || f.is_private === 0))
+          .map(f => ({ url: f.file_url, date: r.record_date, recordId: r.id }))
+        )
+
+      const publicFormas = records
+        .flatMap(r => (r.files || [])
+          .filter(f => formaTypes.includes(f.file_type) && (callerIsOwner || f.is_private === 0))
+          .map(f => ({ url: f.file_url, date: r.record_date, recordId: r.id }))
+        )
+
+      const formatDbDate = (dbDate: Date | null | undefined) => {
+        if (!dbDate) return null
+        if (!(dbDate instanceof Date)) return null
+        return dbDate.toISOString().split('T')[0]
+      }
+
+      return {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        lastLogin: formatDbDate(user.last_login),
+        birthdate: formatDbDate(user.birthdate),
+        photo_perfil_url: user.photo_perfil_url,
+        initialWeight: user.initial_weight_kg?.toString() || null,
+        sexo: user.sexo,
+        currentWeight: latestRecord?.weight?.toString() || null,
+        latestMeasurements,
+        publicPhotos,
+        publicFormas
+      }
+    })
+
+    return formattedUsers
+  } catch (error: any) {
+    console.error('Erro ao buscar lista de usuários (API):', error)
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Erro interno ao carregar a lista de usuários. Verifique o log do servidor.'
+    })
+  }
+})

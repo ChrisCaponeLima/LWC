@@ -1,91 +1,93 @@
-// ~/stores/auth.ts - V1.2 - Adição de role e getter isAdmin para menu de admin
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue'; // 👈 Importação do computed adicionada
+// /stores/auth.ts - V1.8 - Init assíncrono e persistência confiável
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 
-// Definição de Tipagem para o Objeto de Usuário
-interface User {
-  userId: number;
-  username: string;
-  apelido: string | null;
-  email: string;
-  initialWeight: number;
-  heightCm: number;
-  photo_perfil_url?: string;
-  role?: string; // 👈 Adicionado o campo role
-}
+type AnyUser = Record<string, any>
 
 export const useAuthStore = defineStore('auth', () => {
-  // Estado
-  const user = ref<User | null>(null);
-  const token = ref<string | null>(null);
-  const isAuthenticated = ref(false);
+  const user = ref<AnyUser | null>(null)
+  const token = ref<string | null>(null)
+  const isAuthenticated = ref(false)
+  const initialized = ref(false)
 
-  // Getters
-  // 🚨 NOVO GETTER: Verifica se o usuário é admin de forma robusta
-  const isAdmin = computed(() => {
-    // Retorna true se a role existir e for estritamente igual a 'admin' (em minúsculas)
-    return user.value?.role?.toLowerCase() === 'admin'; 
-  });
+  const isAdmin = computed(() => String(user.value?.role || '').toLowerCase() === 'admin')
+  const isOwner = computed(() => String(user.value?.role || '').toLowerCase() === 'owner')
 
-  // Ação de Login
-  // A tipagem de 'data' deve refletir o que vem da API, incluindo o role
-  const login = (data: { token?: string, user: User & { role: string } }) => {
-    token.value = data.token || null;
-    user.value = { 
-        ...data.user,
-        // Garante que a role esteja sempre presente (o banco pode não ter enviado)
-        role: data.user.role || 'user' 
-    };
-    isAuthenticated.value = true;
-    
-    if (process.client) {
-      if (data.token) localStorage.setItem('authToken', data.token);
-      localStorage.setItem('authUser', JSON.stringify(user.value));
+  const login = (data: { token?: string; user: AnyUser }) => {
+    token.value = data.token || null
+    const incoming = data.user || {}
+    const normalizedUser: AnyUser = {
+      ...incoming,
+      id: incoming.id ?? incoming.userId,
     }
-  };
+    normalizedUser.userId = normalizedUser.id
+    user.value = normalizedUser
+    isAuthenticated.value = true
 
-  // Ação de Logout
+    if (process.client) {
+      if (token.value) localStorage.setItem('authToken', token.value)
+      localStorage.setItem('authUser', JSON.stringify(user.value))
+    }
+    initialized.value = true
+  }
+
   const logout = () => {
-    token.value = null;
-    user.value = null;
-    isAuthenticated.value = false;
-    
+    token.value = null
+    user.value = null
+    isAuthenticated.value = false
     if (process.client) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('authUser')
     }
-  };
+    initialized.value = true
+  }
 
-  // Ação de Inicialização
-  const init = () => {
-    if (process.client) {
-      const savedToken = localStorage.getItem('authToken');
-      const savedUser = localStorage.getItem('authUser');
+  const init = async () => {
+    if (initialized.value) return
+    if (!process.client) {
+      initialized.value = true
+      return
+    }
 
-      if (savedToken && savedUser) {
-        token.value = savedToken;
+    await new Promise((resolve) => {
+      setTimeout(() => {
         try {
-          const parsedUser = JSON.parse(savedUser);
-          // 🚨 Garante que a role exista ao carregar do storage
-          user.value = { ...parsedUser, role: parsedUser.role || 'user' } as User;
-          isAuthenticated.value = true;
-        } catch (e) {
-          console.error("Erro ao fazer parse dos dados de usuário salvos:", e);
-          logout();
+          const savedToken = localStorage.getItem('authToken')
+          const savedUser = localStorage.getItem('authUser')
+          if (savedToken && savedUser) {
+            token.value = savedToken
+            const parsed = JSON.parse(savedUser)
+            const normalizedUser: AnyUser = {
+              ...parsed,
+              id: parsed.id ?? parsed.userId,
+            }
+            normalizedUser.userId = normalizedUser.id
+            user.value = normalizedUser
+            isAuthenticated.value = true
+          } else {
+            token.value = null
+            user.value = null
+            isAuthenticated.value = false
+          }
+        } catch (err) {
+          console.error('auth.init: erro inesperado', err)
+        } finally {
+          initialized.value = true
+          resolve(true)
         }
-      } else {
-        isAuthenticated.value = false;
-      }
-    }
-  };
+      }, 10)
+    })
+  }
 
   return {
     user,
     token,
     isAuthenticated,
-    isAdmin, // 👈 Exportação do novo getter
+    initialized,
+    isAdmin,
+    isOwner,
     login,
     logout,
-    init
-  };
-});
+    init,
+  }
+})

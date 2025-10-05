@@ -1,138 +1,160 @@
-// /components/Header.vue - V1.2 - Correção de CSS para o submenu não sair da tela
+// /components/Header.vue - V1.10 - Substituição de 'WLC - G & C' por ícone/LWC e remoção da lógica onMounted
 <template>
-  <header class="flex items-center justify-between p-4 shadow-md bg-white relative">
-    <h1 class="text-xl font-bold text-gray-800">WLC - G & C</h1>
-
-    <div class="flex items-center gap-4 relative">
-      <span class="font-medium text-gray-700">
-        {{ firstName }}
-      </span>
-
-      <div class="relative">
-        <button @click="toggleMenu" class="w-10 h-10 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-gray-200 focus:outline-none">
-          <img
-            v-if="authStore.user?.photo_perfil_url"
-            :src="authStore.user.photo_perfil_url"
-            alt="Foto de Perfil"
-            class="w-full h-full object-cover"
-            @error="handleImgError"
-          />
-          <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
-        </button>
-
-        <div
-          v-if="menuOpen"
-          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+ <header class="flex items-center justify-between p-4 shadow-md bg-[#222B45] relative">
+  
+    <div class="flex items-center space-x-3">
+        <img 
+            src="/images/logoLWC.png" 
+            alt="Logotipo LWC" 
+            class="h-8 w-8 object-contain"
         >
-          <ul class="py-2">
-            <li>
-              <button
-                @click="goToProfile"
-                class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
-              >
-                Meu Perfil
-              </button>
-            </li>
-
-            <li v-if="authStore.isAdmin" class="relative group">
-              <div
-                class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
-              >
-                Administrar
-                <span class="text-gray-500">▶</span>
-              </div>
-              <ul
-                class="absolute top-0 right-full mr-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block"
-              >
-                <li>
-                  <button
-                    @click="goToUserAdmin"
-                    class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
-                  >
-                    Administração de Usuários
-                  </button>
-                </li>
-              </ul>
-            </li>
-
-            <li>
-              <button
-                @click="logout"
-                class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-semibold"
-              >
-                Sair
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
+        <h1 class="text-xl font-bold text-white">LWC</h1>
     </div>
-  </header>
+
+  <div class="flex items-center gap-4 relative">
+   <span 
+    class="font-medium transition-colors duration-300"
+    :class="authStore.isOwner ? 'text-red-400' : (authStore.isAdmin ? 'text-yellow-400' : 'text-white')"
+   >
+    {{ firstName }}
+   </span>
+
+   <div class="relative">
+    <button @click="toggleMenu"
+     :class="[
+      'w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200 focus:outline-none',
+      authStore.isOwner ? 'ring-2 ring-red-400' : (authStore.isAdmin ? 'border-2 border-yellow-400' : 'border border-gray-300')
+     ]"
+    >
+     <img
+      v-if="authStore.user?.photo_perfil_url"
+      :src="authStore.user.photo_perfil_url"
+      alt="Foto de Perfil"
+      class="w-full h-full object-cover"
+      @error="handleImgError"
+     />
+     <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
+    </button>
+
+    <div
+     v-if="menuOpen"
+     class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+     @mouseleave="closeAdminMenu"
+    >
+     <ul class="py-2">
+      <li>
+       <button
+        @click="goToProfile"
+        class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+       >
+        Meu Perfil
+       </button>
+      </li>
+
+      <li v-if="authStore.isAdmin || authStore.isOwner"
+        class="relative"
+        @mouseenter="openAdminMenu"
+        @mouseleave="closeAdminMenu"
+      >
+       <div
+        class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
+       >
+        Administrar
+        <span class="text-gray-500">▶</span>
+       </div>
+
+       <ul
+        v-if="adminSubMenuOpen"
+        class="absolute top-0 right-full mr-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+       >
+        <li>
+         <button
+          @click="goToUserAdmin"
+          class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+         >
+          Administração de Usuários
+         </button>
+        </li>
+       </ul>
+      </li>
+
+      <li>
+       <button
+        @click="logout"
+        class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-semibold"
+       >
+        Sair
+       </button>
+      </li>
+     </ul>
+    </div>
+   </div>
+  </div>
+ </header>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { navigateTo } from '#app'
 
 const authStore = useAuthStore()
 const menuOpen = ref(false)
+const adminSubMenuOpen = ref(false)
 
-// Somente o primeiro nome
+// Lógica de inicialização original V1.8 (AGORA REMOVIDA na V1.9 e V1.10)
+// onMounted(async () => { ... })
+
 const firstName = computed(() => {
-  if (authStore.user?.username) {
-    return authStore.user.username.split(' ')[0]
-  }
-  return 'Usuário'
+ if (authStore.user?.username) {
+  return authStore.user.username.split(' ')[0]
+ }
+ return 'Usuário'
 })
 
-// Iniciais para fallback
 const initials = computed(() => {
-  if (authStore.user?.username) {
-    return authStore.user.username.charAt(0).toUpperCase()
-  }
-  return 'U'
+ if (authStore.user?.username) {
+  return authStore.user.username.charAt(0).toUpperCase()
+ }
+ return 'U'
 })
 
 const handleImgError = () => {
-  // Define a URL como nula para que o v-else exiba as iniciais
-  if (authStore.user) {
-    authStore.user.photo_perfil_url = null 
-  }
+ if (authStore.user) authStore.user.photo_perfil_url = null
 }
 
 const toggleMenu = () => {
-  menuOpen.value = !menuOpen.value
+ menuOpen.value = !menuOpen.value
+ if (!menuOpen.value) adminSubMenuOpen.value = false
 }
+const openAdminMenu = () => { adminSubMenuOpen.value = true }
+const closeAdminMenu = () => { adminSubMenuOpen.value = false }
 
 const closeMenu = (event) => {
-  if (!event.target.closest('.relative')) {
-    menuOpen.value = false
-  }
+ const menuContainer = event.target.closest('.relative')
+ if (!menuContainer || !menuContainer.contains(event.target)) {
+  menuOpen.value = false
+  adminSubMenuOpen.value = false
+ }
 }
 
-// Fecha menu ao clicar fora
-onMounted(() => {
-  document.addEventListener('click', closeMenu)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', closeMenu)
-})
+onMounted(() => document.addEventListener('click', closeMenu))
+onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
 
-// Navegação
 const goToProfile = () => {
-  menuOpen.value = false
-  navigateTo('/profile')
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/profile')
 }
-
 const goToUserAdmin = () => {
-  menuOpen.value = false
-  navigateTo('/admin/users')
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/user_management')
 }
-
 const logout = () => {
-  authStore.logout()
-  menuOpen.value = false
-  navigateTo('/login')
+ authStore.logout()
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/login')
 }
 </script>
