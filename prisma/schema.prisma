@@ -78,7 +78,7 @@ model record_measurements {
   measurement_id Int?
   value          Decimal       @db.Decimal(5, 2)
   measurements   measurements? @relation(fields: [measurement_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  records        records?      @relation(fields: [record_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  records        records?      @relation(fields: [record_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model records {
@@ -93,7 +93,7 @@ model records {
   user_id             Int?
   files               files[]
   record_measurements record_measurements[]
-  users               users?                @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_id")
+  users               users?                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_id")
 }
 
 model tipos_reacao {
