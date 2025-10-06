@@ -1,4 +1,4 @@
-// /server/utils/measurementUtils.ts - V2.0 - REFATORAÇÃO: Processa TODOS os records para encontrar o último e penúltimo valor para CADA medida individualmente.
+// /server/utils/measurementUtils.ts - V2.1 - Consolidação e remoção de código duplicado (Mantendo V2.0)
 import { Decimal } from '@prisma/client/runtime/library';
 
 // Estrutura de dados simplificada para records vindos da query de users.get.ts
@@ -14,7 +14,7 @@ interface RecordPrisma {
     }>;
 }
 
-// Estrutura de retorno para o frontend (mantida)
+// Estrutura de retorno para o frontend
 export interface LatestMeasurementData {
     value: number; // Último valor
     name: string;
@@ -26,7 +26,7 @@ export interface LatestMeasurementData {
  * Processa a lista COMPLETA de records (já ordenados do mais novo para o mais antigo) 
  * para construir uma série para cada tipo de medida, extrair o último/penúltimo valor
  * e calcular a tendência.
- * * @param records Lista de records ordenados por data (DESC) do Prisma
+ * @param records Lista de records ordenados por data (DESC) do Prisma
  * @returns Um objeto mapeado com o nome da medida e seus detalhes, incluindo a tendência.
  */
 export function calculateLatestMeasurementsWithTrend(records: RecordPrisma[]): Record<string, LatestMeasurementData> {
@@ -44,8 +44,6 @@ export function calculateLatestMeasurementsWithTrend(records: RecordPrisma[]): R
     const weightKey = 'Peso';
 
     // 1. Iterar por TODOS os records (do mais novo para o mais antigo) para construir a série de valores
-    // NOTE: A ordem ASC/DESC não importa para a construção da série, mas a busca do Prisma deve ser DESC
-    // para que o primeiro valor encontrado seja o mais recente.
     for (const record of records) {
         
         // a. Processar Peso
