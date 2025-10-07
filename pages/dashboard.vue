@@ -1,4 +1,4 @@
-// /pages/dashboard.vue - V1.0 - Conteúdo movido do antigo /pages/index.vue.
+// /pages/dashboard.vue - V1.1 - Lógica do primeiro nome e apelido restaurada na saudação.
 <template>
 <div>
 <Header />
@@ -7,7 +7,7 @@
 <div class="my-8">
 <ClientOnly>
 <h2 class="text-3xl font-bold text-gray-800">
-{{ greetingMessage }}, {{ authStore.user?.apelido || authStore.user?.username || 'Usuário' }}!
+{{ greetingMessage }}, {{ userNameForGreeting }}!
 </h2>
 <p v-if="isLoading" class="text-gray-500">carregando seus dados...</p>
 <p v-else-if="error" class="text-red-500">{{ error }}</p>
@@ -15,7 +15,7 @@
 </div>
 
 <div class="mb-4">
-  <KpiCard
+ <KpiCard
 label="Clima Atual"
 :value="weatherData.value"
 color="terracota"
@@ -90,7 +90,6 @@ v-if="showForm"
 </template>
 
 <script setup>
-// /pages/dashboard.vue - V1.0 - Conteúdo movido do antigo /pages/index.vue.
 import { ref, onMounted, computed } from 'vue'; 
 import { useAuthStore } from '~/stores/auth';
 import { useKpiData } from '~/composables/useKpiData';
@@ -113,6 +112,24 @@ fetchData,
 hasRegistroPhotos, 
 hasFormaPhotos 
 } = useKpiData();
+
+// --- Nome de Exibição para Saudação (Implementa a regra) ---
+const userNameForGreeting = computed(() => {
+    // 1. Prioridade: Apelido
+    if (authStore.user?.apelido) {
+        return authStore.user.apelido;
+    }
+
+    // 2. Fallback: Primeiro Nome do Username
+    const username = authStore.user?.username;
+    if (username) {
+        // Exemplo: 'Patricia Santos' -> ['Patricia', 'Santos'] -> 'Patricia'
+        return username.split(' ')[0];
+    }
+
+    // 3. Fallback final
+    return 'Usuário';
+});
 
 // --- Saudação Dinâmica ---
 const greetingMessage = computed(() => {
@@ -191,9 +208,9 @@ isWeatherLoading.value = false;
 // --- Handlers de Ação ---
 
 const startNewRecord = () => {
-  // CORREÇÃO CRÍTICA: Sempre define como true para garantir que o formulário abra
-  editingRecordId.value = null;
-  showForm.value = true; 
+ // CORREÇÃO CRÍTICA: Sempre define como true para garantir que o formulário abra
+ editingRecordId.value = null;
+ showForm.value = true; 
 };
 
 const handleEditRecord = (recordId) => {
@@ -202,12 +219,12 @@ showForm.value = true;
 };
 
 const handleRecordSaved = () => {
-  // Este handler agora também é chamado pelo evento @cancel
-  // No caso de cancelamento, não precisa de fetchData, mas o custo é baixo.
-  // É mais simples manter um único handler.
-  fetchData(); 
-  showForm.value = false; 
-  editingRecordId.value = null; 
+ // Este handler agora também é chamado pelo evento @cancel
+ // No caso de cancelamento, não precisa de fetchData, mas o custo é baixo.
+ // É mais simples manter um único handler.
+ fetchData(); 
+ showForm.value = false; 
+ editingRecordId.value = null; 
 };
 
 onMounted(() => {
