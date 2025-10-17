@@ -3,11 +3,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "npx prisma generate && nuxt build", 
+    "build": "npx prisma generate && nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "npx prisma generate && nuxt prepare", 
+    "postinstall": "npx prisma generate && nuxt prepare",
     "book": "node concat.js"
   },
   "dependencies": {
@@ -20,7 +20,9 @@
     "chart.js": "^4.5.0",
     "cloudinary": "^2.7.0",
     "jsonwebtoken": "^9.0.2",
-    "nuxt": "^4.1.2",
+    "jwt-decode": "^4.0.0",
+    "nitropack": "^2.9.7",
+    "nuxt": "^4.1.0",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.5.0",
     "prisma": "^6.16.3",

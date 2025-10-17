@@ -1,7 +1,7 @@
-// /pages/dashboard.vue - V1.1 - Lógica do primeiro nome e apelido restaurada na saudação.
+// /pages/dashboard.vue - V1.5 - Atualização do botão 'Registro Rápido' para usar apenas o ícone de raio (fa-bolt).
 <template>
 <div>
-<Header />
+<Header pageTitle="Dashboard" />
 
 <div class="container mx-auto px-4 my-8">
 <div class="my-8">
@@ -15,7 +15,7 @@
 </div>
 
 <div class="mb-4">
- <KpiCard
+<KpiCard
 label="Clima Atual"
 :value="weatherData.value"
 color="terracota"
@@ -62,12 +62,20 @@ icon-alt="Ícone de Régua"
 </div>
 
 <div class="mt-8 text-center">
-<button
-@click="startNewRecord"
-class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80"
->
-<i class="fas fa-plus-circle mr-2"></i> Adicionar Novo Registro
-</button>
+    <div class="flex justify-center space-x-4"> 
+        <button
+            @click="startPhotoRecord"
+            class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
+        >
+        <i class="fas fa-camera mr-2"></i><i class="fas fa-bolt text-lg"></i> 
+        </button>
+        <button
+            @click="startNewRecord"
+            class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
+        >
+            <i class="fas fa-plus-circle mr-2"></i> Novo Registro
+        </button>
+    </div>
 </div>
 
 <DataForm 
@@ -90,9 +98,13 @@ v-if="showForm"
 </template>
 
 <script setup>
+// O bloco script não precisa de alterações
 import { ref, onMounted, computed } from 'vue'; 
 import { useAuthStore } from '~/stores/auth';
 import { useKpiData } from '~/composables/useKpiData';
+
+// Nuxt Composer para navegação
+const router = useRouter();
 
 definePageMeta({
 middleware: ['auth'] 
@@ -115,20 +127,20 @@ hasFormaPhotos
 
 // --- Nome de Exibição para Saudação (Implementa a regra) ---
 const userNameForGreeting = computed(() => {
-    // 1. Prioridade: Apelido
-    if (authStore.user?.apelido) {
-        return authStore.user.apelido;
-    }
+  // 1. Prioridade: Apelido
+  if (authStore.user?.apelido) {
+    return authStore.user.apelido;
+  }
 
-    // 2. Fallback: Primeiro Nome do Username
-    const username = authStore.user?.username;
-    if (username) {
-        // Exemplo: 'Patricia Santos' -> ['Patricia', 'Santos'] -> 'Patricia'
-        return username.split(' ')[0];
-    }
+  // 2. Fallback: Primeiro Nome do Username
+  const username = authStore.user?.username;
+  if (username) {
+    // Exemplo: 'Patricia Santos' -> ['Patricia', 'Santos'] -> 'Patricia'
+    return username.split(' ')[0];
+  }
 
-    // 3. Fallback final
-    return 'Usuário';
+  // 3. Fallback final
+  return 'Usuário';
 });
 
 // --- Saudação Dinâmica ---
@@ -181,7 +193,6 @@ try {
 const params = {};
 if (lat && lon) {
 params.lat = lat;
-params.lon = lon;
 }
 
 const response = await $fetch('/api/weather', { params });
@@ -207,10 +218,16 @@ isWeatherLoading.value = false;
 
 // --- Handlers de Ação ---
 
+// ATUALIZADO: Função para o botão "Registro Rápido"
+const startPhotoRecord = () => {
+    // Redireciona para a nova página de registro rápido dedicada
+    router.push({ path: '/registro/foto-rapida' });
+};
+
 const startNewRecord = () => {
- // CORREÇÃO CRÍTICA: Sempre define como true para garantir que o formulário abra
- editingRecordId.value = null;
- showForm.value = true; 
+// CORREÇÃO CRÍTICA: Sempre define como true para garantir que o formulário abra
+editingRecordId.value = null;
+showForm.value = true; 
 };
 
 const handleEditRecord = (recordId) => {
@@ -219,12 +236,12 @@ showForm.value = true;
 };
 
 const handleRecordSaved = () => {
- // Este handler agora também é chamado pelo evento @cancel
- // No caso de cancelamento, não precisa de fetchData, mas o custo é baixo.
- // É mais simples manter um único handler.
- fetchData(); 
- showForm.value = false; 
- editingRecordId.value = null; 
+// Este handler agora também é chamado pelo evento @cancel
+// No caso de cancelamento, não precisa de fetchData, mas o custo é baixo.
+// É mais simples manter um único handler.
+fetchData(); 
+showForm.value = false; 
+editingRecordId.value = null; 
 };
 
 onMounted(() => {

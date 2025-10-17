@@ -1,14 +1,19 @@
-// nuxt.config.ts - V1.4 - Ativação do modo debug para Nuxt Devtools/Context
+// nuxt.config.ts - V1.6 - Correção de falha de build/runtime do Cloudinary
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
- devtools: { enabled: true, debug: true }, // <-- ADICIONADO AQUI
+ devtools: { enabled: true, debug: true }, 
 
+ // 1. Adicionar o pacote à lista de transpilação (CORREÇÃO para moduleSideEffects)
+ build: {
+   transpile: ['cloudinary'],
+ },
+ 
  nitro: {
   compatibilityDate: '2025-09-30',
   externals: {
-   inline: ['cloudinary', 'bcryptjs'], // empacotar dentro do Nitro
-   external: ['@prisma/client'],    // manter prisma como dependência externa
+   inline: ['cloudinary', 'bcryptjs'], // Manter: bom para o runtime do Nitro
+   external: ['@prisma/client'], 
   },
  },
 
@@ -22,4 +27,12 @@ export default defineNuxtConfig({
  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
  css: ['~/assets/css/main.css'],
+
+//  // NOVO BLOCO VITE PARA EXCLUIR 'cloudinary' DA OTIMIZAÇÃO DE DEPENDÊNCIAS
+//  // Isso resolve o erro "Cannot read properties of null (reading 'moduleSideEffects')"
+//  vite: {
+//    optimizeDeps: {
+//      exclude: ['cloudinary'], 
+//    },
+//  },
 })

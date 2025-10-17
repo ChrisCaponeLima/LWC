@@ -1,501 +1,364 @@
-// /pages/editor/[id].vue - V1.6 - Editor de imagens: blur / tarja / reset / download + usa authStore.token
+// /pages/editor/[id].vue - V1.18 - Corrige Crop funcional e rotação instantânea mantendo blur real da V1.17
+
 <template>
-  <div>
-    <!-- Header agora aceita "title" prop -->
-    <Header :title="'Editor de imagens'" />
+  <NuxtLayout>
+    <div>
+      <Header pageTitle="Editor de Imagens" />
 
-    <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
-      <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
-        <NuxtLink to="/dashboard" class="text-indigo-600 hover:text-indigo-800 mb-6 inline-block font-semibold">
-          ← Voltar para o Dashboard
-        </NuxtLink>
+      <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
+        <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
+          <NuxtLink
+            to="/dashboard"
+            class="text-indigo-600 hover:text-indigo-800 mb-6 inline-block font-semibold"
+          >
+            ← Voltar para o Dashboard
+          </NuxtLink>
 
-        <div v-if="error" class="text-red-600 p-4 border border-red-200 rounded bg-red-50">
-          <i class="fas fa-exclamation-triangle mr-2"></i> {{ error }}
-        </div>
-
-        <div v-else-if="isLoading" class="text-center p-6">
-          <i class="fas fa-spinner fa-spin text-4xl text-indigo-500"></i>
-          <p class="mt-2 text-gray-600">Carregando imagem e ferramentas...</p>
-        </div>
-
-        <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <!-- AREA DA IMAGEM (ocupa 2/3 em desktop) -->
-          <div class="lg:col-span-2">
-            <div class="relative w-full aspect-square lg:max-h-[75vh] rounded-lg overflow-hidden border-l-3 border-r-3"
-                 :style="{ borderLeftWidth: '3px', borderRightWidth: '3px', borderStyle: 'solid' }">
-              <!-- imagem de fundo (invisível ) para leitura de dimensão -->
-              <img ref="imgRef" :src="image?.url" alt="Imagem" class="w-full h-full object-contain" @load="onImageLoad" />
-
-              <!-- overlay que mantém proporção square e exibe retângulos -->
-              <div ref="overlayRef" class="absolute inset-0 pointer-events-auto">
-                <!-- retângulos desenhados (visuais) -->
-                <div v-for="(r, idx) in rects" :key="idx"
-                     class="absolute"
-                     :style="rectStyle(r)"
-                     @mousedown.stop.prevent="startRectDrag($event, idx)"
-                     @touchstart.stop.prevent="startRectDrag($event, idx)">
-                  <div v-if="r.type === 'black'" class="w-full h-full bg-black/90"></div>
-                  <div v-else class="w-full h-full" :style="{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }"></div>
-                </div>
-
-                <!-- desenho quando ativo -->
-                <div v-if="drawingRect" class="absolute border-2 border-dashed border-indigo-400" :style="rectStyle(drawingRect)"></div>
-              </div>
-
-              <!-- badge tipo / data -->
-              <div class="absolute top-0 left-0 bg-indigo-600 text-white text-sm px-3 py-1 rounded-br-lg font-medium">
-                {{ image?.type === 'registro' ? 'Evolução' : 'Forma' }} - {{ formatDate(image?.date) }}
-              </div>
-            </div>
+          <div v-if="error" class="text-red-600 p-4 border border-red-200 rounded bg-red-50">
+            <i class="fas fa-exclamation-triangle mr-2"></i> {{ error }}
           </div>
 
-          <!-- PAINEL LATERAL -->
-          <div class="lg:col-span-1 p-4 border rounded-lg bg-gray-50 flex flex-col gap-4">
-            <h3 class="text-xl font-semibold text-gray-700">Ajustes e Metadados</h3>
+          <div v-else-if="isLoading" class="text-center p-10">
+            <i class="fas fa-spinner fa-spin text-4xl text-indigo-500"></i>
+            <p class="mt-2 text-gray-600">Carregando imagem e ferramentas...</p>
+          </div>
 
-            <!-- Controls: tipo retângulo -->
-            <div class="p-3 border rounded-md bg-white">
-              <p class="font-medium mb-2">Ferramenta de Retângulo</p>
-              <div class="flex gap-2">
-                <button :class="['px-3 py-2 rounded', tool === 'blur' ? 'bg-indigo-600 text-white' : 'bg-gray-200']" @click="tool = 'blur'">Blur</button>
-                <button :class="['px-3 py-2 rounded', tool === 'black' ? 'bg-indigo-600 text-white' : 'bg-gray-200']" @click="tool = 'black'">Tarja preta</button>
-                <button class="px-3 py-2 rounded bg-red-100 text-red-700 ml-auto" @click="clearRects">Limpar</button>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">Desenhe retângulos sobre a imagem clicando e arrastando. Cada retângulo pode ser movido após criado.</p>
-            </div>
-
-            <!-- Lista de rects com controle -->
-            <div class="p-3 border rounded-md bg-white max-h-48 overflow-auto">
-              <p class="font-medium mb-2">Retângulos aplicados</p>
-              <template v-if="rects.length">
-                <div v-for="(r, i) in rects" :key="i" class="flex items-center justify-between text-sm py-1">
-                  <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full" :class="r.type === 'black' ? 'bg-black' : 'bg-indigo-400'"></span>
-                    <span>{{ r.type }} — {{ Math.round(r.w) }}×{{ Math.round(r.h) }}</span>
-                  </div>
-                  <div class="flex gap-2">
-                    <button class="text-xs text-gray-600 hover:text-gray-900" @click="removeRect(i)">Remover</button>
-                    <button class="text-xs text-indigo-600 hover:text-indigo-900" @click="toggleRectLock(i)">{{ r.locked ? '🔒' : '🔓' }}</button>
+          <ClientOnly v-else>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- CANVAS -->
+              <div class="lg:col-span-2">
+                <div class="relative w-full border-x border-gray-200">
+                  <div ref="imageContainer" class="w-full relative">
+                    <img
+                      ref="baseImage"
+                      :src="image?.url"
+                      crossorigin="anonymous"
+                      @load="onImageLoad"
+                      class="w-full object-contain block max-h-[70vh] transition-transform duration-300"
+                      :style="{ transform: `rotate(${rotation}deg)` }"
+                    />
+                    <canvas ref="overlayCanvas" class="absolute top-0 left-0"></canvas>
                   </div>
                 </div>
-              </template>
-              <p v-else class="text-sm text-gray-500">Nenhum retângulo aplicado.</p>
-            </div>
 
-            <!-- Visibilidade -->
-            <div class="p-3 border rounded-md bg-white">
-              <p class="font-medium mb-2">Visibilidade</p>
-              <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" v-model="isPrivateLocal" class="form-checkbox h-5 w-5 text-indigo-600 rounded" />
-                <span class="text-gray-700">Tornar esta foto privada 🔒</span>
-              </label>
-            </div>
+                <div class="text-sm text-gray-500 mt-2 flex items-center gap-2">
+                  <i class="fas fa-info-circle text-gray-400"></i>
+                  Desenhe, recorte, gire ou aplique blur antes de salvar.
+                </div>
+              </div>
 
-            <div class="flex flex-col gap-2 mt-auto">
-              <div class="flex gap-2">
-                <button @click="saveChanges" :disabled="isSaving" class="flex-1 py-3 bg-indigo-600 text-white rounded-md font-bold hover:bg-indigo-700 disabled:opacity-50">
-                  <i v-if="isSaving" class="fas fa-spinner fa-spin mr-2"></i> {{ isSaving ? 'Salvando...' : 'Salvar Alterações' }}
+              <!-- CONTROLES -->
+              <div class="lg:col-span-1 p-4 border rounded-lg bg-gray-50 flex flex-col gap-4">
+                <div class="flex items-center gap-3 flex-wrap">
+                  <button @click="setMode('stripe')" class="p-2 rounded-md hover:bg-gray-200" title="Tarja preta">
+                    <i class="fas fa-minus text-gray-700"></i>
+                  </button>
+                  <button @click="setMode('blur')" class="p-2 rounded-md hover:bg-gray-200" title="Blur">
+                    <i class="fas fa-water text-gray-700"></i>
+                  </button>
+                  <button @click="toggleCrop" class="p-2 rounded-md hover:bg-gray-200" :class="cropActive ? 'bg-indigo-200' : ''" title="Recortar">
+                    <i class="fas fa-crop-alt text-gray-700"></i>
+                  </button>
+                  <button @click="rotateImage" class="p-2 rounded-md hover:bg-gray-200" title="Girar imagem">
+                    <i class="fas fa-sync text-gray-700"></i>
+                  </button>
+                  <button @click="clearEffects" class="p-2 rounded-md hover:bg-gray-200" title="Limpar">
+                    <i class="fas fa-eraser text-gray-700"></i>
+                  </button>
+                </div>
+
+                <ul class="text-sm text-gray-600 mt-2 space-y-2">
+                  <li v-for="(r, idx) in rects" :key="idx">
+                    Retângulo {{ idx + 1 }} — {{ r.type }}
+                  </li>
+                  <li v-if="rects.length === 0" class="text-gray-400">Nenhum efeito aplicado</li>
+                </ul>
+
+                <div class="mt-2 p-2 border rounded bg-white flex items-center gap-2">
+                  <input type="checkbox" v-model="isPrivateLocal" id="priv" class="h-4 w-4" />
+                  <label for="priv" class="text-gray-700 text-sm flex items-center gap-1">
+                    Privada 🔒
+                  </label>
+                </div>
+
+                <button
+                  @click="saveChanges"
+                  :disabled="isSaving"
+                  class="w-full py-3 bg-indigo-600 text-white rounded-md font-bold hover:bg-indigo-700 transition duration-150 disabled:opacity-50 mt-auto"
+                >
+                  <i v-if="isSaving" class="fas fa-spinner fa-spin mr-2"></i>
+                  {{ isSaving ? 'Salvando...' : 'Salvar Alterações' }}
                 </button>
-                <button @click="resetImage" class="py-3 px-3 bg-gray-200 rounded-md text-gray-700">Reset</button>
-              </div>
-              <div class="flex gap-2">
-                <button @click="downloadWithEffects" class="flex-1 py-3 bg-green-600 text-white rounded-md font-bold hover:bg-green-700">Download (com efeitos)</button>
-                <button @click="downloadOriginal" class="py-3 px-3 bg-gray-200 rounded-md text-gray-700">Download Original</button>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div v-if="saveMessage" :class="['p-3 rounded-md text-sm mb-4', saveSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
-          {{ saveMessage }}
-        </div>
-
-        <div v-else-if="!image && !isLoading" class="text-center p-10 text-gray-500">
-          Nenhuma imagem encontrada. Verifique a URL.
+          </ClientOnly>
         </div>
       </div>
+
+      <Teleport to="body">
+        <div
+          v-if="saveSuccess"
+          class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg transition-opacity duration-300"
+        >
+          Alterações salvas com sucesso!
+        </div>
+      </Teleport>
     </div>
-  </div>
+  </NuxtLayout>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import Header from '~/components/Header.vue'
 import { useAuthStore } from '~/stores/auth'
-import { useRoute } from '#imports'
-import { useRuntimeConfig } from '#app'
+import { useRoute, useRouter, useRuntimeConfig } from '#app'
 
-/**
- * Editor de imagens:
- * - desenhar retângulos (blur / black)
- * - reset
- * - download (com efeitos)
- * - envia Authorization: Bearer <token> usando authStore.token ou fallback localStorage
- */
+definePageMeta({ middleware: ['auth'] })
 
 const authStore = useAuthStore()
-const config = useRuntimeConfig()
-
 const route = useRoute()
-const imageId = route.params.id
-const imageType = route.query.type
+const router = useRouter()
+const config = useRuntimeConfig()
 
 const image = ref(null)
 const isLoading = ref(true)
 const error = ref(null)
 const isSaving = ref(false)
-const saveMessage = ref('')
+const isPrivateLocal = ref(false)
 const saveSuccess = ref(false)
 
-const isPrivateLocal = ref(false)
+const baseImage = ref(null)
+const overlayCanvas = ref(null)
+let canvasCtx = null
+const rects = reactive([])
 
-// refs para imagem e overlay
-const imgRef = ref(null)
-const overlayRef = ref(null)
-
-// dimension info
-const natural = reactive({ w: 0, h: 0 })
-
-// retângulos
-const rects = ref([]) // each: { x,y,w,h, type: 'blur'|'black', locked: boolean }
-const drawingRect = ref(null)
-const tool = ref('blur') // default 'blur'
-
-// mouse state
-let isDrawing = false
+let naturalW = 0
+let naturalH = 0
+let rotation = 0
+let drawing = false
+let moving = false
 let startX = 0
 let startY = 0
+let offsetX = 0
+let offsetY = 0
+let selected = -1
+const cropActive = ref(false)
+const mode = ref('blur')
 
-// token fallback
-const getAuthToken = () => {
-  // prefer authStore.token (pinia), fallback to localStorage key used in project
-  return authStore.token || (process.client ? localStorage.getItem('authToken') : null)
-}
+const imageId = route.params.id
+const imageType = route.query.type
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'S/D'
-  try {
-    return new Date(dateString).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' })
-  } catch {
-    return dateString
-  }
-}
-
-const onImageLoad = (ev) => {
-  const img = ev.target
-  natural.w = img.naturalWidth
-  natural.h = img.naturalHeight
-}
-
-// Fetch image (GET)
 const fetchImage = async () => {
-  isLoading.value = true
-  error.value = null
+  const token = authStore.token
+  if (!token) {
+    error.value = 'Token ausente.'
+    isLoading.value = false
+    return
+  }
   try {
-    if (!imageId || !imageType) {
-      error.value = 'Parâmetros de imagem (ID ou tipo) ausentes.'
-      return
-    }
-    const token = getAuthToken()
-    if (!token) {
-      error.value = 'Erro: Token de autenticação não encontrado. Faça login novamente.'
-      return
-    }
-
     const resp = await $fetch(`/api/records/image/${imageId}`, {
       baseURL: config.public.apiBaseUrl,
       query: { type: imageType },
       headers: { Authorization: `Bearer ${token}` }
     })
     image.value = resp
-    isPrivateLocal.value = !!resp.isPrivate
-    rects.value = [] // inicia sem rects salvos (não persistimos retângulos no backend por agora)
+    isPrivateLocal.value = resp.isPrivate || false
   } catch (e) {
-    console.error('Erro ao buscar imagem:', e)
-    error.value = e?.data?.message || e?.message || String(e)
+    error.value = e?.data?.message || e?.message || 'Erro ao carregar imagem.'
   } finally {
     isLoading.value = false
   }
 }
 
-// START drawing (mouse/touch) - create new rect
-const clientPos = (ev) => {
-  if (ev.touches && ev.touches[0]) {
-    return { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
+const setMode = (m) => (mode.value = m)
+const toggleCrop = () => (cropActive.value = !cropActive.value)
+const clearEffects = () => { rects.splice(0, rects.length); redrawAll() }
+
+const rotateImage = async () => {
+  rotation = (rotation + 90) % 360
+  await nextTick()
+  resizeCanvasToImage()
+  redrawAll()
+}
+
+const resizeCanvasToImage = () => {
+  const img = baseImage.value
+  const canvas = overlayCanvas.value
+  if (!img || !canvas) return
+  const rect = img.getBoundingClientRect()
+  canvas.width = rect.width
+  canvas.height = rect.height
+  canvasCtx = canvas.getContext('2d')
+  redrawAll()
+}
+
+const redrawAll = () => {
+  if (!canvasCtx) return
+  canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height)
+  const img = baseImage.value
+  if (!img) return
+  const sxScale = naturalW / canvasCtx.canvas.width
+  const syScale = naturalH / canvasCtx.canvas.height
+
+  rects.forEach((r) => {
+    if (r.type === 'stripe') {
+      canvasCtx.fillStyle = 'rgba(0,0,0,0.95)'
+      canvasCtx.fillRect(r.x, r.y, r.w, r.h)
+    } else if (r.type === 'blur') {
+      try {
+        const sx = r.x * sxScale
+        const sy = r.y * syScale
+        const sw = r.w * sxScale
+        const sh = r.h * syScale
+        canvasCtx.save()
+        canvasCtx.filter = 'blur(8px)'
+        canvasCtx.drawImage(img, sx, sy, sw, sh, r.x, r.y, r.w, r.h)
+        canvasCtx.restore()
+      } catch {}
+    }
+  })
+}
+
+const onImageLoad = () => {
+  naturalW = baseImage.value.naturalWidth
+  naturalH = baseImage.value.naturalHeight
+  resizeCanvasToImage()
+}
+
+const getCoords = (e) => {
+  const rect = overlayCanvas.value.getBoundingClientRect()
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+}
+
+const onDown = (e) => {
+  const pos = getCoords(e)
+  if (cropActive.value) {
+    drawing = true
+    startX = pos.x
+    startY = pos.y
+    return
   }
-  return { x: ev.clientX, y: ev.clientY }
-}
-
-const localPosOnOverlay = (clientX, clientY) => {
-  const el = overlayRef.value
-  if (!el) return { x: 0, y: 0 }
-  const rect = el.getBoundingClientRect()
-  const x = Math.max(0, clientX - rect.left)
-  const y = Math.max(0, clientY - rect.top)
-  // normalize relative to element size -> but we'll store in px based on overlay size; will map to natural when exporting
-  return { x, y, w: rect.width, h: rect.height }
-}
-
-const startRect = (clientX, clientY) => {
-  const p = localPosOnOverlay(clientX, clientY)
-  isDrawing = true
-  startX = p.x
-  startY = p.y
-  drawingRect.value = { x: startX, y: startY, w: 0, h: 0, type: tool.value }
-  window.addEventListener('mousemove', onMouseMove)
-  window.addEventListener('mouseup', endRect)
-  window.addEventListener('touchmove', onTouchMove, { passive: false })
-  window.addEventListener('touchend', endRect)
-}
-
-const onMouseDown = (ev) => {
-  // only start if clicking inside overlay
-  startRect(ev.clientX, ev.clientY)
-}
-const onTouchStart = (ev) => {
-  const p = clientPos(ev)
-  startRect(p.x, p.y)
-}
-
-const onMouseMove = (ev) => {
-  if (!isDrawing) return
-  const p = localPosOnOverlay(ev.clientX, ev.clientY)
-  drawingRect.value.w = Math.max(1, p.x - startX)
-  drawingRect.value.h = Math.max(1, p.y - startY)
-}
-
-const onTouchMove = (ev) => {
-  ev.preventDefault()
-  if (!isDrawing) return
-  const p = clientPos(ev)
-  const lp = localPosOnOverlay(p.x, p.y)
-  drawingRect.value.w = Math.max(1, lp.x - startX)
-  drawingRect.value.h = Math.max(1, lp.y - startY)
-}
-
-const endRect = () => {
-  if (!isDrawing) return
-  isDrawing = false
-  if (drawingRect.value && drawingRect.value.w > 2 && drawingRect.value.h > 2) {
-    rects.value.push({ ...drawingRect.value, locked: false })
+  const idx = rects.findIndex(
+    (r) => pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h
+  )
+  if (idx !== -1) {
+    moving = true
+    selected = idx
+    offsetX = pos.x - rects[idx].x
+    offsetY = pos.y - rects[idx].y
+    return
   }
-  drawingRect.value = null
-  window.removeEventListener('mousemove', onMouseMove)
-  window.removeEventListener('mouseup', endRect)
-  window.removeEventListener('touchmove', onTouchMove)
-  window.removeEventListener('touchend', endRect)
+  drawing = true
+  startX = pos.x
+  startY = pos.y
 }
 
-// allow moving rectangles (simple implementation: on mousedown on rect we start dragging)
-let dragState = null
-const startRectDrag = (ev, idx) => {
-  const p = clientPos(ev)
-  const lp = localPosOnOverlay(p.x, p.y)
-  const r = rects.value[idx]
-  if (r.locked) return
-  dragState = { idx, offsetX: lp.x - r.x, offsetY: lp.y - r.y }
-  window.addEventListener('mousemove', dragging)
-  window.addEventListener('mouseup', endDragging)
-  window.addEventListener('touchmove', touchDragging, { passive: false })
-  window.addEventListener('touchend', endDragging)
+const onMove = (e) => {
+  const pos = getCoords(e)
+  if (!drawing) return
+  redrawAll()
+  canvasCtx.setLineDash([6, 3])
+  canvasCtx.strokeStyle = cropActive.value ? '#f87171' : '#38bdf8'
+  canvasCtx.strokeRect(startX, startY, pos.x - startX, pos.y - startY)
 }
 
-const dragging = (ev) => {
-  if (!dragState) return
-  const p = localPosOnOverlay(ev.clientX, ev.clientY)
-  const r = rects.value[dragState.idx]
-  if (!r) return
-  r.x = Math.max(0, p.x - dragState.offsetX)
-  r.y = Math.max(0, p.y - dragState.offsetY)
-}
-
-const touchDragging = (ev) => {
-  ev.preventDefault()
-  if (!dragState) return
-  const p = clientPos(ev)
-  const lp = localPosOnOverlay(p.x, p.y)
-  const r = rects.value[dragState.idx]
-  if (!r) return
-  r.x = Math.max(0, lp.x - dragState.offsetX)
-  r.y = Math.max(0, lp.y - dragState.offsetY)
-}
-
-const endDragging = () => {
-  dragState = null
-  window.removeEventListener('mousemove', dragging)
-  window.removeEventListener('mouseup', endDragging)
-  window.removeEventListener('touchmove', touchDragging)
-  window.removeEventListener('touchend', endDragging)
-}
-
-const rectStyle = (r) => {
-  return {
-    left: `${r.x}px`,
-    top: `${r.y}px`,
-    width: `${r.w}px`,
-    height: `${r.h}px`,
-    cursor: r.locked ? 'default' : 'move',
-    zIndex: 30
+const onUp = (e) => {
+  if (!drawing) return
+  drawing = false
+  const pos = getCoords(e)
+  const x = Math.min(startX, pos.x)
+  const y = Math.min(startY, pos.y)
+  const w = Math.abs(pos.x - startX)
+  const h = Math.abs(pos.y - startY)
+  if (cropActive.value) {
+    applyCrop(x, y, w, h)
+    cropActive.value = false
+  } else if (w > 5 && h > 5) {
+    rects.push({ x, y, w, h, type: mode.value })
   }
+  redrawAll()
 }
 
-const clearRects = () => { rects.value = [] }
-
-// remove single rect
-const removeRect = (i) => { rects.value.splice(i, 1) }
-const toggleRectLock = (i) => { rects.value[i].locked = !rects.value[i].locked }
-
-// RESET (aplica local reset)
-const resetImage = () => {
-  rects.value = []
-  saveMessage.value = ''
-  saveSuccess.value = false
-  // reset visibility to backend state
-  isPrivateLocal.value = !!image.value?.isPrivate
+const applyCrop = (x, y, w, h) => {
+  if (!baseImage.value) return
+  const img = baseImage.value
+  const canvas = document.createElement('canvas')
+  const scaleX = naturalW / overlayCanvas.value.width
+  const scaleY = naturalH / overlayCanvas.value.height
+  canvas.width = w * scaleX
+  canvas.height = h * scaleY
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, x * scaleX, y * scaleY, w * scaleX, h * scaleY, 0, 0, w * scaleX, h * scaleY)
+  img.src = canvas.toDataURL('image/png')
+  naturalW = canvas.width
+  naturalH = canvas.height
+  rects.splice(0, rects.length)
+  nextTick(() => resizeCanvasToImage())
 }
 
-// SAVE changes (PATCH metadata isPrivate)
 const saveChanges = async () => {
-  isSaving.value = true
-  saveMessage.value = ''
-  saveSuccess.value = false
   try {
-    const token = getAuthToken()
-    if (!token) throw new Error('Token ausente')
-    const resp = await $fetch(`/api/records/image/${imageId}`, {
-      baseURL: config.public.apiBaseUrl,
-      method: 'PATCH',
-      query: { type: imageType },
-      headers: { Authorization: `Bearer ${token}` },
-      body: { isPrivate: !!isPrivateLocal.value }
+    isSaving.value = true
+    const token = authStore.token
+    if (!token) throw new Error('Token ausente.')
+    const img = baseImage.value
+
+    const output = document.createElement('canvas')
+    output.width = naturalW
+    output.height = naturalH
+    const ctx = output.getContext('2d')
+    ctx.drawImage(img, 0, 0, output.width, output.height)
+
+    const scaleX = naturalW / overlayCanvas.value.width
+    const scaleY = naturalH / overlayCanvas.value.height
+
+    rects.forEach((r) => {
+      const nx = r.x * scaleX
+      const ny = r.y * scaleY
+      const nw = r.w * scaleX
+      const nh = r.h * scaleY
+      if (r.type === 'stripe') {
+        ctx.fillStyle = '#000'
+        ctx.fillRect(nx, ny, nw, nh)
+      } else if (r.type === 'blur') {
+        ctx.save()
+        ctx.filter = 'blur(8px)'
+        ctx.drawImage(img, nx, ny, nw, nh, nx, ny, nw, nh)
+        ctx.restore()
+      }
     })
+
+    const blob = await new Promise((res) => output.toBlob(res, 'image/png'))
+    const formData = new FormData()
+    formData.append('recordId', image.value?.recordId || '')
+    formData.append('fileId', image.value?.fileId || '')
+    formData.append('originalUrl', image.value?.url || '')
+    formData.append('isPrivate', isPrivateLocal.value ? 'true' : 'false')
+    formData.append('editedFile', blob, 'edited.png')
+
+    await $fetch('/api/images/edit_upload', {
+      method: 'POST',
+      body: formData,
+      headers: { Authorization: `Bearer ${token}` },
+      baseURL: config.public.apiBaseUrl
+    })
+
     saveSuccess.value = true
-    saveMessage.value = resp.message || 'Alterações salvas com sucesso!'
-    // atualiza estado local
-    if (image.value) image.value.isPrivate = !!isPrivateLocal.value
-  } catch (e) {
-    console.error('Erro ao salvar alterações:', e)
-    saveSuccess.value = false
-    saveMessage.value = e?.data?.message || e?.message || 'Falha ao salvar as alterações.'
+    setTimeout(() => router.push('/dashboard'), 1000)
+  } catch (err) {
+    error.value = err?.data?.message || err.message || 'Erro ao salvar edição.'
   } finally {
     isSaving.value = false
   }
 }
 
-// DOWNLOAD com efeitos: cria canvas com tamanho natural e aplica efeitos
-const downloadWithEffects = async () => {
-  if (!image.value) return
-  try {
-    // cria canvas com dimensões naturais da imagem
-    const imgEl = imgRef.value
-    if (!imgEl || !imgEl.naturalWidth) {
-      alert('Imagem não disponível para download.')
-      return
-    }
-    const natW = imgEl.naturalWidth
-    const natH = imgEl.naturalHeight
-    const overlayEl = overlayRef.value
-    const overlayRect = overlayEl.getBoundingClientRect()
-    const scaleX = natW / overlayRect.width
-    const scaleY = natH / overlayRect.height
-
-    const canvas = document.createElement('canvas')
-    canvas.width = natW
-    canvas.height = natH
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas 2D não suportado.')
-
-    // desenha imagem base
-    await new Promise((res) => {
-      const tmp = new Image()
-      tmp.crossOrigin = 'anonymous'
-      tmp.onload = () => {
-        ctx.drawImage(tmp, 0, 0, natW, natH)
-        res(true)
-      }
-      tmp.onerror = () => res(true)
-      tmp.src = image.value.url
-    })
-
-    // aplica rects (em ordem)
-    for (const r of rects.value) {
-      const sx = Math.round(r.x * scaleX)
-      const sy = Math.round(r.y * scaleY)
-      const sw = Math.round(r.w * scaleX)
-      const sh = Math.round(r.h * scaleY)
-      if (sw <= 0 || sh <= 0) continue
-
-      if (r.type === 'black') {
-        ctx.fillStyle = 'black'
-        ctx.fillRect(sx, sy, sw, sh)
-      } else {
-        // blur: desenha a porção desenhada com filtro blur
-        // cria temporário
-        const tmpCanvas = document.createElement('canvas')
-        tmpCanvas.width = sw
-        tmpCanvas.height = sh
-        const tctx = tmpCanvas.getContext('2d')
-        if (!tctx) continue
-        tctx.filter = 'blur(8px)'
-        tctx.drawImage(imgRef.value, sx, sy, sw, sh, 0, 0, sw, sh)
-        // então desenha de volta
-        ctx.drawImage(tmpCanvas, 0, 0, sw, sh, sx, sy, sw, sh)
-      }
-    }
-
-    // converte para blob e download
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        alert('Falha ao gerar imagem.')
-        return
-      }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `image-${imageId}.png`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    }, 'image/png')
-  } catch (err) {
-    console.error('Erro ao exportar imagem:', err)
-    alert('Falha ao gerar o download da imagem.')
-  }
-}
-
-// download original
-const downloadOriginal = () => {
-  if (!image.value) return
-  const a = document.createElement('a')
-  a.href = image.value.url
-  a.download = `original-${imageId}`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-}
-
-// lifecycle
 onMounted(async () => {
-  // garante visual do authStore
-  if (!authStore.initialized && authStore.init) {
-    try { authStore.init() } catch (e) { console.error('auth.init', e) }
-  }
-  await nextTick()
   await fetchImage()
-
-  // attach listeners para desenho na overlay
-  const overlay = overlayRef.value
-  if (overlay) {
-    overlay.addEventListener('mousedown', (ev) => onMouseDown(ev))
-    overlay.addEventListener('touchstart', (ev) => startRect(ev.touches ? ev.touches[0] : ev))
-  }
+  await nextTick()
+  const canvas = overlayCanvas.value
+  canvas.addEventListener('pointerdown', onDown)
+  canvas.addEventListener('pointermove', onMove)
+  canvas.addEventListener('pointerup', onUp)
+  window.addEventListener('resize', resizeCanvasToImage)
 })
 </script>
-
-<style scoped>
-/* 3px border visual nas laterais conforme solicitado */
-.border-l-3 { border-left-width: 3px; border-left-style: solid; border-left-color: rgba(0,0,0,0.06); }
-.border-r-3 { border-right-width: 3px; border-right-style: solid; border-right-color: rgba(0,0,0,0.06); }
-</style>
