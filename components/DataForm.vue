@@ -1,4 +1,4 @@
-// /components/DataForm.vue - V2.9 - Inicialização de medidas suprimida para evitar obrigatoriedade.
+// /components/DataForm.vue - V2.2.10 - Alterado o campo peso para aceitar duas casas decimais.
 <template>
 <div class="form-container bg-white p-6 rounded-lg shadow-xl mt-6">
 <h3 class="text-xl font-bold mb-4 text-gray-800">Adicionar Novo Registro</h3>
@@ -22,7 +22,7 @@
  id="weight" 
  v-model.number="formData.weight" 
  required 
- step="0.1" 
+ step="0.01" 
  min="1"
  placeholder="Ex: 85.5"
  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
