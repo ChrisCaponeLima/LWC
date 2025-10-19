@@ -20,6 +20,8 @@ interface UserCreationData {
  birthdate?: string | null; // String 'YYYY-MM-DD'
  height_cm?: number | null; // Número
  initial_weight_kg?: number | null; // Número
+ phone?: string | null; // Novo campo telefone
+ active?: boolean; // Novo campo ativo/inativo
 }
 
 export default defineEventHandler(async (event: H3Event) => {
@@ -49,7 +51,7 @@ export default defineEventHandler(async (event: H3Event) => {
   const body = await readBody<UserCreationData>(event);
   const { 
    username, email, password, role, 
-   birthdate, height_cm, initial_weight_kg 
+   birthdate, height_cm, initial_weight_kg, phone, active
   } = body;
 
   // Validação de campos obrigatórios
@@ -74,6 +76,8 @@ export default defineEventHandler(async (event: H3Event) => {
    birthdate: birthdate ? new Date(birthdate) : null,
    height_cm: height_cm || null,
    initial_weight_kg: initial_weight_kg || null,
+    phone: phone || null,
+    active: active !== undefined ? active : true, // Padrão ativo = true
   };
 
 
@@ -91,7 +95,9 @@ export default defineEventHandler(async (event: H3Event) => {
     initial_weight_kg: true,
     created_at: true, 
     last_login: true,
-    photo_perfil_url: true 
+    photo_perfil_url: true,
+    phone: true,
+    active: true
    },
   });
 

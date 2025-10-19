@@ -18,6 +18,7 @@ interface UserUpdateData {
  height_cm?: number | null;
  initial_weight_kg?: number | null;
  sexo?: 'M' | 'F' | null; // Novo campo
+ phone?: string | null;
 }
 
 export default defineEventHandler(async (event: H3Event) => {
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
  try {
   const body = await readBody<UserUpdateData>(event);
-  const { username, email, role, birthdate, height_cm, initial_weight_kg, sexo } = body;
+  const { username, email, role, birthdate, height_cm, initial_weight_kg, sexo, phone } = body;
 
   // Prepara o objeto de dados para o Prisma
   const dataToUpdate: any = {};
@@ -75,6 +76,7 @@ export default defineEventHandler(async (event: H3Event) => {
   if (initial_weight_kg !== undefined) dataToUpdate.initial_weight_kg = initial_weight_kg || null;
   // Novo campo Sexo
   if (sexo !== undefined) dataToUpdate.sexo = sexo || null;
+  if (phone !== undefined) dataToUpdate.phone = phone || null;
   
   // Verificação de dados vazios
   if (Object.keys(dataToUpdate).length === 0) {
@@ -97,7 +99,8 @@ export default defineEventHandler(async (event: H3Event) => {
     sexo: true, // Inclui o novo campo
     created_at: true, 
     last_login: true,
-    photo_perfil_url: true 
+    photo_perfil_url: true,
+    phone: true
    },
   });
 

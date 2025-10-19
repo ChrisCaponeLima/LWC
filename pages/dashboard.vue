@@ -127,20 +127,20 @@ hasFormaPhotos
 
 // --- Nome de Exibição para Saudação (Implementa a regra) ---
 const userNameForGreeting = computed(() => {
-  // 1. Prioridade: Apelido
-  if (authStore.user?.apelido) {
-    return authStore.user.apelido;
-  }
+ // 1. Prioridade: Apelido
+ if (authStore.user?.apelido) {
+  return authStore.user.apelido;
+ }
 
-  // 2. Fallback: Primeiro Nome do Username
-  const username = authStore.user?.username;
-  if (username) {
-    // Exemplo: 'Patricia Santos' -> ['Patricia', 'Santos'] -> 'Patricia'
-    return username.split(' ')[0];
-  }
+ // 2. Fallback: Primeiro Nome do Username
+ const username = authStore.user?.username;
+ if (username) {
+  // Exemplo: 'Patricia Santos' -> ['Patricia', 'Santos'] -> 'Patricia'
+  return username.split(' ')[0];
+ }
 
-  // 3. Fallback final
-  return 'Usuário';
+ // 3. Fallback final
+ return 'Usuário';
 });
 
 // --- Saudação Dinâmica ---
@@ -220,8 +220,8 @@ isWeatherLoading.value = false;
 
 // ATUALIZADO: Função para o botão "Registro Rápido"
 const startPhotoRecord = () => {
-    // Redireciona para a nova página de registro rápido dedicada
-    router.push({ path: '/registro/foto-rapida' });
+  // Redireciona para a nova página de registro rápido dedicada
+  router.push({ path: '/registro/foto-rapida' });
 };
 
 const startNewRecord = () => {

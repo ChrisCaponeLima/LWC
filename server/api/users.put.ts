@@ -61,6 +61,8 @@ export default defineEventHandler(async (event) => {
       height_cm: height_cm !== undefined ? Number(height_cm) : undefined,
       initial_weight_kg: initial_weight_kg !== undefined ? Number(initial_weight_kg) : undefined,
       birthdate: birthdate ? new Date(birthdate) : undefined,
+      phone,
+      active,
       ...(password_hash ? { password_hash } : {}),
       ...(photo_perfil_url ? { photo_perfil_url } : {}),
     };
@@ -82,6 +84,8 @@ export default defineEventHandler(async (event) => {
         initial_weight_kg: true,
         sexo: true,
         birthdate: true,
+        phone: true,
+        active: true,
       },
     });
 

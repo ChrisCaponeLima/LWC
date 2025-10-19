@@ -45,6 +45,8 @@ export default defineEventHandler(async (event: H3Event) => {
     photo_perfil_url: true,
     initial_weight_kg: true,
     sexo: true,
+    phone: true,
+    active: true,
 
     // BUSCA TODOS os records (ordenados desc) com medidas e arquivos
     records: {
@@ -122,6 +124,8 @@ export default defineEventHandler(async (event: H3Event) => {
     photo_perfil_url: user.photo_perfil_url,
     initialWeight: user.initial_weight_kg?.toString() || null,
     sexo: user.sexo,
+    phone: user.phone,
+    active: user.active,
     // O peso atual está AGORA incluído no objeto latestMeasurementsWithTrend
     currentWeight: latestRecord?.weight?.toString() || null, 
     latestMeasurements: latestMeasurementsWithTrend, // ⬅️ NOVO OBJETO COM DADOS E TENDÊNCIA

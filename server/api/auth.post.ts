@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
    photo_perfil_url: user.photo_perfil_url,
    heightCm: user.height_cm,
    initialWeight: user.initial_weight_kg,
+   phone: user.phone,
   };
  } catch (error) {
   if (error.statusCode) throw error;
