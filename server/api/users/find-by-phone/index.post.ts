@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
         const partner = await prisma.users.findFirst({
             where: {
                 // Supondo que o campo `telefone` armazena o número limpo (apenas dígitos)
-                telefone: cleanPhone, 
+                phone: cleanPhone, 
                 // CRUCIAL: Não permitir que o usuário inicie um chat consigo mesmo
                 id: { not: currentUserId } 
             },
