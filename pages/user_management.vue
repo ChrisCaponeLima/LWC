@@ -1,4 +1,4 @@
-// /pages/user_management.vue - V1.25 - Implementação da exibição de Medidas Corporais Atuais com ícones de tendência (verde/vermelho).
+// /pages/user_management.vue - V1.25.1 - Correção da exibição do Último Login (lastLogin)
 <template>
 <div>
 <Header />
@@ -7,218 +7,218 @@
 <h2 class="text-3xl font-bold text-gray-800 mb-6">Gerenciamento de Usuários</h2>
 
 <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
- <input
- type="text"
- v-model="searchQuery"
- placeholder="Buscar usuários por nome ou email..."
- class="p-2 border border-gray-300 rounded-md w-full md:w-1/3 focus:ring-btn-secundario focus:border-btn-secundario transition"
- />
- <div class="flex-shrink-0">
- <button
- @click="openAddUserModal"
- class="px-4 py-2 bg-btn-secundario text-btn-font-secundario rounded-md font-semibold hover:opacity-80 transition"
- >
- Adicionar Novo Usuário
- </button>
- </div>
+<input
+type="text"
+v-model="searchQuery"
+placeholder="Buscar usuários por nome ou email..."
+class="p-2 border border-gray-300 rounded-md w-full md:w-1/3 focus:ring-btn-secundario focus:border-btn-secundario transition"
+/>
+<div class="flex-shrink-0">
+<button
+@click="openAddUserModal"
+class="px-4 py-2 bg-btn-secundario text-btn-font-secundario rounded-md font-semibold hover:opacity-80 transition"
+>
+Adicionar Novo Usuário
+</button>
+</div>
 </div>
 
 <div v-if="isLoading" class="text-center p-8">
- <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
- <p class="text-gray-500 mt-2">Carregando lista de usuários...</p>
+<i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+<p class="text-gray-500 mt-2">Carregando lista de usuários...</p>
 </div>
 
 <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
- <strong class="font-bold">Erro:</strong>
- <span class="block sm:inline"> {{ error }}</span>
- <button @click="fetchUsers" class="ml-4 underline font-semibold">Tentar Novamente</button>
+<strong class="font-bold">Erro:</strong>
+<span class="block sm:inline"> {{ error }}</span>
+<button @click="fetchUsers" class="ml-4 underline font-semibold">Tentar Novamente</button>
 </div>
 
 <div v-else class="bg-white shadow-lg rounded-xl overflow-hidden">
-  <div class="overflow-x-auto">
- <table class="min-w-full divide-y divide-gray-200">
- <thead class="bg-gray-50">
- <tr>
-  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome de Usuário</th>
-  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
-  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Último Login</th>
-  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+ <div class="overflow-x-auto">
+<table class="min-w-full divide-y divide-gray-200">
+<thead class="bg-gray-50">
+<tr>
+ <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+ <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome de Usuário</th>
+ <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+ <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
+ <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Último Login</th>
+ <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-200">
+<template v-for="(user, index) in filteredUsers" :key="user.id">
+ <tr 
+ @click="selectUser(user)" 
+ :class="[
+ 'cursor-pointer hover:bg-gray-200 transition',
+ index % 2 === 0 ? 'bg-white' : 'bg-[#ECECEC]', 
+ selectedUser?.id === user.id ? 'bg-blue-50 hover:bg-blue-100' : ''
+ ]"
+ >
+ <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
+ <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ user.username }}</td>
+ <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
+ <td class="px-6 py-4 whitespace-nowrap">
+ <span :class="roleBadgeClass(user.role)">
+ {{ user.role }}
+ </span>
+ </td>
+ <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+  {{ formatLastLogin(user.lastLogin) }}
+ </td>
+ <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+ <button @click.stop="editUser(user)" title="Editar" class="text-indigo-600 hover:text-indigo-900 transition">
+ <i class="fas fa-edit"></i>
+ </button>
+ <button @click.stop="deleteUser(user.id)" title="Excluir" class="text-red-600 hover:text-red-900 transition">
+ <i class="fas fa-trash"></i>
+ </button>
+ </td>
  </tr>
- </thead>
- <tbody class="divide-y divide-gray-200">
- <template v-for="(user, index) in filteredUsers" :key="user.id">
-  <tr 
-  @click="selectUser(user)" 
-  :class="[
-  'cursor-pointer hover:bg-gray-200 transition',
-  index % 2 === 0 ? 'bg-white' : 'bg-[#ECECEC]', 
-  selectedUser?.id === user.id ? 'bg-blue-50 hover:bg-blue-100' : ''
-  ]"
-  >
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ user.username }}</td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
-  <td class="px-6 py-4 whitespace-nowrap">
-  <span :class="roleBadgeClass(user.role)">
-  {{ user.role }}
-  </span>
-  </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-  {{ formatLastLogin(user.last_login) }}
-  </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-  <button @click.stop="editUser(user)" title="Editar" class="text-indigo-600 hover:text-indigo-900 transition">
-  <i class="fas fa-edit"></i>
-  </button>
-  <button @click.stop="deleteUser(user.id)" title="Excluir" class="text-red-600 hover:text-red-900 transition">
-  <i class="fas fa-trash"></i>
-  </button>
-  </td>
-  </tr>
 
-    <tr v-if="selectedUser?.id === user.id">
-  <td :colspan="6" class="p-6 bg-gray-50 border-t border-b border-gray-200">
-  <div class="p-4 bg-white rounded-lg shadow-xl">
-  <h4 class="text-xl font-bold mb-4 border-b pb-2 text-gray-700">Detalhes de: {{ selectedUser.username }}</h4>
+  <tr v-if="selectedUser?.id === user.id">
+ <td :colspan="6" class="p-6 bg-gray-50 border-t border-b border-gray-200">
+ <div class="p-4 bg-white rounded-lg shadow-xl">
+ <h4 class="text-xl font-bold mb-4 border-b pb-2 text-gray-700">Detalhes de: {{ selectedUser.username }}</h4>
 
-     <div class="flex flex-col md:flex-row gap-6">
-   
-      <div class="flex-shrink-0 w-full md:w-64 flex flex-col items-center">
-   <p class="font-medium text-gray-600 mb-2">Foto de Perfil:</p>
-   <img
-   :src="selectedUser.photo_perfil_url || '/default-profile.png'"
-   alt="Foto de Perfil"
-   class="w-32 h-32 rounded-full object-cover border-2 border-gray-300"
-   @error="selectedUser.photo_perfil_url = '/default-profile.png'"
-   />
-   <span v-if="!selectedUser.photo_perfil_url" class="text-sm text-gray-500 mt-2">Sem foto</span>
-   </div>
-   
-
-      <div class="flex-grow">
-   
-   <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-gray-700">
-   <p class="col-span-1 sm:col-span-2"><strong>Nome:</strong> {{ selectedUser.username }}</p>
-   <p class="col-span-1 sm:col-span-2"><strong>E-mail:</strong> {{ selectedUser.email }}</p>
-
-   <p class="col-span-1"><strong>Data de Nascimento:</strong> {{ formatBirthDate(selectedUser.birthdate) }}</p>
-   <p class="col-span-1"><strong>Sexo:</strong> {{ formatSexo(selectedUser.sexo) }}</p>
-
-   <p class="col-span-1"><strong>Peso Inicial:</strong> {{ formatWeight(selectedUser.initial_weight_kg) }}</p>
-   <p class="col-span-1"><strong>Altura:</strong> {{ selectedUser.height_cm ? selectedUser.height_cm + ' cm' : 'Não registrado' }}</p>
-
-   <p class="col-span-1 sm:col-span-2"><strong>Cargo:</strong>
-   <span :class="roleBadgeClass(selectedUser.role)">
-    {{ selectedUser.role }}
-   </span>
-   </p>
-   </div>
-       
-          <div class="mt-6 w-full p-3 border rounded-lg bg-gray-100">
-   <p class="font-semibold text-gray-700 mb-1 border-b pb-1">Medidas Corporais Atuais:</p>
-   <div v-if="selectedUser.latestMeasurements && Object.keys(selectedUser.latestMeasurements).length > 0" class="text-sm">
-   <p v-for="data in selectedUser.latestMeasurements" :key="data.name" class="flex justify-between items-center">
-    <span>{{ data.name }}:</span>
-    <span class="font-medium flex items-center gap-2">
-      {{ formatMeasurement(data.value) }} {{ data.unit }}
-      <i :class="trendIconClass(data.trend)" :title="trendTooltip(data.trend)"></i>
-    </span>
-   </p>
-   </div>
-   <p v-else class="text-sm text-gray-500">Nenhuma medida registrada.</p>
-   </div>
-   </div>
-  </div>      <h5 class="text-md font-semibold mt-6 mb-2 pt-4 border-t text-gray-700">Galerias de Imagens</h5>
-
-  <div class="flex flex-col gap-4">
-   <button
-   @click="toggleGallery('registro')"
-   class="w-full flex justify-between items-center px-4 py-3 bg-white border rounded-md shadow-sm"
-   >
-   <div>
-   <p class="font-medium text-gray-700">Fotos de Registro</p>
-   <p class="text-xs text-gray-500">{{ (selectedUser.publicPhotos || []).length }} imagens públicas</p>
-   </div>
-   <i :class="activeGallery === 'registro' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-   </button>
-
-   <div v-if="activeGallery === 'registro'" class="bg-gray-100 p-3 rounded-md border border-gray-200">
-   <div v-if="selectedUser.publicPhotos?.length" class="grid grid-cols-2 md:grid-cols-3 gap-2">
-   <div v-for="(p, i) in selectedUser.publicPhotos" :key="i" class="relative group">
-   <div class="w-full aspect-square rounded-md overflow-hidden">
-    <img 
-    :src="p.url" 
-    class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition" 
-    @click="openFullImage(p.url)" 
-    />
-   </div>
-   <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
-    {{ formatDate(p.date) }}
-   </div>
-   </div>
-   </div>
-   <p v-else class="text-sm text-gray-500">Nenhuma foto pública disponível.</p>
-   </div>
-
-   <button
-   @click="toggleGallery('forma')"
-   class="w-full flex justify-between items-center px-4 py-3 bg-white border rounded-md shadow-sm"
-   >
-   <div>
-   <p class="font-medium text-gray-700">Fotos de Forma</p>
-   <p class="text-xs text-gray-500">{{ (selectedUser.publicFormas || []).length }} imagens públicas</p>
-   </div>
-   <i :class="activeGallery === 'forma' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-   </button>
-
-   <div v-if="activeGallery === 'forma'" class="bg-gray-100 p-3 rounded-md border border-gray-200">
-   <div v-if="selectedUser.publicFormas?.length" class="grid grid-cols-2 md:grid-cols-3 gap-2">
-   <div v-for="(p, i) in selectedUser.publicFormas" :key="i" class="relative group">
-   <div class="w-full aspect-square rounded-md overflow-hidden">
-    <img 
-    :src="p.url" 
-    class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition" 
-    @click="openFullImage(p.url)" 
-    />
-   </div>
-   <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
-    {{ formatDate(p.date) }}
-   </div>
-   </div>
-   </div>
-   <p v-else class="text-sm text-gray-500">Nenhuma foto pública disponível.</p>
-   </div>
-  </div>
-  </div>
-  </td>
-  </tr>
- </template>
- </tbody>
- </table>
+  <div class="flex flex-col md:flex-row gap-6">
  
+   <div class="flex-shrink-0 w-full md:w-64 flex flex-col items-center">
+ <p class="font-medium text-gray-600 mb-2">Foto de Perfil:</p>
+ <img
+ :src="selectedUser.photo_perfil_url || '/default-profile.png'"
+ alt="Foto de Perfil"
+ class="w-32 h-32 rounded-full object-cover border-2 border-gray-300"
+ @error="selectedUser.photo_perfil_url = '/default-profile.png'"
+ />
+ <span v-if="!selectedUser.photo_perfil_url" class="text-sm text-gray-500 mt-2">Sem foto</span>
+ </div>
+ 
+
+   <div class="flex-grow">
+ 
+ <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-gray-700">
+ <p class="col-span-1 sm:col-span-2"><strong>Nome:</strong> {{ selectedUser.username }}</p>
+ <p class="col-span-1 sm:col-span-2"><strong>E-mail:</strong> {{ selectedUser.email }}</p>
+
+ <p class="col-span-1"><strong>Data de Nascimento:</strong> {{ formatBirthDate(selectedUser.birthdate) }}</p>
+ <p class="col-span-1"><strong>Sexo:</strong> {{ formatSexo(selectedUser.sexo) }}</p>
+
+ <p class="col-span-1"><strong>Peso Inicial:</strong> {{ formatWeight(selectedUser.initial_weight_kg) }}</p>
+ <p class="col-span-1"><strong>Altura:</strong> {{ selectedUser.height_cm ? selectedUser.height_cm + ' cm' : 'Não registrado' }}</p>
+
+ <p class="col-span-1 sm:col-span-2"><strong>Cargo:</strong>
+ <span :class="roleBadgeClass(selectedUser.role)">
+  {{ selectedUser.role }}
+ </span>
+ </p>
+ </div>
+   
+     <div class="mt-6 w-full p-3 border rounded-lg bg-gray-100">
+ <p class="font-semibold text-gray-700 mb-1 border-b pb-1">Medidas Corporais Atuais:</p>
+ <div v-if="selectedUser.latestMeasurements && Object.keys(selectedUser.latestMeasurements).length > 0" class="text-sm">
+ <p v-for="data in selectedUser.latestMeasurements" :key="data.name" class="flex justify-between items-center">
+  <span>{{ data.name }}:</span>
+  <span class="font-medium flex items-center gap-2">
+   {{ formatMeasurement(data.value) }} {{ data.unit }}
+   <i :class="trendIconClass(data.trend)" :title="trendTooltip(data.trend)"></i>
+  </span>
+ </p>
+ </div>
+ <p v-else class="text-sm text-gray-500">Nenhuma medida registrada.</p>
+ </div>
+ </div>
+ </div>   <h5 class="text-md font-semibold mt-6 mb-2 pt-4 border-t text-gray-700">Galerias de Imagens</h5>
+
+ <div class="flex flex-col gap-4">
+ <button
+ @click="toggleGallery('registro')"
+ class="w-full flex justify-between items-center px-4 py-3 bg-white border rounded-md shadow-sm"
+ >
+ <div>
+ <p class="font-medium text-gray-700">Fotos de Registro</p>
+ <p class="text-xs text-gray-500">{{ (selectedUser.publicPhotos || []).length }} imagens públicas</p>
+ </div>
+ <i :class="activeGallery === 'registro' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+ </button>
+
+ <div v-if="activeGallery === 'registro'" class="bg-gray-100 p-3 rounded-md border border-gray-200">
+ <div v-if="selectedUser.publicPhotos?.length" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+ <div v-for="(p, i) in selectedUser.publicPhotos" :key="i" class="relative group">
+ <div class="w-full aspect-square rounded-md overflow-hidden">
+  <img 
+  :src="p.url" 
+  class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition" 
+  @click="openFullImage(p.url)" 
+  />
+ </div>
+ <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
+  {{ formatDate(p.date) }}
+ </div>
+ </div>
+ </div>
+ <p v-else class="text-sm text-gray-500">Nenhuma foto pública disponível.</p>
  </div>
 
- <div v-if="filteredUsers.length === 0 && !isLoading" class="p-4 text-center text-gray-500">
- Nenhum usuário encontrado que corresponda à busca.
+ <button
+ @click="toggleGallery('forma')"
+ class="w-full flex justify-between items-center px-4 py-3 bg-white border rounded-md shadow-sm"
+ >
+ <div>
+ <p class="font-medium text-gray-700">Fotos de Forma</p>
+ <p class="text-xs text-gray-500">{{ (selectedUser.publicFormas || []).length }} imagens públicas</p>
  </div>
+ <i :class="activeGallery === 'forma' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+ </button>
+
+ <div v-if="activeGallery === 'forma'" class="bg-gray-100 p-3 rounded-md border border-gray-200">
+ <div v-if="selectedUser.publicFormas?.length" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+ <div v-for="(p, i) in selectedUser.publicFormas" :key="i" class="relative group">
+ <div class="w-full aspect-square rounded-md overflow-hidden">
+  <img 
+  :src="p.url" 
+  class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition" 
+  @click="openFullImage(p.url)" 
+  />
+ </div>
+ <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity">
+  {{ formatDate(p.date) }}
+ </div>
+ </div>
+ </div>
+ <p v-else class="text-sm text-gray-500">Nenhuma foto pública disponível.</p>
+ </div>
+ </div>
+ </div>
+ </td>
+ </tr>
+</template>
+</tbody>
+</table>
+
+</div>
+
+<div v-if="filteredUsers.length === 0 && !isLoading" class="p-4 text-center text-gray-500">
+Nenhum usuário encontrado que corresponda à busca.
+</div>
 </div>
 </div>
 
- <div v-if="fullImageUrl" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" @click="closeFullImage">
+<div v-if="fullImageUrl" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" @click="closeFullImage">
 <img :src="fullImageUrl" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg" />
 <button class="absolute top-5 right-5 text-white text-3xl" @click.stop="closeFullImage">✕</button>
 </div>
 
- <UserEditModal 
+<UserEditModal 
 :user-data="userToEdit" 
 :is-open="isEditModalOpen" 
 @close="closeEditModal" 
 @user-updated="handleUserUpdate"
 />
 
- <UserAddModal
+<UserAddModal
 :is-open="isAddModalOpen"
 @close="closeAddModal"
 @user-created="handleUserCreate"
@@ -286,21 +286,21 @@ default: return 'Não informado'
 // ---------------------------------------------------------------------
 
 /**
- * Retorna a classe CSS do ícone baseado na tendência.
- * 'down' é melhora (verde) para medidas corporais.
- */
+* Retorna a classe CSS do ícone baseado na tendência.
+* 'down' é melhora (verde) para medidas corporais.
+*/
 const trendIconClass = (trend) => {
 const t = (trend || '').toLowerCase()
 // Corrigido para FontAwesome 5
 if (t === 'down') return 'fas fa-arrow-down text-green-600' // Melhora/Perda (Peso/Medidas)
-if (t === 'up') return 'fas fa-arrow-up text-red-600'     // Piora/Aumento (Peso/Medidas)
-if (t === 'stable') return 'fas fa-minus text-gray-500'   // Estável
-return 'fas fa-info-circle text-blue-500'                 // Initial/Não comparável
+if (t === 'up') return 'fas fa-arrow-up text-red-600'   // Piora/Aumento (Peso/Medidas)
+if (t === 'stable') return 'fas fa-minus text-gray-500'  // Estável
+return 'fas fa-info-circle text-blue-500'         // Initial/Não comparável
 }
 
 /**
- * Retorna o texto do tooltip baseado na tendência.
- */
+* Retorna o texto do tooltip baseado na tendência.
+*/
 const trendTooltip = (trend) => {
 const t = (trend || '').toLowerCase()
 if (t === 'down') return 'Melhora (diminuição) em relação ao registro anterior.'
@@ -341,10 +341,10 @@ const formatBirthDate = (dateString) => {
 if (!dateString) return 'Não informado'
 try {
 if (dateString instanceof Date) {
- return dateString.toLocaleDateString('pt-BR')
+return dateString.toLocaleDateString('pt-BR')
 }
 if (typeof dateString === 'string' && dateString.includes('T')) {
- return new Date(dateString).toLocaleDateString('pt-BR')
+return new Date(dateString).toLocaleDateString('pt-BR')
 }
 const parts = dateString.split('-')
 // A data de nascimento deve vir no formato YYYY-MM-DD
@@ -439,13 +439,13 @@ isUserCreationLoading.value = true
 
 try {
 const createdUser = await $fetch('/api/users', {
- baseURL: config.public.apiBaseUrl,
- method: 'POST',
- headers: { 
- 'Authorization': `Bearer ${token}`,
- 'Content-Type': 'application/json' 
- },
- body: newUserData
+baseURL: config.public.apiBaseUrl,
+method: 'POST',
+headers: { 
+'Authorization': `Bearer ${token}`,
+'Content-Type': 'application/json' 
+},
+body: newUserData
 })
 
 users.value.unshift(createdUser)
@@ -486,24 +486,24 @@ const userId = updatedFields.id
 
 // CHAMADA DE API REAL: PUT /api/users/[id]
 const updatedUser = await $fetch(`/api/users/${userId}`, {
- baseURL: config.public.apiBaseUrl,
- method: 'PUT',
- headers: { 
- 'Authorization': `Bearer ${token}`,
- 'Content-Type': 'application/json' 
- },
- body: updatedFields
+baseURL: config.public.apiBaseUrl,
+method: 'PUT',
+headers: { 
+'Authorization': `Bearer ${token}`,
+'Content-Type': 'application/json' 
+},
+body: updatedFields
 })
 
 // Atualiza o usuário na lista principal
 const index = users.value.findIndex(u => u.id === updatedUser.id)
 if (index !== -1) {
- // Usa Object.assign para manter a reatividade onde for necessário
- users.value[index] = Object.assign(users.value[index], updatedUser)
+// Usa Object.assign para manter a reatividade onde for necessário
+users.value[index] = Object.assign(users.value[index], updatedUser)
 }
 // Se o usuário selecionado for o editado, atualiza também
 if (selectedUser.value && selectedUser.value.id === updatedUser.id) {
- selectedUser.value = Object.assign(selectedUser.value, updatedUser)
+selectedUser.value = Object.assign(selectedUser.value, updatedUser)
 }
 closeEditModal()
 alert('Usuário atualizado com sucesso!')
@@ -528,21 +528,21 @@ if (!token) return alert('Sessão expirada. Faça login novamente.')
 
 if (confirm('Tem certeza de que deseja excluir este usuário? Esta ação é irreversível.')) {
 try {
- // CHAMADA DE API REAL: DELETE /api/users/[id]
- await $fetch(`/api/users/${userId}`, {
- baseURL: config.public.apiBaseUrl,
- method: 'DELETE',
- headers: { Authorization: `Bearer ${token}` }
- })
- 
- // Remoção local após sucesso da API
- users.value = users.value.filter(u => u.id !== userId)
- if (selectedUser.value?.id === userId) selectedUser.value = null
- alert('Usuário excluído com sucesso.')
+// CHAMADA DE API REAL: DELETE /api/users/[id]
+await $fetch(`/api/users/${userId}`, {
+baseURL: config.public.apiBaseUrl,
+method: 'DELETE',
+headers: { Authorization: `Bearer ${token}` }
+})
+
+// Remoção local após sucesso da API
+users.value = users.value.filter(u => u.id !== userId)
+if (selectedUser.value?.id === userId) selectedUser.value = null
+alert('Usuário excluído com sucesso.')
 
 } catch (e) {
- console.error('Erro ao excluir usuário:', e)
- alert(`Erro ao excluir usuário: ${e?.data?.statusMessage || e?.message || 'Falha desconhecida'}`)
+console.error('Erro ao excluir usuário:', e)
+alert(`Erro ao excluir usuário: ${e?.data?.statusMessage || e?.message || 'Falha desconhecida'}`)
 }
 }
 }

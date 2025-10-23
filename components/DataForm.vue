@@ -1,4 +1,5 @@
-// /components/DataForm.vue - V2.2.12 - Ajusta o botão de navegação para upload de imagem para mostrar apenas o ícone.
+// /components/DataForm.vue - V2.2.18 - Usa Composável (TS) para checagem de IDs e limpeza.
+
 <template>
 <div class="form-container bg-white p-6 rounded-lg shadow-xl mt-6">
 <h3 class="text-xl font-bold mb-4 text-gray-800">Adicionar Novo Registro</h3>
@@ -33,48 +34,48 @@ class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indig
 <div class="border p-4 rounded-md bg-gray-50">
 <h4 class="text-lg font-semibold mb-3 text-gray-700">Medidas Corporais (cm)</h4>
 
-  <div v-if="dynamicMeasurements.length > 0">
- <div v-for="(measurement, index) in dynamicMeasurements" :key="index" class="flex gap-2 mb-3 items-end">
+<div v-if="dynamicMeasurements.length > 0">
+<div v-for="(measurement, index) in dynamicMeasurements" :key="index" class="flex gap-2 mb-3 items-end">
 
- <div class="flex-grow">
-  <label :for="`measure_select_${index}`" class="block text-xs font-medium text-gray-600">Área</label>
-  <select 
-  :id="`measure_select_${index}`" 
-  v-model="measurement.id" 
-  required 
-  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
-  >
-  <option value="" disabled>Selecione a Medida</option>
-   <option v-for="m in availableMeasurements(measurement.id)" :key="m.id" :value="m.id">{{ m.name }} (cm)</option>
-  </select>
- </div>
+<div class="flex-grow">
+<label :for="`measure_select_${index}`" class="block text-xs font-medium text-gray-600">Área</label>
+<select 
+:id="`measure_select_${index}`" 
+v-model="measurement.id" 
+required 
+class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
+>
+<option value="" disabled>Selecione a Medida</option>
+<option v-for="m in availableMeasurements(measurement.id)" :key="m.id" :value="m.id">{{ m.name }} (cm)</option>
+</select>
+</div>
 
- <div class="w-2/5">
-  <label :for="`measure_value_${index}`" class="block text-xs font-medium text-gray-600">Valor (cm)</label>
-  <input 
-  type="number" 
-  :id="`measure_value_${index}`" 
-  v-model.number="measurement.value" 
-  step="0.1" 
-  min="1"
-  required
-  placeholder="00.0"
-  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
-  />
- </div>
+<div class="w-2/5">
+<label :for="`measure_value_${index}`" class="block text-xs font-medium text-gray-600">Valor (cm)</label>
+<input 
+type="number" 
+:id="`measure_value_${index}`" 
+v-model.number="measurement.value" 
+step="0.1" 
+min="1"
+required
+placeholder="00.0"
+class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border text-sm"
+/>
+</div>
 
- <button 
-  type="button" 
-  @click="removeMeasurement(index)" 
-  class="p-2 text-red-600 hover:text-red-800 transition rounded-md"
-  title="Remover Medida"
- >
-  <i class="fas fa-trash-alt"></i>
- </button>
- </div>
- </div>
+<button 
+type="button" 
+@click="removeMeasurement(index)" 
+class="p-2 text-red-600 hover:text-red-800 transition rounded-md"
+title="Remover Medida"
+>
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
 
- <button 
+<button 
 type="button" 
 @click="addMeasurement"
 :disabled="allMeasurementsUsed"
@@ -107,20 +108,19 @@ class="mt-2 px-3 py-2 bg-indigo-500 text-white rounded-md text-sm font-medium ho
 </div>
 
 <div class="mt-4">
-  <button 
-    type="button" 
-    @click="goToImageUpload"
-    class="w-full px-4 py-3 bg-indigo-500 text-white rounded-md font-bold hover:bg-indigo-600 transition duration-150 flex items-center justify-center"
-    title="Adicionar ou Editar Fotos de Evolução/Forma"
-  >
-    <i class="fas fa-camera text-2xl"></i> 
-  </button>
-  <p class="text-xs text-gray-500 mt-1 text-center">Edite as fotos antes de finalizar o registro.</p>
+<button 
+ type="button" 
+ @click="goToImageUpload"
+ class="w-full px-4 py-3 bg-indigo-500 text-white rounded-md font-bold hover:bg-indigo-600 transition duration-150 flex items-center justify-center"
+ title="Adicionar ou Editar Fotos de Evolução/Forma"
+>
+ <i class="fas fa-camera text-2xl"></i> 
+</button>
 </div>
 
 <div v-if="tempPhotoFileIds.length > 0 || tempFormaFileIds.length > 0" class="p-3 bg-yellow-100 text-yellow-700 border border-yellow-400 rounded-md">
-  <i class="fas fa-exclamation-triangle mr-2"></i>
-  Há {{ tempPhotoFileIds.length }} foto(s) de Evolução e {{ tempFormaFileIds.length }} foto(s) de Forma prontas para serem anexadas.
+<i class="fas fa-exclamation-triangle mr-2"></i>
+Há {{ tempPhotoFileIds.length }} foto(s) de Evolução e {{ tempFormaFileIds.length }} foto(s) de Forma prontas para serem anexadas.
 </div>
 
 <div v-if="submissionError" class="p-3 bg-red-100 text-red-700 border border-red-400 rounded-md">
@@ -149,98 +149,117 @@ class="w-2/3 px-4 py-3 bg-btn-principal text-btn-font-principal rounded-md font-
 </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '~/stores/auth'; 
-import { useRouter } from '#app'; 
+import { clearAllTempFiles } from '~/composables/useTempFiles'; // Importa a função de limpeza
 
-const emit = defineEmits(['recordSaved', 'cancel']);
+// Tipos
+interface Measurement {
+    id: number | string; // Permitir string vazia para o v-model inicial
+    value: number | null;
+}
+interface FormData {
+    record_date: string;
+    weight: number | null;
+    event: string;
+    weeklyAction: string;
+    workoutDays: number | null;
+    observations: string;
+}
+
+const emit = defineEmits(['recordSaved', 'cancel', 'openImageEditor']);
 
 const authStore = useAuthStore();
-const router = useRouter(); 
 const isSubmitting = ref(false);
-const submissionError = ref(null);
+const submissionError = ref<string | null>(null);
 
 const today = new Date().toISOString().split('T')[0];
 
-const formData = reactive({
-record_date: today,
-weight: null,
-event: '',
-weeklyAction: '', 
-workoutDays: null,
-observations: '',
+const formData: FormData = reactive({
+    record_date: today,
+    weight: null,
+    event: '',
+    weeklyAction: '',
+    workoutDays: null,
+    observations: '',
 });
 
-// 🚨 MODIFICADO: Agora armazenamos arrays de IDs temporários
-const tempPhotoFileIds = ref([]);
-const tempFormaFileIds = ref([]);
+// IDs temporários lidos da sessão (para o display e envio ao backend)
+const tempPhotoFileIds = ref<string[]>([]);
+const tempFormaFileIds = ref<string[]>([]);
 
 const checkTempFiles = () => {
     if (process.client) {
-        // Armazenamos JSON na sessionStorage
-        const photoIds = sessionStorage.getItem('tempPhotoFileIds');
-        const formaIds = sessionStorage.getItem('tempFormaFileIds');
+        // Lemos diretamente as chaves de ID salvas pelo Composável
+        const photoIdsRaw = sessionStorage.getItem('tempPhotoFileIds'); 
+        const formaIdsRaw = sessionStorage.getItem('tempFormaFileIds');
         
-        tempPhotoFileIds.value = photoIds ? JSON.parse(photoIds) : [];
-        tempFormaFileIds.value = formaIds ? JSON.parse(formaIds) : [];
+        try {
+            tempPhotoFileIds.value = photoIdsRaw ? JSON.parse(photoIdsRaw) : [];
+            tempFormaFileIds.value = formaIdsRaw ? JSON.parse(formaIdsRaw) : [];
+        } catch (e) {
+            console.error("Erro ao parsear IDs temporários da sessão:", e);
+            tempPhotoFileIds.value = [];
+            tempFormaFileIds.value = [];
+        }
     }
 };
 
 onMounted(() => {
-    checkTempFiles();
-    window.addEventListener('focus', checkTempFiles); 
+ checkTempFiles();
+ window.addEventListener('focus', checkTempFiles); 
 });
 
 onUnmounted(() => { 
-    if (process.client) {
-        window.removeEventListener('focus', checkTempFiles);
-    }
+ if (process.client) {
+  window.removeEventListener('focus', checkTempFiles);
+ }
 });
 
-// LISTA FIXA DAS 8 MEDIDAS (Mantida da V2.2.10)
+// LISTA FIXA DAS 8 MEDIDAS
 const availableMeasures = [
-{ id: 1, name: 'Pescoço', unit: 'cm' },
-{ id: 2, name: 'Busto', unit: 'cm' },
-{ id: 3, name: 'Tórax', unit: 'cm' },
-{ id: 4, name: 'Cintura', unit: 'cm' },
-{ id: 5, name: 'Quadril', unit: 'cm' },
-{ id: 6, name: 'Coxa', unit: 'cm' },
-{ id: 7, name: 'Braço', unit: 'cm' },
-{ id: 8, name: 'Antebraço', unit: 'cm' },
+    { id: 1, name: 'Pescoço', unit: 'cm' },
+    { id: 2, name: 'Busto', unit: 'cm' },
+    { id: 3, name: 'Tórax', unit: 'cm' },
+    { id: 4, name: 'Cintura', unit: 'cm' },
+    { id: 5, name: 'Quadril', unit: 'cm' },
+    { id: 6, name: 'Coxa', unit: 'cm' },
+    { id: 7, name: 'Braço', unit: 'cm' },
+    { id: 8, name: 'Antebraço', unit: 'cm' },
 ];
 
-const dynamicMeasurements = ref([]); 
+const dynamicMeasurements = ref<Measurement[]>([]); 
 
 const usedMeasureIds = computed(() => {
-return dynamicMeasurements.value
-.map(m => m.id)
-.filter(id => id !== null && id !== ''); 
+    return dynamicMeasurements.value
+        .map(m => m.id)
+        .filter((id): id is number => typeof id === 'number'); // Filtra e tipa
 });
 
-const availableMeasurements = (currentId) => {
-return availableMeasures.filter(m => !usedMeasureIds.value.includes(m.id) || m.id === currentId);
+const availableMeasurements = (currentId: number | string) => {
+    return availableMeasures.filter(m => !usedMeasureIds.value.includes(m.id) || m.id === currentId);
 };
 
 const allMeasurementsUsed = computed(() => {
-return usedMeasureIds.value.length === availableMeasures.length;
+    return usedMeasureIds.value.length === availableMeasures.length;
 });
 
 const addMeasurement = () => {
-if (allMeasurementsUsed.value) return;
-const nextAvailable = availableMeasures.find(m => !usedMeasureIds.value.includes(m.id));
-dynamicMeasurements.value.push({ 
-id: nextAvailable ? nextAvailable.id : '', 
-value: null 
-});
+    if (allMeasurementsUsed.value) return;
+    const nextAvailable = availableMeasures.find(m => !usedMeasureIds.value.includes(m.id));
+    dynamicMeasurements.value.push({ 
+        id: nextAvailable ? nextAvailable.id : '', 
+        value: null 
+    });
 };
 
-const removeMeasurement = (index) => {
-dynamicMeasurements.value.splice(index, 1);
+const removeMeasurement = (index: number) => {
+    dynamicMeasurements.value.splice(index, 1);
 };
 
 const goToImageUpload = () => {
-  router.push('/registro/imagem');
+emit('openImageEditor');
 };
 
 const submitRecord = async () => {
@@ -260,37 +279,44 @@ return;
 const data = new FormData();
 data.append('user_id', String(userId));
 data.append('record_date', formData.record_date);
-data.append('weight', formData.weight);
+data.append('weight', String(formData.weight));
 data.append('event', formData.event || '');
 data.append('weeklyAction', formData.weeklyAction || '');
-data.append('workoutDays', formData.workoutDays ? String(formData.workoutDays) : '');
+data.append('workoutDays', formData.workoutDays !== null ? String(formData.workoutDays) : '');
 data.append('observations', formData.observations || '');
 
 const validMeasurements = dynamicMeasurements.value
-.filter(m => m.id && m.value !== null && m.value > 0)
+.filter(m => m.id && m.value !== null && (m.value as number) > 0)
 .map(m => ({
-measurement_id: m.id, 
-value: m.value 
+measurement_id: m.id as number, 
+value: m.value as number 
 }));
 
 data.append('measurements', JSON.stringify(validMeasurements)); 
 
-// 🚨 MODIFICADO: Anexa os arrays de IDs temporários como JSON string para o backend
+// 🚨 LOG DE DIAGNÓSTICO NO FRONTEND (MANTIDO)
+console.log('Dados temporários para envio:', { 
+tempPhotoFileIds: tempPhotoFileIds.value, 
+tempFormaFileIds: tempFormaFileIds.value 
+});
+
+// Anexa os arrays de IDs temporários como JSON string para o backend
 if (tempPhotoFileIds.value.length > 0) {
-    data.append('tempPhotoFileIds', JSON.stringify(tempPhotoFileIds.value));
+ data.append('tempPhotoFileIds', JSON.stringify(tempPhotoFileIds.value));
 }
 if (tempFormaFileIds.value.length > 0) {
-    data.append('tempFormaFileIds', JSON.stringify(tempFormaFileIds.value));
+ data.append('tempFormaFileIds', JSON.stringify(tempFormaFileIds.value));
 }
 
 try {
-const response = await fetch('/api/records', {
-method: 'POST',
-headers: { Authorization: `Bearer ${token}` },
-body: data,
+const response = await $fetch('/api/records', {
+    method: 'POST',
+    headers: { 
+        Authorization: `Bearer ${token}` 
+    },
+    body: data, 
 });
 
-if (response.ok) {
 // Limpa dados e reseta o formulário
 formData.weight = null;
 formData.event = '';
@@ -300,24 +326,21 @@ formData.observations = '';
 
 dynamicMeasurements.value = []; 
 
-// Limpa o sessionStorage e os refs após o sucesso
-if (process.client) {
-    sessionStorage.removeItem('tempPhotoFileIds');
-    sessionStorage.removeItem('tempFormaFileIds');
-}
+// Limpa TODAS as chaves da sessão através do composável
+clearAllTempFiles();
+
+// Reseta os refs locais
 tempPhotoFileIds.value = [];
 tempFormaFileIds.value = [];
 
 emit('recordSaved');
-} else {
-const errorData = await response.json();
-submissionError.value = `Falha ao salvar. Detalhe: ${errorData.message || 'Erro desconhecido.'}`;
-}
-} catch (error) {
-submissionError.value = 'Erro de rede: Não foi possível conectar com o servidor.';
-console.error('Erro de submissão:', error);
+
+} catch (error: any) {
+    const errorData = error?.response?._data || error;
+    submissionError.value = `Falha ao salvar. Detalhe: ${errorData.message || errorData || 'Erro desconhecido.'}`;
+    console.error('Erro de submissão:', error);
 } finally {
-isSubmitting.value = false;
+    isSubmitting.value = false;
 }
 };
 </script>

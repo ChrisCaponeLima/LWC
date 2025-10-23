@@ -1,9 +1,16 @@
-// /pages/dashboard.vue - V1.5 - Atualização do botão 'Registro Rápido' para usar apenas o ícone de raio (fa-bolt).
+// /pages/dashboard.vue - V1.12 - Scroll Lock Apenas no Editor (Comportamento Restaurado)
 <template>
 <div>
 <Header pageTitle="Dashboard" />
 
 <div class="container mx-auto px-4 my-8">
+
+<RegistroImageEditor 
+v-if="showImageEditor" 
+@close="showImageEditor = false" 
+class="fixed inset-0 z-50 bg-white overflow-y-auto" 
+/>
+<div>
 <div class="my-8">
 <ClientOnly>
 <h2 class="text-3xl font-bold text-gray-800">
@@ -62,20 +69,20 @@ icon-alt="Ícone de Régua"
 </div>
 
 <div class="mt-8 text-center">
-    <div class="flex justify-center space-x-4"> 
-        <button
-            @click="startPhotoRecord"
-            class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
-        >
-        <i class="fas fa-camera mr-2"></i><i class="fas fa-bolt text-lg"></i> 
-        </button>
-        <button
-            @click="startNewRecord"
-            class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
-        >
-            <i class="fas fa-plus-circle mr-2"></i> Novo Registro
-        </button>
-    </div>
+ <div class="flex justify-center space-x-4"> 
+ <button
+  @click="startPhotoRecord"
+  class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
+ >
+ <i class="fas fa-camera mr-2"></i><i class="fas fa-bolt text-lg"></i> 
+ </button>
+ <button
+  @click="startNewRecord"
+  class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
+ >
+  <i class="fas fa-plus-circle mr-2"></i> Novo Registro
+ </button>
+ </div>
 </div>
 
 <DataForm 
@@ -83,7 +90,13 @@ v-if="showForm"
 :record-id="editingRecordId" 
 @recordSaved="handleRecordSaved" 
 @cancel="handleRecordSaved" 
+@openImageEditor="handleOpenImageEditor"
 />
+
+<div v-if="showForm && (tempPhotoFilesCount > 0 || tempFormaFilesCount > 0)" class="mt-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700" role="alert">
+ <p class="font-bold">Fotos Anexadas</p>
+ <p>Há **{{ tempPhotoFilesCount }}** foto(s) de Evolução e **{{ tempFormaFilesCount }}** foto(s) de Forma prontas para serem anexadas no seu registro.</p>
+</div>
 
 <DataDisplay 
 :raw-chart-data="chartData" 
@@ -93,17 +106,19 @@ v-if="showForm"
 />
 </div>
 
+</div>
+
 <Footer />
 </div>
 </template>
 
 <script setup>
-// O bloco script não precisa de alterações
-import { ref, onMounted, computed } from 'vue'; 
+import { ref, onMounted, computed, watch } from 'vue'; 
+import { useRouter } from '#app'; 
 import { useAuthStore } from '~/stores/auth';
 import { useKpiData } from '~/composables/useKpiData';
+import RegistroImageEditor from '~/components/Registro/ImageEditor.vue'; 
 
-// Nuxt Composer para navegação
 const router = useRouter();
 
 definePageMeta({
@@ -113,6 +128,20 @@ middleware: ['auth']
 const authStore = useAuthStore();
 const showForm = ref(false);
 const editingRecordId = ref(null); 
+const showImageEditor = ref(false); // Estado do editor de imagens
+
+// --- Lógica de Scroll Lock (Mantida) ---
+watch(showImageEditor, (isEditorOpen) => {
+ if (process.client) {
+  if (isEditorOpen) {
+   // Bloqueia a rolagem do corpo da página
+   document.body.classList.add('overflow-hidden');
+  } else {
+   // Reativa a rolagem
+   document.body.classList.remove('overflow-hidden');
+  }
+ }
+});
 
 // --- Lógica KPI ---
 const { 
@@ -125,127 +154,96 @@ hasRegistroPhotos,
 hasFormaPhotos 
 } = useKpiData();
 
-// --- Nome de Exibição para Saudação (Implementa a regra) ---
+// --- Contadores de fotos do sessionStorage (Mantido) ---
+const getPhotoCounts = () => {
+ if (process.client) {
+  try {
+   const photoDataRaw = sessionStorage.getItem('tempPhotoFilesData');
+   const formaDataRaw = sessionStorage.getItem('tempFormaFilesData');
+   
+   const photoFiles = photoDataRaw ? JSON.parse(photoDataRaw) : [];
+   const formaFiles = formaDataRaw ? JSON.parse(formaDataRaw) : [];
+   
+   return { photoCount: photoFiles.length, formaCount: formaFiles.length };
+  } catch (e) {
+   console.error("Erro ao ler fotos do sessionStorage:", e);
+   return { photoCount: 0, formaCount: 0 };
+  }
+ }
+ return { photoCount: 0, formaCount: 0 };
+};
+
+const tempPhotoFilesCount = computed(() => getPhotoCounts().photoCount);
+const tempFormaFilesCount = computed(() => getPhotoCounts().formaCount);
+
+// --- Nome e Saudação (Mantido) ---
 const userNameForGreeting = computed(() => {
- // 1. Prioridade: Apelido
- if (authStore.user?.apelido) {
-  return authStore.user.apelido;
- }
-
- // 2. Fallback: Primeiro Nome do Username
- const username = authStore.user?.username;
- if (username) {
-  // Exemplo: 'Patricia Santos' -> ['Patricia', 'Santos'] -> 'Patricia'
-  return username.split(' ')[0];
- }
-
- // 3. Fallback final
- return 'Usuário';
+if (authStore.user?.apelido) return authStore.user.apelido;
+const username = authStore.user?.username;
+return username ? username.split(' ')[0] : 'Usuário';
 });
 
-// --- Saudação Dinâmica ---
 const greetingMessage = computed(() => {
 const hour = new Date().getHours();
-if (hour >= 5 && hour < 12) {
-const options = ["Bom dia", "Lindo dia", "Excelente manhã"];
-return options[Math.floor(Math.random() * options.length)];
-} else if (hour >= 12 && hour < 18) {
-const options = ["Boa tarde", "Excelente dia", "Que tarde agradável"];
-return options[Math.floor(Math.random() * options.length)];
-} else {
-const options = ["Boa noite", "Bom te ver", "Esperamos que tenha tido um bom dia"];
-return options[Math.floor(Math.random() * options.length)];
-}
+if (hour >= 5 && hour < 12) return ["Bom dia", "Lindo dia", "Excelente manhã"][Math.floor(Math.random()*3)];
+if (hour >= 12 && hour < 18) return ["Boa tarde","Excelente dia","Que tarde agradável"][Math.floor(Math.random()*3)];
+return ["Boa noite","Bom te ver","Esperamos que tenha tido um bom dia"][Math.floor(Math.random()*3)];
 });
 
-// --- Lógica Clima ---
-const weatherData = ref({ 
-value: '---', 
-iconUrl: 'https://api.iconify.design/solar:sun-bold-duotone.svg', 
-description: '',
-city: 'N/A',
-code: null 
-});
+// --- Clima (Mantido) ---
+const weatherData = ref({ value: '---', iconUrl: 'https://api.iconify.design/solar:sun-bold-duotone.svg', description:'', city:'N/A', code:null });
 const isWeatherLoading = ref(false);
 const weatherError = ref(null);
 
-
 const fetchWeather = () => {
-isWeatherLoading.value = true;
-weatherError.value = null;
-
-if (process.client && navigator.geolocation) {
+isWeatherLoading.value=true;
+weatherError.value=null;
+if(process.client && navigator.geolocation){
 navigator.geolocation.getCurrentPosition(
-(position) => {
-callWeatherApi(position.coords.latitude, position.coords.longitude);
-},
-() => {
-callWeatherApi();
-}
+(pos)=>callWeatherApi(pos.coords.latitude,pos.coords.longitude),
+()=>callWeatherApi()
 );
-} else {
-callWeatherApi();
-}
+}else callWeatherApi();
 };
 
-const callWeatherApi = async (lat = null, lon = null) => {
-try {
-const params = {};
-if (lat && lon) {
-params.lat = lat;
-}
-
-const response = await $fetch('/api/weather', { params });
-
-weatherData.value.value = `${response.temperature} - ${response.description}`;
-weatherData.value.iconUrl = `https://openweathermap.org/img/wn/${response.iconCode}@2x.png`;
-weatherData.value.description = response.description;
-weatherData.value.city = response.city; 
-weatherData.value.code = response.iconCode; 
-
-} catch (e) {
-// e pode ser um objeto de erro do Nuxt/fetch, não apenas uma string
-weatherError.value = e.statusMessage || e.message || 'Falha na comunicação com o serviço de clima.';
-weatherData.value.value = 'N/A';
-weatherData.value.iconUrl = 'https://api.iconify.design/solar:cloud-snow-bold-duotone.svg'; 
-weatherData.value.city = 'Localização Desconhecida';
-weatherData.value.code = 'error'; 
-} finally {
-isWeatherLoading.value = false;
-}
-}
-
-
-// --- Handlers de Ação ---
-
-// ATUALIZADO: Função para o botão "Registro Rápido"
-const startPhotoRecord = () => {
-  // Redireciona para a nova página de registro rápido dedicada
-  router.push({ path: '/registro/foto-rapida' });
+const callWeatherApi = async (lat=null,lon=null)=>{
+try{
+const params={};
+if(lat&&lon) params.lat=lat;
+const response=await $fetch('/api/weather',{params});
+weatherData.value.value=`${response.temperature} - ${response.description}`;
+weatherData.value.iconUrl=`https://openweathermap.org/img/wn/${response.iconCode}@2x.png`;
+weatherData.value.description=response.description;
+weatherData.value.city=response.city;
+weatherData.value.code=response.iconCode;
+}catch(e){
+weatherError.value=e.statusMessage||e.message||'Falha na comunicação com o serviço de clima.';
+weatherData.value.value='N/A';
+weatherData.value.iconUrl='https://api.iconify.design/solar:cloud-snow-bold-duotone.svg';
+weatherData.value.city='Localização Desconhecida';
+weatherData.value.code='error';
+}finally{isWeatherLoading.value=false;}
 };
 
-const startNewRecord = () => {
-// CORREÇÃO CRÍTICA: Sempre define como true para garantir que o formulário abra
-editingRecordId.value = null;
-showForm.value = true; 
+// --- Handlers (AJUSTADOS) ---
+const handleOpenImageEditor = () => {
+// Garante que o DataForm esteja aberto
+if(!showForm.value) startNewRecord();
+
+// Abre o editor e bloqueia a tela (via watch)
+showImageEditor.value = true;
+
+// Adiciona o scroll silencioso de volta
+if(process.client) window.scrollTo({ top: 0, behavior: 'instant' }); 
 };
 
-const handleEditRecord = (recordId) => {
-editingRecordId.value = recordId;
-showForm.value = true;
-};
+const startPhotoRecord = () => handleOpenImageEditor();
+// **AJUSTE AQUI:** startNewRecord e handleEditRecord agora garantem que o editor de imagens esteja FECHADO (rolagem livre)
+const startNewRecord = () => { editingRecordId.value=null; showForm.value=true; showImageEditor.value=false; };
+const handleEditRecord = (id) => { editingRecordId.value=id; showForm.value=true; showImageEditor.value=false; };
 
-const handleRecordSaved = () => {
-// Este handler agora também é chamado pelo evento @cancel
-// No caso de cancelamento, não precisa de fetchData, mas o custo é baixo.
-// É mais simples manter um único handler.
-fetchData(); 
-showForm.value = false; 
-editingRecordId.value = null; 
-};
+// **AJUSTE AQUI:** A rolagem é liberada pelo showImageEditor=false (via watch)
+const handleRecordSaved = () => { fetchData(); showForm.value=false; editingRecordId.value=null; showImageEditor.value=false; };
 
-onMounted(() => {
-fetchData(); 
-fetchWeather(); 
-});
+onMounted(()=>{ fetchData(); fetchWeather(); });
 </script>

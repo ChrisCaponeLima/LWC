@@ -1,13 +1,38 @@
-// /components/UserEditModal.vue - V1.5 - Remove restrições de cargo para administradores.
+// /components/UserEditModal.vue - V5.0 - APENAS ALTERAÇÃO VISUAL: Layout Expandido com Toggle V3.0 (Toggle Não Funcional)
 <template>
 <div 
 v-if="isOpen && localUser" 
 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
 @click.self="handleClose"
 >
-<div class="bg-white rounded-lg shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100">
- <div class="p-6 border-b flex justify-between items-center">
- <h3 class="text-xl font-bold text-gray-800">Editar Usuário: {{ localUser.username }}</h3>
+<div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100">
+ <div class="p-6 border-b flex justify-between items-center relative">
+ 
+ <div>
+  <h3 class="text-xl font-bold text-gray-800">
+   Editar Usuário: {{ localUser.username }}
+  </h3>
+   </div>
+ 
+   <div class="flex items-center space-x-3 absolute right-6 top-6 z-10">
+   <div class="inline-flex rounded-full bg-gray-200 p-1 text-sm font-medium">
+        <button
+     @click.prevent=""
+     :disabled="true"
+     class="px-4 py-2 rounded-full transition-colors duration-200 disabled:opacity-50 bg-white text-indigo-700 shadow cursor-default"
+    >
+     Usuário
+    </button>
+    <button
+     @click.prevent=""
+     :disabled="true"
+     class="px-4 py-2 rounded-full transition-colors duration-200 disabled:opacity-50 text-gray-500 hover:text-gray-700 cursor-default"
+    >
+     Profissional
+    </button>
+   </div>
+  </div>
+
  <button @click="handleClose" class="text-gray-400 hover:text-gray-600" :disabled="isSubmitting">
   <i class="fas fa-times text-2xl"></i>
  </button>
@@ -15,118 +40,211 @@ class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-5
 
  <div class="p-6">
  <form @submit.prevent="submitUpdate">
-  <div class="space-y-4">
+  <div class="space-y-6">
   <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3" role="alert">
    <p class="font-bold">Erro de Validação</p>
    <p class="text-sm">{{ error }}</p>
   </div>
   
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <fieldset key="user-data" class="border border-gray-200 p-4 rounded-md transition duration-300">
+   <legend class="text-sm font-medium px-1 text-gray-500">Dados do Usuário</legend>
    
-      <div>
-   <label for="username" class="block text-sm font-medium text-gray-700">Nome de Usuário</label>
-   <input
-    id="username"
-    v-model="localUser.username"
-    type="text"
-    required
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   />
-   </div>
-
-      <div>
-   <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-   <input
-    id="email"
-    v-model="localUser.email"
-    type="email"
-    required
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   />
-   </div>
+   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
    
-      <div>
-   <label for="phone" class="block text-sm font-medium text-gray-700">Telefone</label>
-   <input
-    id="phone"
-    v-model="localUser.phone"
-    type="tel"
-    placeholder="(xx) xxxxx-xxxx"
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   />
+        <div>
+    <label for="username" class="block text-sm font-medium text-gray-700">Nome de Usuário</label>
+    <input
+     id="username"
+     v-model="localUser.username"
+     type="text"
+     required
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    />
+    </div>
+
+        <div>
+    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+    <input
+     id="email"
+     v-model="localUser.email"
+     type="email"
+     required
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    />
+    </div>
+   
+        <div>
+    <label for="phone" class="block text-sm font-medium text-gray-700">Telefone</label>
+    <input
+     id="phone"
+     v-model="localUser.phone"
+     type="tel"
+     placeholder="(xx) xxxxx-xxxx"
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    />
+    </div>
+
+        <div>
+    <label for="birthdate" class="block text-sm font-medium text-gray-700">Nascimento</label>
+    <input
+     id="birthdate"
+     v-model="localUser.birthdate"
+     type="date"
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:focus:border-indigo-500 disabled:bg-gray-50"
+    />
+    </div>
+
+        <div>
+    <label for="height_cm" class="block text-sm font-medium text-gray-700">Altura (cm)</label>
+    <input
+     id="height_cm"
+     v-model.number="localUser.height_cm"
+     type="number"
+     min="50"
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    />
+    </div>
+
+        <div>
+    <label for="initial_weight_kg" class="block text-sm font-medium text-gray-700">Peso Inicial (kg)</label>
+    <input
+     id="initial_weight_kg"
+     v-model.number="localUser.initial_weight_kg"
+     type="number"
+     step="0.1"
+     min="1"
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    />
+    </div>
+
+        <div>
+    <label for="sexo" class="block text-sm font-medium text-gray-700">Sexo</label>
+    <select
+     id="sexo"
+     v-model="localUser.sexo"
+     :disabled="isSubmitting"
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    >
+     <option :value="null">Não Informado</option>
+     <option value="M">Masculino</option>
+     <option value="F">Feminino</option>
+    </select>
+    </div>
+
+
+        <div class="col-span-1 md:col-span-2">
+    <label for="role" class="block text-sm font-medium text-gray-700">Cargo</label>
+    <select
+     id="role"
+     v-model="localUser.role"
+     :disabled="isSubmitting" 
+     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+    >
+     <option value="user">User (Padrão)</option>
+     <option v-if="authStore.isAdmin || authStore.isOwner" value="admin">Admin</option>
+     <option v-if="authStore.isOwner" value="owner">Owner (Máximo)</option>
+    </select>
+            <p class="mt-1 text-xs text-gray-500">O status de Profissional é controlado pelo seletor acima, mas não está conectado ao V1.5.</p>
+    </div>
+
    </div>
+  </fieldset>
+  
+    <fieldset key="professional-data" class="border border-indigo-400 p-4 rounded-md transition duration-300 opacity-50 pointer-events-none">
+   <legend class="text-sm font-medium px-1 text-indigo-600">Dados do Profissional (Não conectados ao script V1.5)</legend>
+   
+   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+    
+     <div class="md:col-span-2">
+      <label for="registro_conselho" class="block text-sm font-medium text-gray-700">Registro no Conselho</label>
+      <input
+       id="registro_conselho"
+       type="text"
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50"
+       value="Desabilitado: Lógica de Profissional não carregada."
+      />
+      <p class="mt-1 text-xs text-gray-500">Ex: CRM, CREF, etc. Opcional.</p>
+     </div>
+    
+     <div class="md:col-span-2">
+      <label for="job_title" class="block text-sm font-medium text-gray-700">Cargo / Título *</label>
+      <input
+       id="job_title"
+       type="text"
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50"
+       value="Desabilitado: Lógica de Profissional não carregada."
+      />
+     </div>
 
-      <div>
-   <label for="birthdate" class="block text-sm font-medium text-gray-700">Nascimento</label>
-   <input
-    id="birthdate"
-    v-model="localUser.birthdate"
-    type="date"
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:focus:border-indigo-500 disabled:bg-gray-50"
-   />
-   </div>
+     <div class="md:col-span-2">
+      <label for="specialties" class="block text-sm font-medium text-gray-700">Especialidades (Múltipla Seleção) *</label>
+      <select
+       id="specialties"
+       multiple
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50 h-32"
+      >
+       <option disabled>Carregamento de especialidades desabilitado no V1.5</option>
+      </select>
+     </div>
+    
+     <div class="md:col-span-2">
+      <label for="address_street" class="block text-sm font-medium text-gray-700">Endereço (Rua, Número)</label>
+      <input
+       id="address_street"
+       type="text"
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50"
+       value=""
+      />
+     </div>
+    
+     <div>
+      <label for="address_city" class="block text-sm font-medium text-gray-700">Cidade</label>
+      <input
+       id="address_city"
+       type="text"
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50"
+       value=""
+      />
+     </div>
 
-      <div>
-   <label for="height_cm" class="block text-sm font-medium text-gray-700">Altura (cm)</label>
-   <input
-    id="height_cm"
-    v-model.number="localUser.height_cm"
-    type="number"
-    min="50"
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   />
-   </div>
+     <div>
+      <label for="address_state" class="block text-sm font-medium text-gray-700">Estado</label>
+      <input
+       id="address_state"
+       type="text"
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50"
+       value=""
+      />
+     </div>
+    
+     <div class="md:col-span-2">
+      <label for="address_zipcode" class="block text-sm font-medium text-gray-700">CEP</label>
+      <input
+       id="address_zipcode"
+       type="text"
+       disabled
+       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-50"
+       value=""
+      />
+     </div>
 
-      <div>
-   <label for="initial_weight_kg" class="block text-sm font-medium text-gray-700">Peso Inicial (kg)</label>
-   <input
-    id="initial_weight_kg"
-    v-model.number="localUser.initial_weight_kg"
-    type="number"
-    step="0.1"
-    min="1"
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   />
-   </div>
-
-      <div>
-   <label for="sexo" class="block text-sm font-medium text-gray-700">Sexo</label>
-   <select
-    id="sexo"
-    v-model="localUser.sexo"
-    :disabled="isSubmitting"
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   >
-    <option :value="null">Não Informado</option>
-    <option value="M">Masculino</option>
-    <option value="F">Feminino</option>
-   </select>
-   </div>
+    </div>
+  </fieldset>
 
 
-      <div class="col-span-1 md:col-span-2">
-   <label for="role" class="block text-sm font-medium text-gray-700">Cargo</label>
-   <select
-    id="role"
-    v-model="localUser.role"
-    :disabled="isSubmitting" 
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-   >
-    <option value="user">User (Padrão)</option>
-    <option v-if="authStore.isAdmin || authStore.isOwner" value="admin">Admin</option>
-    <option v-if="authStore.isOwner" value="owner">Owner (Máximo)</option>
-   </select>
-      </div>
-
-  </div>
-
-     <div class="pt-4 flex justify-end space-x-3">
+  <div class="pt-4 flex justify-end space-x-3 border-t">
    <button 
    type="button" 
    @click="handleClose"
@@ -152,6 +270,7 @@ class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-5
 </template>
 
 <script setup>
+// USANDO SEU SCRIPT V1.5 EXATAMENTE COMO FORNECIDO.
 import { ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
@@ -179,16 +298,16 @@ if (!dateString) return null
 try {
 // Se for ISO completo, pega só a data
 if (typeof dateString === 'string' && dateString.includes('T')) {
- return dateString.split('T')[0]
+return dateString.split('T')[0]
 }
 // Se já for YYYY-MM-DD
 if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
- return dateString
+return dateString
 }
 // Caso a data venha de uma nova Date() ou objeto, tenta normalizar
 const d = new Date(dateString)
 if (!isNaN(d.getTime())) {
- return d.toISOString().split('T')[0]
+return d.toISOString().split('T')[0]
 }
 } catch (e) {
 console.error("Erro ao formatar data de nascimento:", e)
@@ -200,13 +319,13 @@ watch(() => props.userData, (newUserData) => {
 if (newUserData) {
 // Clonar os dados e formatar a data para o input[type="date"]
 localUser.value = {
- ...newUserData,
- // Formata a data de nascimento
- birthdate: formatBirthdateForInput(newUserData.birthdate),
- // Garantir que sexo seja 'M', 'F' ou null
- sexo: ['M', 'F'].includes(newUserData.sexo) ? newUserData.sexo : null,
- // Inicializa o campo phone
- phone: newUserData.phone || null
+...newUserData,
+// Formata a data de nascimento
+birthdate: formatBirthdateForInput(newUserData.birthdate),
+// Garantir que sexo seja 'M', 'F' ou null
+sexo: ['M', 'F'].includes(newUserData.sexo) ? newUserData.sexo : null,
+// Inicializa o campo phone
+phone: newUserData.phone || null
 }
 error.value = null
 } else {
