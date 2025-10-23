@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.23 - Correção do deslocamento da tarja no salvamento (createFinalCanvas) para 90 e 270 graus, garantindo que a inversão de coordenadas use as dimensões ORIGINAIS (naturalW/H) e a fórmula correta: D - (Posição + Dimensão).
+// /components/ImageEditorComponent.vue - V1.17 - Recálculo de escala baseado em renderedW/H para maior precisão de coordenadas e tamanhos.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -498,25 +498,19 @@ rects.forEach((r) => {
       th = r.h;
       break;
     case 90:
-      // X Final = Y Original
       tx = r.y;
-      // Y Final = X Original INVERTIDO (em relação a naturalW)
-      ty = naturalW - (r.x + r.w); 
+      ty = finalW - r.x - r.w; 
       tw = r.h;
       th = r.w;
       break;
     case 180:
-      // X Final = X Original INVERTIDO (em relação a naturalW)
-      tx = naturalW - r.x - r.w;
-      // Y Final = Y Original INVERTIDO (em relação a naturalH)
-      ty = naturalH - r.y - r.h;
+      tx = finalW - r.x - r.w;
+      ty = finalH - r.y - r.h;
       tw = r.w;
       th = r.h;
       break;
     case 270:
-      // X Final = Y Original INVERTIDO (em relação a naturalH)
-      tx = naturalH - (r.y + r.h); 
-      // Y Final = X Original
+      tx = finalH - r.y - r.h; 
       ty = r.x;
       tw = r.h;
       th = r.w;
@@ -538,7 +532,7 @@ rects.forEach((r) => {
  ctx.drawImage(
   img, 
   r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada)
-  tx, ty, tw, th // Destino: No contexto final (corrigido)
+  tx, ty, tw, th // Destino: No contexto final (com coords e dimensões já rotacionadas)
  )
  ctx.restore()
  }
@@ -581,24 +575,33 @@ isSaving.value = false
 const downloadEditedImage = async () => {
 if (!process.client) return; 
 
- let dataURL = null; 
+let dataURL = null; 
 
 try {
 const finalCanvas = createFinalCanvas(); 
 
+// TENTA gerar o Blob (preferido)
 const blob = await new Promise((res, rej) => {
  finalCanvas.toBlob(res, 'image/png', 1.0); 
  });
  
- if (!blob) {
- console.error('[DOWNLOAD] toBlob retornou null. A imagem pode não ter o crossorigin configurado corretamente (CORS).');
- emit('error', 'Falha ao gerar o arquivo de download. (Verifique o CORS da imagem)');
- return;
+if (blob) {
+ // Se deu certo, usa a URL do Blob
+ dataURL = URL.createObjectURL(blob);
+} else {
+ // Se toBlob retornar null, provavelmente é CORS ou outro erro interno.
+ // Tenta fallback para dataURL, embora possa falhar com SecurityError.
+ console.warn('[DOWNLOAD] toBlob falhou (possível CORS). Tentando toDataURL como fallback.');
+ dataURL = finalCanvas.toDataURL('image/png', 1.0); 
+ 
+ if (dataURL === 'data:,') {
+  console.error('[DOWNLOAD] toDataURL retornou um dataURL inválido. CORS impede o download.');
+  emit('error', 'Falha ao gerar o arquivo de download. O servidor de imagens está bloqueando o acesso (CORS).');
+  return;
  }
+}
 
- // Cria a URL temporária e inicia o download
-dataURL = URL.createObjectURL(blob);
-
+// Se chegamos aqui, temos um dataURL ou Blob URL válido
 const link = document.createElement('a');
 link.href = dataURL;
 const baseName = props.imageType === 'photo' ? 'evolucao' : 'forma';
@@ -611,10 +614,16 @@ document.body.removeChild(link);
 
 } catch (e) {
 console.error('[DOWNLOAD] Falha ao iniciar o download da imagem:', e);
-emit('error', e?.message || 'Erro desconhecido ao gerar o arquivo de download.');
+
+// Captura o SecurityError que o toDataURL/toBlob lança em um canvas 'tainted'.
+if (e.name === 'SecurityError') {
+ emit('error', 'Erro de Segurança (CORS) ao tentar gerar o download da imagem editada. O download só é possível se a imagem original permitir o uso no Canvas.');
+} else {
+ emit('error', e?.message || 'Erro desconhecido ao gerar o arquivo de download.');
+}
 } finally {
- // ESSENCIAL: Garante que a URL temporária é revogada em qualquer cenário (sucesso ou falha)
- if (dataURL) {
+ // Revoga a URL temporária SE for uma blob URL (dataURLs não precisam)
+ if (dataURL && dataURL.startsWith('blob:')) {
   URL.revokeObjectURL(dataURL);
  }
 }
