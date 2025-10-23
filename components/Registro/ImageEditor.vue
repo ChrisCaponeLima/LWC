@@ -1,4 +1,4 @@
-// /components/Registro/ImageEditor.vue - V2.8 - Correção do nome da função de download para 'downloadEditedImage'.
+// /components/Registro/ImageEditor.vue - V2.10 - Implementa salvamento temporario de imagem original e 'Baixar Imagem'.
 <template>
 <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
 <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
@@ -47,7 +47,7 @@ Forma
 </div>
 </div>
 
-<h4 class="text-lg font-semibold text-gray-800 border-b pb-2">Imagens Prontas para o Registro ({{ allTempFiles.length }})</h4>
+<h4 class="text-lg font-semibold text-gray-800 border-b pb-2">Imagens Prontas para envio ({{ allTempFiles.length }})</h4>
 <ul class="space-y-3">
 <li 
 v-for="file in allTempFiles" 
@@ -133,7 +133,14 @@ ref="imageEditorRef"
 v-if="saveSuccess"
 class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg transition-opacity duration-300"
 >
-<i class="fas fa-check-circle mr-2"></i> Imagem salva temporariamente!
+<i class="fas fa-check-circle mr-2"></i>  
+</div>
+
+<div
+v-if="downloadSuccess"
+class="fixed bottom-4 right-4 bg-yellow-500 text-white p-4 rounded shadow-lg transition-opacity duration-300"
+>
+<i class="fas fa-save mr-2"></i> download iniciado
 </div>
 </Teleport>
 </template>
@@ -148,7 +155,7 @@ const emit = defineEmits(['close']);
 
 const authStore = useAuthStore();
 
-// MUDANÇA: USAR COMPOSABLE PARA GERENCIAR O ESTADO DA SESSÃO
+// Usando o composable para gerenciar o estado da sessão
 const { allTempFiles, syncFromSession } = useTempFiles();
 
 const imageEditorRef = ref<any>(null); 
@@ -159,11 +166,41 @@ const isEditing = ref(false);
 const editingFile = ref<File | null>(null); 
 const editingFileUrl = ref<string | null>(null); 
 const uploadError = ref<string | null>(null);
-const saveSuccess = ref<boolean>(false);
+const saveSuccess = ref<boolean>(false); // Para o botão "Continuar"
+const downloadSuccess = ref<boolean>(false); // Para o botão "Baixar Imagem"
 const imageType = ref<'photo' | 'forma'>('photo'); 
 
+/**
+ * Função utilitária para chamar a API de salvamento permanente.
+ * @param editedBlob Blob da imagem editada.
+ * @param originalBlob Blob da imagem original (rotacionada).
+ * @param isPrivate Se a imagem é privada.
+ * @param type Tipo da imagem ('photo' ou 'forma').
+ * @returns Retorna o ID do registro salvo (ID da tabela `edited`).
+ */
+const permanentSaveApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma'): Promise<{ id: string, type: string, fileId: string }> => {
+    const token = authStore.token;
+    if (!token) throw new Error('Token de autenticação ausente.');
 
-// Inicia o processo de edição
+    const formData = new FormData();
+    formData.append('type', type); 
+    formData.append('isPrivate', isPrivate ? 'true' : 'false');
+    // Renomeando para corresponder aos campos da tabela edited (edited_url e original_url)
+    formData.append('editedFile', editedBlob, 'edited.png');
+    formData.append('originalFile', originalBlob, 'original.png');
+
+    // Endpoint simulado para salvar permanentemente e retornar o ID da tabela `edited`
+    // No seu backend, esta rota deve: salvar os blobs no storage e registrar edited_url, original_url na tabela `edited`.
+    const response = await $fetch<{ id: string, type: string, fileId: string }>('/api/images/permanent_save', {
+        method: 'POST',
+        body: formData,
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return response;
+};
+
+
 const handleFileSelect = (event: Event) => {
  uploadError.value = null;
  const target = event.target as HTMLInputElement;
@@ -171,14 +208,10 @@ const handleFileSelect = (event: Event) => {
 
  if (!file) return;
 
- // 1. Guarda o arquivo original
  editingFile.value = file;
- // 2. Cria URL para o editor
  editingFileUrl.value = URL.createObjectURL(file);
- // 3. Entra no modo de edição
  isEditing.value = true;
 
- // Limpa o input file para permitir a seleção do mesmo arquivo novamente
  if (fileInput.value) {
   fileInput.value.value = '';
  }
@@ -193,13 +226,33 @@ const cancelEdit = () => {
  isEditing.value = false;
 };
 
-// Função para chamar o método de download do componente filho
-const handleDownloadImage = () => {
- // CORREÇÃO: Chamando o método 'downloadEditedImage' do componente filho
- if (imageEditorRef.value && imageEditorRef.value.downloadEditedImage) {
+// **FLUXO 2: "Baixar Imagem" (Salva Permanentemente e Faz o Download)**
+const handleDownloadImage = async () => {
+ uploadError.value = null;
+ if (!imageEditorRef.value || !imageEditorRef.value.generateBlobs) {
+  uploadError.value = 'O editor de imagens não está pronto. Tente novamente.';
+  return;
+ }
+
+ try {
+  // 1. Gera os blobs necessários
+  const { editedBlob, originalBlob } = await imageEditorRef.value.generateBlobs();
+    // Acessa o ref exposto 'isPrivateLocal' do componente filho
+    const isPrivate = imageEditorRef.value.isPrivateLocal.value; 
+
+  // 2. SALVAMENTO PERMANENTE na tabela 'edited' (não adiciona à lista temporária)
+  await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, imageType.value);
+
+  // 3. Executa o download local
   imageEditorRef.value.downloadEditedImage();
- } else {
-  uploadError.value = 'O editor de imagens não está pronto para download. Tente novamente.';
+
+  // 4. Feedback visual
+  downloadSuccess.value = true;
+  setTimeout(() => downloadSuccess.value = false, 3000);
+
+ } catch (err: any) {
+  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao executar o download.';
+  uploadError.value = `Falha no Download: ${errorMessage}`;
  }
 };
 
@@ -212,12 +265,11 @@ const handleImageRotate = (newRotation: number) => {
  console.log('Imagem rotacionada para:', newRotation, 'graus');
 };
 
-// Lógica de salvamento para NOVA IMAGEM (PRÉ-UPLOAD)
-const handleSaveEditedNewImage = async ({ blob, isPrivate, type }: { blob: Blob, isPrivate: boolean, type: 'photo' | 'forma' }) => {
+// **FLUXO 1: "Continuar" (Salva Permanentemente e Adiciona à Lista Temporária)**
+const handleSaveEditedNewImage = async ({ editedBlob, originalBlob, isPrivate, type }: { editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma' }) => {
  try {
-    // VERIFICAÇÃO CRÍTICA: Se o Blob não existir ou tiver tamanho zero, aborta e mostra erro.
-    if (!blob || blob.size === 0) {
-      uploadError.value = 'Erro: O editor não gerou um arquivo de imagem (Blob vazio). Por favor, tente novamente.';
+    if (!editedBlob || editedBlob.size === 0 || !originalBlob || originalBlob.size === 0) {
+      uploadError.value = 'Erro: O editor não gerou os arquivos de imagem (Blob vazio). Por favor, tente novamente.';
       cancelEdit();
       return;
     }
@@ -225,62 +277,44 @@ const handleSaveEditedNewImage = async ({ blob, isPrivate, type }: { blob: Blob,
   if (isEditing.value) {
    uploadError.value = null;
 
-   const token = authStore.token;
-   if (!token) throw new Error('Token ausente.');
+   // 1. SALVAMENTO PERMANENTE na tabela 'edited'
+   const response = await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, type);
 
-   const formData = new FormData();
-
-   formData.append('type', type); 
-   formData.append('isPrivate', isPrivate ? 'true' : 'false');
-   formData.append('editedFile', blob, 'edited.png');
-
-   // Chama diretamente a rota do Nuxt Server: /api/images/pre_upload
-   const response = await $fetch<{ fileId: string, type: string }>('/api/images/pre_upload', {
-    method: 'POST',
-    body: formData,
-    headers: { Authorization: `Bearer ${token}` },
-   });
-
-   // O backend deve retornar o ID temporário
-   const tempFileId = response.fileId; 
+   // 2. Adiciona o ID do registro permanente à lista temporária (allTempFiles)
+   // O ID temporário agora é o ID do registro na tabela `edited`
+   const tempFileId = response.id; 
 
    const newFileObject = { 
-    tempId: tempFileId, 
+    tempId: tempFileId.toString(), 
     isPrivate: isPrivate, 
     type: type 
    };
 
-   // Usa a função atômica do composável para adicionar e salvar na sessão
    addTempFile(newFileObject);
-   // GARANTE QUE O ESTADO LOCAL DO EDITOR E GLOBAL DO COMPOSABLE ESTEJAM ATUALIZADOS
    syncFromSession(); 
 
    saveSuccess.value = true;
    setTimeout(() => saveSuccess.value = false, 2000);
   }
  } catch (err: any) {
-  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar a imagem temporária (Pré-Upload).';
-  uploadError.value = `Falha no Pré-Upload (Erro de rede ou servidor): ${errorMessage}`;
+  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao executar a ação (Continuar).';
+  uploadError.value = `Falha adicionando efeitos: ${errorMessage}`;
  } finally {
   cancelEdit(); 
  }
 };
 
 const removeTempFileHandler = (tempId: string, type: 'photo' | 'forma') => {
- // Usa a função atômica do composável para remover e salvar na sessão
  removeTempFile(tempId, type);
  syncFromSession();
 };
 
 const handleClose = () => {
-  // GARANTE QUE A SESSÃO ESTEJA SINCRONIZADA ANTES DE FECHAR O COMPONENTE
-  // Isso deve resolver a necessidade de refresh no componente pai.
   syncFromSession(); 
  emit('close'); 
 };
 
 onMounted(() => {
- // Força a sincronização na montagem
  syncFromSession();
 });
 </script>

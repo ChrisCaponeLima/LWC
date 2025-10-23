@@ -66,7 +66,6 @@ model records {
   observations        String?
   created_at          DateTime?             @default(now()) @db.Timestamptz(6)
   user_id             Int?
-  edited              edited[]
   files               files[]
   record_measurements record_measurements[]
   users               users?                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_id")
@@ -102,6 +101,7 @@ model users {
   comentarios                                                comentarios[]
   edited                                                     edited[]
   messages                                                   messages[]
+  professionals                                              professionals?
   records                                                    records[]
   user_partnerships_user_partnerships_partner_user_idTousers user_partnerships[]     @relation("user_partnerships_partner_user_idTousers")
   user_partnerships_user_partnerships_user_idTousers         user_partnerships[]     @relation("user_partnerships_user_idTousers")
@@ -116,7 +116,6 @@ model files {
   record_id  Int
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @default(now()) @db.Timestamptz(6)
-  edited     edited[]
   records    records  @relation(fields: [record_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_record")
 }
 
@@ -145,8 +144,6 @@ model edited {
   file_id      Int?
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
-  files        files?    @relation(fields: [file_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  records      records?  @relation(fields: [record_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users        users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -187,9 +184,6 @@ model chat_message_files {
 
 model professionals {
   id                        Int                         @id @default(autoincrement())
-  full_name                 String                      @db.VarChar(255)
-  email                     String?                     @unique @db.VarChar(255)
-  phone_number              String?                     @db.VarChar(20)
   job_title                 String?                     @db.VarChar(150)
   registro_conselho         String?                     @unique @db.VarChar(50)
   cpf                       String?                     @unique @db.VarChar(14)
@@ -200,6 +194,8 @@ model professionals {
   address_zipcode           String?                     @db.VarChar(10)
   created_at                DateTime                    @default(now()) @db.Timestamptz(6)
   updated_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  user_id                   Int?                        @unique
+  users                     users?                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   professionals_specialties professionals_specialties[]
   user_treatment_photos     user_treatment_photos[]
 }
@@ -209,15 +205,17 @@ model professionals_specialties {
   specialty_id    Int
   created_at      DateTime?     @default(now()) @db.Timestamptz(6)
   professionals   professionals @relation(fields: [professional_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  specialties     specialties   @relation(fields: [specialty_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([professional_id, specialty_id])
 }
 
 model specialties {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(100)
-  description String?
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  id                        Int                         @id @default(autoincrement())
+  name                      String                      @unique @db.VarChar(100)
+  description               String?
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  professionals_specialties professionals_specialties[]
 }
 
 model user_treatment_photos {
