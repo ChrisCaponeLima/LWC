@@ -1,4 +1,4 @@
-// /components/Registro/ImageEditor.vue - V2.10 - Implementa salvamento temporario de imagem original e 'Baixar Imagem'.
+// /components/Registro/ImageEditor.vue - V2.10 - Implementa salvamento permanente de imagem editada e original (rotacionada) na tabela 'edited' para os fluxos 'Continuar' (com adição temporária) e 'Baixar Imagem' (apenas salvamento).
 <template>
 <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
 <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
@@ -47,7 +47,7 @@ Forma
 </div>
 </div>
 
-<h4 class="text-lg font-semibold text-gray-800 border-b pb-2">Imagens Prontas para envio ({{ allTempFiles.length }})</h4>
+<h4 class="text-lg font-semibold text-gray-800 border-b pb-2">Imagens Prontas para o Registro ({{ allTempFiles.length }})</h4>
 <ul class="space-y-3">
 <li 
 v-for="file in allTempFiles" 
@@ -133,14 +133,14 @@ ref="imageEditorRef"
 v-if="saveSuccess"
 class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg transition-opacity duration-300"
 >
-<i class="fas fa-check-circle mr-2"></i>  
+<i class="fas fa-check-circle mr-2"></i> Imagem salva permanentemente e adicionada ao registro!
 </div>
 
 <div
 v-if="downloadSuccess"
 class="fixed bottom-4 right-4 bg-yellow-500 text-white p-4 rounded shadow-lg transition-opacity duration-300"
 >
-<i class="fas fa-save mr-2"></i> download iniciado
+<i class="fas fa-save mr-2"></i> Imagem salva permanentemente e download iniciado!
 </div>
 </Teleport>
 </template>
@@ -180,7 +180,7 @@ const imageType = ref<'photo' | 'forma'>('photo');
  */
 const permanentSaveApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma'): Promise<{ id: string, type: string, fileId: string }> => {
     const token = authStore.token;
-    if (!token) throw new Error('Token de autenticação ausente.');
+    if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
 
     const formData = new FormData();
     formData.append('type', type); 
@@ -251,8 +251,8 @@ const handleDownloadImage = async () => {
   setTimeout(() => downloadSuccess.value = false, 3000);
 
  } catch (err: any) {
-  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao executar o download.';
-  uploadError.value = `Falha no Download: ${errorMessage}`;
+  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar o download permanentemente.';
+  uploadError.value = `Falha no Salvamento Permanente (Download): ${errorMessage}`;
  }
 };
 
@@ -297,8 +297,8 @@ const handleSaveEditedNewImage = async ({ editedBlob, originalBlob, isPrivate, t
    setTimeout(() => saveSuccess.value = false, 2000);
   }
  } catch (err: any) {
-  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao executar a ação (Continuar).';
-  uploadError.value = `Falha adicionando efeitos: ${errorMessage}`;
+  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar a imagem permanentemente (Continuar).';
+  uploadError.value = `Falha no Salvamento Permanente: ${errorMessage}`;
  } finally {
   cancelEdit(); 
  }

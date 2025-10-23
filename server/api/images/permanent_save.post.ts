@@ -127,7 +127,7 @@ export default defineEventHandler(async (event) => {
         
         throw createError({
             statusCode: 500,
-            statusMessage: 'Falha na persistência do registro da imagem editada no banco de dados.',
+            statusMessage: 'Falha na imagem editada.',
             data: { details: detailedMessage }
         });
     }
