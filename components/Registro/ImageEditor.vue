@@ -1,4 +1,4 @@
-// /components/Registro/ImageEditor.vue - V2.6 - Garante o envio de Blob com tamanho > 0 e resolve 404.
+// /components/Registro/ImageEditor.vue - V2.7 - Garante sincronização de estado na sessão ao fechar o editor para resolver bug de aviso.
 <template>
 <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
 <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
@@ -141,7 +141,6 @@ class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg tran
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-// NÃO NECESSÁRIO, REMOVIDO PARA EVITAR BUGS DE CONFIGURAÇÃO: import { useRuntimeConfig } from '#app';
 import ImageEditorComponent from '~/components/ImageEditorComponent.vue';
 import { useTempFiles, addTempFile, removeTempFile } from '~/composables/useTempFiles';
 
@@ -215,7 +214,7 @@ const handleImageRotate = (newRotation: number) => {
 // Lógica de salvamento para NOVA IMAGEM (PRÉ-UPLOAD)
 const handleSaveEditedNewImage = async ({ blob, isPrivate, type }: { blob: Blob, isPrivate: boolean, type: 'photo' | 'forma' }) => {
   try {
-        // 🚨 VERIFICAÇÃO CRÍTICA: Se o Blob não existir ou tiver tamanho zero, aborta e mostra erro.
+        // VERIFICAÇÃO CRÍTICA: Se o Blob não existir ou tiver tamanho zero, aborta e mostra erro.
         if (!blob || blob.size === 0) {
             uploadError.value = 'Erro: O editor não gerou um arquivo de imagem (Blob vazio). Por favor, tente novamente.';
             cancelEdit();
@@ -230,7 +229,6 @@ const handleSaveEditedNewImage = async ({ blob, isPrivate, type }: { blob: Blob,
 
       const formData = new FormData();
 
-      // Mantendo o camelCase padrão do frontend para consistência
       formData.append('type', type); 
       formData.append('isPrivate', isPrivate ? 'true' : 'false');
       formData.append('editedFile', blob, 'edited.png');
@@ -253,7 +251,8 @@ const handleSaveEditedNewImage = async ({ blob, isPrivate, type }: { blob: Blob,
 
       // Usa a função atômica do composável para adicionar e salvar na sessão
       addTempFile(newFileObject);
-      syncFromSession();
+      // GARANTE QUE O ESTADO LOCAL DO EDITOR E GLOBAL DO COMPOSABLE ESTEJAM ATUALIZADOS
+      syncFromSession(); 
 
       saveSuccess.value = true;
       setTimeout(() => saveSuccess.value = false, 2000);
@@ -273,6 +272,9 @@ const removeTempFileHandler = (tempId: string, type: 'photo' | 'forma') => {
 };
 
 const handleClose = () => {
+    // GARANTE QUE A SESSÃO ESTEJA SINCRONIZADA ANTES DE FECHAR O COMPONENTE
+    // Isso deve resolver a necessidade de refresh no componente pai.
+    syncFromSession(); 
   emit('close'); 
 };
 

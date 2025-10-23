@@ -1,4 +1,4 @@
-// /components/DataForm.vue - V2.2.18 - Usa Composável (TS) para checagem de IDs e limpeza.
+// /components/DataForm.vue - V2.2.24 - Uso de onActivated para garantir a sincronização imediata do useTempFiles ao retornar do Image Editor.
 
 <template>
 <div class="form-container bg-white p-6 rounded-lg shadow-xl mt-6">
@@ -109,16 +109,16 @@ class="mt-2 px-3 py-2 bg-indigo-500 text-white rounded-md text-sm font-medium ho
 
 <div class="mt-4">
 <button 
- type="button" 
- @click="goToImageUpload"
- class="w-full px-4 py-3 bg-indigo-500 text-white rounded-md font-bold hover:bg-indigo-600 transition duration-150 flex items-center justify-center"
- title="Adicionar ou Editar Fotos de Evolução/Forma"
+type="button" 
+@click="goToImageUpload"
+class="w-full px-4 py-3 bg-indigo-500 text-white rounded-md font-bold hover:bg-indigo-600 transition duration-150 flex items-center justify-center"
+title="Adicionar ou Editar Fotos de Evolução/Forma"
 >
- <i class="fas fa-camera text-2xl"></i> 
+<i class="fas fa-camera text-2xl"></i> 
 </button>
 </div>
 
-<div v-if="tempPhotoFileIds.length > 0 || tempFormaFileIds.length > 0" class="p-3 bg-yellow-100 text-yellow-700 border border-yellow-400 rounded-md">
+<div v-if="allTempFiles.length > 0" class="p-3 bg-yellow-100 text-yellow-700 border border-yellow-400 rounded-md">
 <i class="fas fa-exclamation-triangle mr-2"></i>
 Há {{ tempPhotoFileIds.length }} foto(s) de Evolução e {{ tempFormaFileIds.length }} foto(s) de Forma prontas para serem anexadas.
 </div>
@@ -150,22 +150,23 @@ class="w-2/3 px-4 py-3 bg-btn-principal text-btn-font-principal rounded-md font-
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
+// 🚨 Importa onActivated e onMounted
+import { reactive, ref, computed, onMounted, onActivated } from 'vue'; 
 import { useAuthStore } from '~/stores/auth'; 
-import { clearAllTempFiles } from '~/composables/useTempFiles'; // Importa a função de limpeza
+import { useTempFiles, clearAllTempFiles } from '~/composables/useTempFiles'; 
 
 // Tipos
 interface Measurement {
-    id: number | string; // Permitir string vazia para o v-model inicial
-    value: number | null;
+ id: number | string; 
+ value: number | null;
 }
 interface FormData {
-    record_date: string;
-    weight: number | null;
-    event: string;
-    weeklyAction: string;
-    workoutDays: number | null;
-    observations: string;
+ record_date: string;
+ weight: number | null;
+ event: string;
+ weeklyAction: string;
+ workoutDays: number | null;
+ observations: string;
 }
 
 const emit = defineEmits(['recordSaved', 'cancel', 'openImageEditor']);
@@ -177,85 +178,82 @@ const submissionError = ref<string | null>(null);
 const today = new Date().toISOString().split('T')[0];
 
 const formData: FormData = reactive({
-    record_date: today,
-    weight: null,
-    event: '',
-    weeklyAction: '',
-    workoutDays: null,
-    observations: '',
+ record_date: today,
+ weight: null,
+ event: '',
+ weeklyAction: '',
+ workoutDays: null,
+ observations: '',
 });
 
-// IDs temporários lidos da sessão (para o display e envio ao backend)
-const tempPhotoFileIds = ref<string[]>([]);
-const tempFormaFileIds = ref<string[]>([]);
 
-const checkTempFiles = () => {
-    if (process.client) {
-        // Lemos diretamente as chaves de ID salvas pelo Composável
-        const photoIdsRaw = sessionStorage.getItem('tempPhotoFileIds'); 
-        const formaIdsRaw = sessionStorage.getItem('tempFormaFileIds');
-        
-        try {
-            tempPhotoFileIds.value = photoIdsRaw ? JSON.parse(photoIdsRaw) : [];
-            tempFormaFileIds.value = formaIdsRaw ? JSON.parse(formaIdsRaw) : [];
-        } catch (e) {
-            console.error("Erro ao parsear IDs temporários da sessão:", e);
-            tempPhotoFileIds.value = [];
-            tempFormaFileIds.value = [];
-        }
-    }
-};
+// Obtemos o composable
+const { allTempFiles, syncFromSession } = useTempFiles(); 
 
+
+// 🚨 SINCRONIZAÇÃO CRUCIAL
+// 1. Ao montar (necessário para SSR/recarregamento)
 onMounted(() => {
- checkTempFiles();
- window.addEventListener('focus', checkTempFiles); 
+    if (process.client && typeof syncFromSession === 'function') {
+        syncFromSession();
+    }
 });
 
-onUnmounted(() => { 
- if (process.client) {
-  window.removeEventListener('focus', checkTempFiles);
- }
+// 2. Ao reativar (crucial ao fechar o modal/editor de imagens e voltar ao DataForm)
+onActivated(() => {
+    if (process.client && typeof syncFromSession === 'function') {
+        // Sem a necessidade de timeout ou watch complexo
+        syncFromSession();
+    }
 });
 
-// LISTA FIXA DAS 8 MEDIDAS
+
+const tempPhotoFileIds = computed(() => {
+  return allTempFiles.value.filter(f => f.type === 'photo').map(f => f.tempId);
+});
+const tempFormaFileIds = computed(() => {
+  return allTempFiles.value.filter(f => f.type === 'forma').map(f => f.tempId);
+});
+
+// LISTA FIXA DAS 8 MEDIDAS (MANTIDA)
 const availableMeasures = [
-    { id: 1, name: 'Pescoço', unit: 'cm' },
-    { id: 2, name: 'Busto', unit: 'cm' },
-    { id: 3, name: 'Tórax', unit: 'cm' },
-    { id: 4, name: 'Cintura', unit: 'cm' },
-    { id: 5, name: 'Quadril', unit: 'cm' },
-    { id: 6, name: 'Coxa', unit: 'cm' },
-    { id: 7, name: 'Braço', unit: 'cm' },
-    { id: 8, name: 'Antebraço', unit: 'cm' },
+ { id: 1, name: 'Pescoço', unit: 'cm' },
+ { id: 2, name: 'Busto', unit: 'cm' },
+ { id: 3, name: 'Tórax', unit: 'cm' },
+ { id: 4, name: 'Cintura', unit: 'cm' },
+ { id: 5, name: 'Quadril', unit: 'cm' },
+ { id: 6, name: 'Coxa', unit: 'cm' },
+ { id: 7, name: 'Braço', unit: 'cm' },
+ { id: 8, name: 'Antebraço', unit: 'cm' },
 ];
 
 const dynamicMeasurements = ref<Measurement[]>([]); 
 
 const usedMeasureIds = computed(() => {
-    return dynamicMeasurements.value
-        .map(m => m.id)
-        .filter((id): id is number => typeof id === 'number'); // Filtra e tipa
+ return dynamicMeasurements.value
+  .map(m => m.id)
+  .filter((id): id is number => typeof id === 'number'); 
 });
 
 const availableMeasurements = (currentId: number | string) => {
-    return availableMeasures.filter(m => !usedMeasureIds.value.includes(m.id) || m.id === currentId);
+ return availableMeasures.filter(m => !usedMeasureIds.value.includes(m.id) || m.id === currentId);
 };
 
 const allMeasurementsUsed = computed(() => {
-    return usedMeasureIds.value.length === availableMeasures.length;
+ return usedMeasureIds.value.length === availableMeasures.length;
 });
 
 const addMeasurement = () => {
-    if (allMeasurementsUsed.value) return;
-    const nextAvailable = availableMeasures.find(m => !usedMeasureIds.value.includes(m.id));
-    dynamicMeasurements.value.push({ 
-        id: nextAvailable ? nextAvailable.id : '', 
-        value: null 
-    });
+ if (allMeasurementsUsed.value) return;
+ const nextAvailable = availableMeasures.find(m => !usedMeasureIds.value.includes(m.id));
+ dynamicMeasurements.value.push({ 
+  id: nextAvailable ? nextAvailable.id : '', 
+  value: null 
+ });
 };
 
 const removeMeasurement = (index: number) => {
-    dynamicMeasurements.value.splice(index, 1);
+ dynamicMeasurements.value.splice(index, 1);
 };
 
 const goToImageUpload = () => {
@@ -276,15 +274,6 @@ authStore.logout();
 return;
 }
 
-const data = new FormData();
-data.append('user_id', String(userId));
-data.append('record_date', formData.record_date);
-data.append('weight', String(formData.weight));
-data.append('event', formData.event || '');
-data.append('weeklyAction', formData.weeklyAction || '');
-data.append('workoutDays', formData.workoutDays !== null ? String(formData.workoutDays) : '');
-data.append('observations', formData.observations || '');
-
 const validMeasurements = dynamicMeasurements.value
 .filter(m => m.id && m.value !== null && (m.value as number) > 0)
 .map(m => ({
@@ -292,29 +281,34 @@ measurement_id: m.id as number,
 value: m.value as number 
 }));
 
-data.append('measurements', JSON.stringify(validMeasurements)); 
+// OBTÉM A LISTA DE ARQUIVOS. A reativação pelo onActivated garante que esta lista esteja populada.
+const tempFilesPayload = allTempFiles.value.map(f => ({
+  tempId: f.tempId,
+  type: f.type,
+  isPrivate: f.isPrivate
+}));
 
-// 🚨 LOG DE DIAGNÓSTICO NO FRONTEND (MANTIDO)
-console.log('Dados temporários para envio:', { 
-tempPhotoFileIds: tempPhotoFileIds.value, 
-tempFormaFileIds: tempFormaFileIds.value 
-});
 
-// Anexa os arrays de IDs temporários como JSON string para o backend
-if (tempPhotoFileIds.value.length > 0) {
- data.append('tempPhotoFileIds', JSON.stringify(tempPhotoFileIds.value));
-}
-if (tempFormaFileIds.value.length > 0) {
- data.append('tempFormaFileIds', JSON.stringify(tempFormaFileIds.value));
-}
+const payload = {
+  userId: userId, 
+  recordDate: formData.record_date, 
+  weight: formData.weight,
+  event: formData.event || '',
+  weeklyAction: formData.weeklyAction || '',
+  workoutDays: formData.workoutDays,
+  observations: formData.observations || '',
+  measurements: validMeasurements,
+  tempFiles: tempFilesPayload, // FINALMENTE POPULADO
+};
 
 try {
-const response = await $fetch('/api/records', {
-    method: 'POST',
-    headers: { 
-        Authorization: `Bearer ${token}` 
-    },
-    body: data, 
+const response = await $fetch<{ recordId: number }>('/api/records', { 
+ method: 'POST',
+ headers: { 
+  Authorization: `Bearer ${token}`,
+  'Content-Type': 'application/json' 
+ },
+ body: payload, 
 });
 
 // Limpa dados e reseta o formulário
@@ -323,24 +317,20 @@ formData.event = '';
 formData.weeklyAction = '';
 formData.workoutDays = null;
 formData.observations = '';
-
 dynamicMeasurements.value = []; 
 
 // Limpa TODAS as chaves da sessão através do composável
 clearAllTempFiles();
 
-// Reseta os refs locais
-tempPhotoFileIds.value = [];
-tempFormaFileIds.value = [];
 
 emit('recordSaved');
 
 } catch (error: any) {
-    const errorData = error?.response?._data || error;
-    submissionError.value = `Falha ao salvar. Detalhe: ${errorData.message || errorData || 'Erro desconhecido.'}`;
-    console.error('Erro de submissão:', error);
+ const errorData = error?.response?._data || error;
+ submissionError.value = `Falha ao salvar. Detalhe: ${errorData.message || errorData || 'Erro desconhecido.'}`;
+ console.error('Erro de submissão:', error);
 } finally {
-    isSubmitting.value = false;
+ isSubmitting.value = false;
 }
 };
 </script>
