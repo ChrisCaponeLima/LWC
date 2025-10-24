@@ -167,7 +167,7 @@ const imageType = ref<'photo' | 'forma'>('photo');
 */
 const permanentSaveApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean, forceSave: boolean = false): Promise<{ id: string, type: string, fileId: string }> => {
   const token = authStore.token;
-  if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
+  if (!token) throw new Error('Token de autenticação ausente. Não é possível processar a imagem.');
 
   const formData = new FormData();
   formData.append('type', type); 
@@ -236,8 +236,8 @@ try {
  imageEditorRef.value.downloadEditedImage();
 
 } catch (err: any) {
- const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar o download permanentemente.';
- uploadError.value = `Falha no Salvamento Permanente (Download): ${errorMessage}`;
+ const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao enviar arquivo para download.';
+ uploadError.value = `Falha no Processamento (Download): ${errorMessage}`;
 }
 };
 
@@ -297,7 +297,7 @@ try {
  const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar a imagem permanentemente (Continuar).';
  // Se for erro 409 (imagem não editada), ignoramos a mensagem aqui, pois o fluxo de isEdited: false já trata disso acima.
      if (err.response?.status !== 409) { 
-         uploadError.value = `Falha no Salvamento Permanente: ${errorMessage}`;
+         uploadError.value = `Falha no processamento temporário: ${errorMessage}`;
      }
 } finally {
  cancelEdit(); 

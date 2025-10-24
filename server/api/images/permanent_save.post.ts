@@ -65,8 +65,8 @@ export default defineEventHandler(async (event) => {
     
         throw createError({
       statusCode: 409, // 409 Conflict: A requisição não pôde ser completada devido a uma regra de negócio.
-      statusMessage: 'Conflict: A imagem não foi modificada/editada. O salvamento permanente foi abortado.',
-            data: { details: 'A imagem deve ter efeitos aplicados (tarja/blur/crop) para ser salva na tabela de edições, a menos que o salvamento seja forçado (fluxo de download).' }
+      statusMessage: 'Conflict: A imagem não foi modificada/editada. O salvamento temporário foi abortado.',
+            data: { details: 'A imagem deve ter efeitos aplicados (tarja/blur/crop) para salvar edições, a menos que o salvamento seja forçado (fluxo de download).' }
     });
   }
 
@@ -135,7 +135,7 @@ export default defineEventHandler(async (event) => {
     };
 
   } catch (prismaError: any) {
-    console.error('Erro CRÍTICO no Prisma (POST /images/permanent_save):', prismaError);
+    console.error('Erro CRÍTICO no Prisma (POST /images/temp_save):', prismaError);
     
     // Detalhamento do erro de FK (P2003) ou outro erro de DB
     let detailedMessage = 'Falha desconhecida na persistência. Verifique o console do servidor.';
