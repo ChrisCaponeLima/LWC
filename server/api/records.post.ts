@@ -1,19 +1,19 @@
-// /server/api/records.post.ts - V3.9 - Adição de log de depuração do corpo para diagnosticar erro 400.
+// /server/api/records.post.ts - V3.10 - Ajuste de robustez no processamento de arquivos para Serverless e refinamento do log de diagnóstico.
 import { defineEventHandler, createError, readBody } from 'h3'
 import { prisma } from '~/server/utils/db'
 import { uploadTempFileToCloudinary } from '~/server/utils/cloudinary_temp' 
 
 // Interface para o novo payload JSON (para tipagem)
 interface RecordPayload {
-    userId: number;
-    recordDate: string;
-    weight: number;
-    event?: string;
-    weeklyAction?: string;
-    workoutDays?: number | null;
-    observations?: string;
-    measurements: Array<{ measurement_id: number; value: number }>;
-    tempFiles: Array<{ tempId: string; type: 'photo' | 'forma'; isPrivate: boolean }>;
+  userId: number;
+  recordDate: string;
+  weight: number;
+  event?: string;
+  weeklyAction?: string;
+  workoutDays?: number | null;
+  observations?: string;
+  measurements: Array<{ measurement_id: number; value: number }>;
+  tempFiles: Array<{ tempId: string; type: 'photo' | 'forma'; isPrivate: boolean }>;
 }
 
 
@@ -29,6 +29,7 @@ const body = await readBody<RecordPayload>(event)
 console.log('--- DIAGNÓSTICO DO BODY ---');
 console.log('Corpo da requisição recebido (body):', body);
 console.log('Body está vazio (condição):', !body || Object.keys(body).length === 0);
+console.log('Número de arquivos temporários recebidos:', body?.tempFiles?.length || 0);
 console.log('---------------------------');
 
 if (!body || Object.keys(body).length === 0) {
@@ -65,23 +66,23 @@ const observations = body.observations || null
 
 // 🚨 MUDANÇA: Formata os tempFiles para o formato esperado pela lógica de upload (V3.7)
 const tempFilesFormatted = tempFilesPayload.map(file => {
-    let file_type: number;
-    let folder: string;
+  let file_type: number;
+  let folder: string;
 
-    if (file.type === 'photo') {
-        file_type = 1; // 1 para 'Evolução'
-        folder = 'record_photos';
-    } else {
-        file_type = 2; // 2 para 'Forma'
-        folder = 'record_forma';
-    }
-    
-    return {
-        tempId: file.tempId, 
-        isPrivate: file.isPrivate,
-        file_type, 
-        folder
-    };
+  if (file.type === 'photo') {
+    file_type = 1; // 1 para 'Evolução'
+    folder = 'record_photos';
+  } else {
+    file_type = 2; // 2 para 'Forma'
+    folder = 'record_forma';
+  }
+  
+  return {
+    tempId: file.tempId, 
+    isPrivate: file.isPrivate,
+    file_type, 
+    folder
+  };
 });
 
 let newRecord: any;
@@ -118,13 +119,13 @@ value: m.value,
 
 // 3. Processa e insere arquivos temporários
 for (const file of tempFilesFormatted) {
-console.log(`[Cloudinary] Tentando upload para tempId: ${file.tempId} na pasta: ${file.folder}`);
+console.log(`[Cloudinary] Tentando upload para tempId: ${file.tempId} na pasta: ${file.folder}. isPrivate: ${file.isPrivate}`);
 
-// O utilitário agora retorna string URL ou null
+// 🚨 Ponto crítico: A chamada ao utilitário.
 const file_url = await uploadTempFileToCloudinary(file.tempId, file.folder);
 
 if (file_url) {
-console.log(`[Cloudinary] Sucesso! URL final: ${file_url}`);
+console.log(`[Cloudinary] Sucesso! URL final: ${file_url.substring(0, 50)}...`);
 fileInserts.push({
 record_id: newRecord.id,
 file_url: file_url,
@@ -132,13 +133,18 @@ file_type: file.file_type,
 is_private: file.isPrivate ? 1 : 0, 
 })
 } else {
-console.warn(`[Cloudinary] Arquivo temporário ${file.tempId} foi ignorado devido a falha de upload/encontrado.`);
+// 🚨 LOG MELHORADO: Detalhando que o arquivo não pôde ser encontrado/processado.
+console.warn(`[Cloudinary] ARQUIVO NÃO ENCONTRADO/FALHOU: Arquivo temporário ${file.tempId} foi ignorado. (Possível problema de Serverless Function e arquivos temporários)`);
 }
 }
 
 if (fileInserts.length > 0) {
-await prisma.files.createMany({ data: fileInserts })
+    console.log(`[Prisma] Inserindo ${fileInserts.length} arquivos na tabela files.`);
+    await prisma.files.createMany({ data: fileInserts })
+} else if (tempFilesFormatted.length > 0) {
+    console.warn(`[Prisma] Nenhum arquivo inserido na tabela files, apesar de ${tempFilesFormatted.length} arquivos terem sido solicitados.`);
 }
+
 
 event.node.res.statusCode = 201
 return { message: 'Registro salvo com sucesso!', recordId: newRecord.id }
@@ -147,8 +153,8 @@ return { message: 'Registro salvo com sucesso!', recordId: newRecord.id }
 // Se houver um erro de DB, logamos e lançamos o 500
 console.error('Erro CRÍTICO no Prisma (POST /records):', prismaError)
 throw createError({ 
- statusCode: 500, 
- statusMessage: 'Erro de banco de dados ao salvar registro.' 
- })
+statusCode: 500, 
+statusMessage: 'Erro de banco de dados ao salvar registro.' 
+})
 }
 })
