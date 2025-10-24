@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.18 - Adiciona lógica para gerar o blob da imagem original (rotacionada) e exporta 'generateBlobs' e 'isPrivateLocal'.
+// /components/ImageEditorComponent.vue - V1.20 - Altera a lógica do isEdited para considerar SOMENTE a aplicação de efeitos (rects.length > 0) e IGNORAR rotação, conforme a nova regra de negócio.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -79,7 +79,7 @@ imageType: { type: String, required: true },
 initialIsPrivate: { type: Boolean, default: false },
 })
 
-// MUDANÇA: O evento 'saveEditedImage' agora espera { editedBlob, originalBlob, isPrivate, type }
+// MUDANÇA: O evento 'saveEditedImage' agora espera { editedBlob, originalBlob, isPrivate, type, isEdited }
 const emit = defineEmits(['saveEditedImage', 'error', 'rotate']) 
 
 const isSaving = ref(false)
@@ -103,6 +103,11 @@ let startX = 0
 let startY = 0
 const cropActive = ref(false)
 const mode = ref('blur')
+
+// 🚨 NOVO: Estado de Edição Real (true se houver SOMENTE aplicação de efeitos)
+const isEdited = computed(() => {
+    return rects.length > 0;
+});
 
 const rotationWrapperStyle = computed(() => {
 const isRotated90or270 = rotation.value % 180 !== 0;
@@ -306,39 +311,39 @@ let tx, ty, tw, th; // Coordenadas no Canvas de overlay (renderizado)
 // 1. Mapear do Original (r) para o Renderizado (tx, ty, tw, th) no Canvas
 switch (rotation.value) {
 case 0:
- tx = r.x * invScale + offsetX;
- ty = r.y * invScale + offsetY;
- tw = r.w * invScale;
- th = r.h * invScale;
- break;
+ tx = r.x * invScale + offsetX;
+ ty = r.y * invScale + offsetY;
+ tw = r.w * invScale;
+ th = r.h * invScale;
+ break;
 case 90:
- // X Renderizado = (VisualH - Y Original - H Original) * invScale + Offset X
- // Y Renderizado = X Original * invScale + Offset Y
- tx = (naturalH - r.y - r.h) * invScale + offsetX;
- ty = r.x * invScale + offsetY;
- // Largura Renderizada = Altura Original * invScale
- // Altura Renderizada = Largura Original * invScale
- tw = r.h * invScale;
- th = r.w * invScale;
- break;
+ // X Renderizado = (VisualH - Y Original - H Original) * invScale + Offset X
+ // Y Renderizado = X Original * invScale + Offset Y
+ tx = (naturalH - r.y - r.h) * invScale + offsetX;
+ ty = r.x * invScale + offsetY;
+ // Largura Renderizada = Altura Original * invScale
+ // Altura Renderizada = Largura Original * invScale
+ tw = r.h * invScale;
+ th = r.w * invScale;
+ break;
 case 180:
- tx = (naturalW - r.x - r.w) * invScale + offsetX;
- ty = (naturalH - r.y - r.h) * invScale + offsetY;
- tw = r.w * invScale;
- th = r.h * invScale;
- break;
+ tx = (naturalW - r.x - r.w) * invScale + offsetX;
+ ty = (naturalH - r.y - r.h) * invScale + offsetY;
+ tw = r.w * invScale;
+ th = r.h * invScale;
+ break;
 case 270:
- // X Renderizado = Y Original * invScale + Offset X
- // Y Renderizado = (VisualW - X Original - W Original) * invScale + Offset Y
- tx = r.y * invScale + offsetX;
- ty = (naturalW - r.x - r.w) * invScale + offsetY;
- // Largura Renderizada = Altura Original * invScale
- // Altura Renderizada = Largura Original * invScale
- tw = r.h * invScale;
- th = r.w * invScale;
- break;
+ // X Renderizado = Y Original * invScale + Offset X
+ // Y Renderizado = (VisualW - X Original - W Original) * invScale + Offset Y
+ tx = r.y * invScale + offsetX;
+ ty = (naturalW - r.x - r.w) * invScale + offsetY;
+ // Largura Renderizada = Altura Original * invScale
+ // Altura Renderizada = Largura Original * invScale
+ tw = r.h * invScale;
+ th = r.w * invScale;
+ break;
 default:
- return;
+ return;
 }
 
 if (r.type === 'stripe') {
@@ -346,16 +351,16 @@ canvasCtx.fillStyle = 'rgba(0,0,0,0.95)'
 canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
 try {
- canvasCtx.save()
- canvasCtx.filter = 'blur(8px)'
- 
- // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
- canvasCtx.drawImage(
- img, 
- r.x, r.y, r.w, r.h, // Source: Da imagem original
- tx, ty, tw, th // Destination: No canvas de overlay
- )
- canvasCtx.restore()
+ canvasCtx.save()
+ canvasCtx.filter = 'blur(8px)'
+ 
+ // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+ canvasCtx.drawImage(
+ img, 
+ r.x, r.y, r.w, r.h, // Source: Da imagem original
+ tx, ty, tw, th // Destination: No canvas de overlay
+ )
+ canvasCtx.restore()
 } catch {}
 }
 })
@@ -503,38 +508,38 @@ const finalH = output.height;
 // === 2. Aplica Efeitos (Tarjas/Blur) em um contexto "limpo" mas nas coordenadas JÁ ROTACIONADAS ===
 // O contexto AGORA está no sistema final (0,0 no top-left, sem rotação).
 rects.forEach((r) => {
- // Calculamos as coordenadas de destino transformadas para o canvas final (finalW x finalH)
- // As coordenadas r.x, r.y, r.w, r.h são do sistema ORIGINAL (naturalW x naturalH).
- let tx, ty, tw, th;
+ // Calculamos as coordenadas de destino transformadas para o canvas final (finalW x finalH)
+ // As coordenadas r.x, r.y, r.w, r.h são do sistema ORIGINAL (naturalW x naturalH).
+ let tx, ty, tw, th;
 
- switch (rotation.value) {
-  case 0:
-   tx = r.x;
-   ty = r.y;
-   tw = r.w;
-   th = r.h;
-   break;
-  case 90:
-   tx = r.y;
-   ty = finalW - r.x - r.w; 
-   tw = r.h;
-   th = r.w;
-   break;
-  case 180:
-   tx = finalW - r.x - r.w;
-   ty = finalH - r.y - r.h;
-   tw = r.w;
-   th = r.h;
-   break;
-  case 270:
-   tx = finalH - r.y - r.h; 
-   ty = r.x;
-   tw = r.h;
-   th = r.w;
-   break;
-  default:
-   return;
- }
+ switch (rotation.value) {
+  case 0:
+   tx = r.x;
+   ty = r.y;
+   tw = r.w;
+   th = r.h;
+   break;
+  case 90:
+   tx = r.y;
+   ty = finalW - r.x - r.w; 
+   tw = r.h;
+   th = r.w;
+   break;
+  case 180:
+   tx = finalW - r.x - r.w;
+   ty = finalH - r.y - r.h;
+   tw = r.w;
+   th = r.h;
+   break;
+  case 270:
+   tx = finalH - r.y - r.h; 
+   ty = r.x;
+   tw = r.h;
+   th = r.w;
+   break;
+  default:
+   return;
+ }
 
 if (r.type === 'stripe') {
 ctx.fillStyle = '#000'
@@ -547,9 +552,9 @@ ctx.filter = 'blur(8px)'
 // Source: recorta da imagem original (r.x,r.y,r.w,r.h)
 // Destino: no canvas (tx, ty, tw, th)
 ctx.drawImage(
- img, 
- r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada)
- tx, ty, tw, th // Destino: No contexto final (com coords e dimensões já rotacionadas)
+ img, 
+ r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada)
+ tx, ty, tw, th // Destino: No contexto final (com coords e dimensões já rotacionadas)
 )
 ctx.restore()
 }
@@ -567,11 +572,11 @@ const editedCanvas = createFinalCanvas()
 const originalCanvas = createRotatedOriginalCanvas()
 
 const editedBlob = await new Promise((res, rej) => {
- editedCanvas.toBlob(res, 'image/png');
+ editedCanvas.toBlob(res, 'image/png');
 })
 
 const originalBlob = await new Promise((res, rej) => {
- originalCanvas.toBlob(res, 'image/png');
+ originalCanvas.toBlob(res, 'image/png');
 })
 
 if (!editedBlob) throw new Error('Falha ao gerar o Blob da imagem editada.');
@@ -591,9 +596,10 @@ const { editedBlob, originalBlob } = await generateBlobs();
 // Emite AMBOS os blobs para o componente pai (ImageEditor.vue) para salvamento permanente
 emit('saveEditedImage', {
 editedBlob: editedBlob,
-originalBlob: originalBlob, // Novo: Imagem original (rotacionada)
+originalBlob: originalBlob, 
 isPrivate: isPrivateLocal.value,
 type: props.imageType,
+isEdited: isEdited.value, // 🚨 NOVO: Passa o status de edição (baseado APENAS em rects.length)
 })
 
 } catch (err) {
@@ -628,9 +634,9 @@ console.warn('[DOWNLOAD] toBlob falhou (possível CORS). Tentando toDataURL como
 dataURL = finalCanvas.toDataURL('image/png', 1.0); 
 
 if (dataURL === 'data:,') {
- console.error('[DOWNLOAD] toDataURL retornou um dataURL inválido. CORS impede o download.');
- emit('error', 'Falha ao gerar o arquivo de download. O servidor de imagens está bloqueando o acesso (CORS).');
- return;
+ console.error('[DOWNLOAD] toDataURL retornou um dataURL inválido. CORS impede o download.');
+ emit('error', 'Falha ao gerar o arquivo de download. O servidor de imagens está bloqueando o acesso (CORS).');
+ return;
 }
 }
 
@@ -657,7 +663,7 @@ emit('error', e?.message || 'Erro desconhecido ao gerar o arquivo de download.')
 } finally {
 // Revoga a URL temporária SE for uma blob URL (dataURLs não precisam)
 if (dataURL && dataURL.startsWith('blob:')) {
- URL.revokeObjectURL(dataURL);
+ URL.revokeObjectURL(dataURL);
 }
 }
 };
@@ -682,7 +688,8 @@ overlayCanvas.value.removeEventListener('pointerup', onUp)
 
 defineExpose({
 downloadEditedImage,
-generateBlobs, // EXPOSIÇÃO DA NOVA FUNÇÃO
-isPrivateLocal // EXPOSIÇÃO PARA O COMPONENTE PAI ACESSAR O ESTADO
+generateBlobs, 
+isPrivateLocal,
+isEdited // 🚨 NOVO: Expõe a computed property para o pai
 })
 </script>
