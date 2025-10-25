@@ -1,71 +1,86 @@
-// /server/utils/cloudinary_temp.ts - V1.2 - Adiciona verificação de tamanho de arquivo (fs.stat) antes do upload.
+// /server/utils/cloudinary_temp.ts - V1.5 - Ajusta a verificação de 'is_private' no rename do Cloudinary e garante tipagem.
 
 import { v2 as cloudinary } from 'cloudinary';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
-
-const TMP_DIR = path.join(os.tmpdir(), 'nuxt_uploads'); 
+import { prisma } from '~/server/utils/db'; // Acesso ao DB
 
 /**
-* Lê o arquivo temporário do disco, faz o upload para o Cloudinary e o exclui.
-* @param tempFileId O UUID do arquivo temporário.
-* @param uploadFolder O subdiretório no Cloudinary (ex: 'record_photos').
-* @returns A URL segura do arquivo no Cloudinary, ou null em caso de falha.
+* Interface de retorno do utilitário.
+*/
+export interface CloudinaryMoveResult {
+ url: string;
+ publicId: string;
+}
+
+/**
+* Busca o registro na tabela edited_files pelo tempId (file_id),
+* move/renomeia o arquivo no Cloudinary para a pasta final (records),
+* e limpa o registro temporário do DB.
+* * @param tempFileId O UUID do arquivo temporário (file_id da edited_files).
+* @param destinationFolder O subdiretório final no Cloudinary (ex: 'records/public/photos').
+* @returns O objeto com a URL segura e o Public ID do arquivo final.
 */
 export async function uploadTempFileToCloudinary(
-  tempFileId: string, 
-  uploadFolder: string
-): Promise<string | null> {
-  
-  // O pre_upload V1.3 garante que o arquivo é salvo como .png
-  const tempFilePath = path.join(TMP_DIR, `${tempFileId}.png`);
-  
-  try {
-    // 1. Verificar a existência e o tamanho do arquivo no disco
-    const stats = await fs.stat(tempFilePath); 
+tempFileId: string, 
+destinationFolder: string
+): Promise<CloudinaryMoveResult | null> {
+ 
+try {
+// 1. Encontrar o registro na tabela persistente edited_files
+// A coluna is_private é um SmallInt (0 ou 1)
+const editedFile = await prisma.edited_files.findUnique({
+where: { file_id: tempFileId },
+select: { 
+ cloudinary_public_id: true, 
+ is_private: true, // Será 0 ou 1
+}
+});
 
-        // 🚨 MUDANÇA PRINCIPAL: Verificar se o arquivo tem tamanho zero ou é muito pequeno (ex: < 1KB)
-        // Se for 0, o upload do Cloudinary falhará.
-        const MIN_FILE_SIZE_BYTES = 100; // Define um limite mínimo razoável (100 bytes)
-        if (stats.size === 0 || stats.size < MIN_FILE_SIZE_BYTES) {
-            console.error(`[CLOUDINARY] Arquivo encontrado, mas está vazio ou muito pequeno (${stats.size} bytes). Falha na conversão do HEIC/Frontend?`);
-            // Se o arquivo estiver vazio, tentamos excluí-lo e retornamos null
-            await fs.unlink(tempFilePath); 
-            return null;
-        }
+if (!editedFile || !editedFile.cloudinary_public_id) {
+console.warn(`[CLOUDINARY_TEMP] Arquivo temporário não encontrado no DB para tempId: ${tempFileId}. Pulando.`);
+return null; 
+}
 
-    // 2. Upload para o Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(tempFilePath, {
-      folder: uploadFolder, 
-      resource_type: 'image',
-      public_id: `${tempFileId}`,
-      overwrite: true,
-    });
+const currentPublicId = editedFile.cloudinary_public_id;
+const isPrivate = editedFile.is_private === 1; // 🚨 GARANTINDO O BOOLEAN A PARTIR DO SMALLINT
 
-    // 3. Excluir o arquivo temporário após o upload bem-sucedido
-    await fs.unlink(tempFilePath);
-    console.log(`[CLOUDINARY] Arquivo temporário ${tempFileId} excluído com sucesso.`);
-    
-    return uploadResult.secure_url;
+// 2. Mover/Renomear o arquivo no Cloudinary para o destino final (records)
+// A nova estrutura de public_id será: pasta_final/file_id
+const newPublicId = `${destinationFolder}/${tempFileId}`;
 
-  } catch (error: any) {
-    
-    if (error.code === 'ENOENT') {
-      console.warn(`[CLOUDINARY] Arquivo temporário não encontrado: ${tempFileId}. Pulando.`);
-      return null;
-    }
-    
-    console.error('[CLOUDINARY] Erro no processamento/upload (Verifique Credenciais):', error);
-    
-    // Tenta excluir o arquivo como fallback
-    try {
-      await fs.unlink(tempFilePath);
-      console.log(`[CLOUDINARY] Arquivo ${tempFileId} excluído após falha de upload.`);
-    } catch (unlinkError) {
-      console.warn(`[CLOUDINARY] Falha ao tentar excluir o arquivo temporário: ${tempFileId} após erro.`);
-    }
-    
-    return null; 
-  }
+console.log(`[CLOUDINARY_MOVE] Movendo de: ${currentPublicId} para: ${newPublicId}. Tipo: ${isPrivate ? 'private' : 'upload'}`);
+
+const result = await cloudinary.uploader.rename(
+currentPublicId, 
+newPublicId, 
+{ 
+ overwrite: true, 
+ type: isPrivate ? 'private' : 'upload' // 🚨 USANDO O NOVO BOOLEAN CONFIÁVEL
+}
+);
+
+if (!result || !result.secure_url) {
+throw new Error('Cloudinary Renomear falhou.');
+}
+
+// 3. Deletar o registro temporário (limpeza)
+await prisma.edited_files.delete({ where: { file_id: tempFileId } });
+console.log(`[CLOUDINARY_TEMP] Registro ${tempFileId} excluído do DB.`);
+
+// 4. Retorno correto para o /api/records
+return { url: result.secure_url, publicId: result.public_id }; 
+
+} catch (error: any) {
+
+console.error('[CLOUDINARY_TEMP] Erro CRÍTICO no processamento/move Cloudinary (Serverless):', error);
+
+// Tenta limpar o registro DB mesmo em caso de erro
+try {
+await prisma.edited_files.delete({ where: { file_id: tempFileId } });
+console.log(`[CLOUDINARY_TEMP] Tentativa de exclusão do registro ${tempFileId} após falha.`);
+} catch (dbError) {
+// Ignorar
+}
+
+return null; 
+}
 }

@@ -1,4 +1,4 @@
-// /components/Registro/ImageEditor.vue - V2.21 - Consolidando as correções: 1. Adiciona o fluxo 'isEdited: false' com UUID local; 2. Remove o syncFromSession redundante pós-addTempFile.
+// /components/Registro/ImageEditor.vue - V2.26 - CORREÇÃO CRÍTICA: Implementa os dois salvamentos (edited_files E edited) quando a imagem é EDITADA, conforme o fluxo de negócio.
 
 <template>
 <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
@@ -131,62 +131,83 @@ ref="imageEditorRef"
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, onMounted } from 'vue'; // Adicionado nextTick
+import { nextTick, ref, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import ImageEditorComponent from '~/components/ImageEditorComponent.vue';
-// 🚨 Correção: Manteve-se o estilo de desestruturação que funciona na V2.15
 import { useTempFiles, addTempFile, removeTempFile } from '~/composables/useTempFiles';
 
-import { v4 as uuidv4 } from 'uuid'; // Importando uuid
+import { v4 as uuidv4 } from 'uuid';
 
 const emit = defineEmits(['close']);
 
 const authStore = useAuthStore();
-
-// Usando o composable para gerenciar o estado da sessão
-// Manteve-se a desestruturação CORRETA (V2.15)
 const { allTempFiles, syncFromSession } = useTempFiles();
 
 const imageEditorRef = ref<any>(null); 
 const fileInput = ref<HTMLInputElement | null>(null); 
 
-// Estado de Edição
 const isEditing = ref(false);
 const editingFile = ref<File | null>(null); 
 const editingFileUrl = ref<string | null>(null); 
 const uploadError = ref<string | null>(null);
 const imageType = ref<'photo' | 'forma'>('photo'); 
 
+interface TempUploadResponse {
+  fileId: string;
+  type: string;
+}
+
 /**
-* Função utilitária para chamar a API de salvamento permanente.
-* @param editedBlob Blob da imagem editada.
-* @param originalBlob Blob da imagem original (rotacionada).
-* @param isPrivate Se a imagem é privada.
-* @param type Tipo da imagem ('photo' ou 'forma').
-* @param isEdited Se a imagem foi REALMENTE editada (efeitos).
-* @param forceSave Se o salvamento deve ser forçado (usado para fluxo de download).
-* @returns Retorna um objeto com id (do DB) e fileId (UUID).
+* Função utilitária para chamar a API de salvamento temporário (edited_files).
+* ATUALIZADA para enviar editedBlob e isEdited (true ou false) e originalBlob.
+* O Backend (temp_upload.post.ts) decide qual Blob usar e salva na edited_files.
+*/
+const tempUploadApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean): Promise<TempUploadResponse> => {
+const token = authStore.token;
+if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
+
+const formData = new FormData();
+formData.append('type', type); 
+formData.append('isPrivate', isPrivate ? 'true' : 'false');
+formData.append('isEdited', isEdited ? 'true' : 'false');
+
+// Envia AMBOS os blobs. O backend decide qual salvar no Cloudinary.
+formData.append('editedFile', editedBlob, 'edited.png');
+formData.append('originalFile', originalBlob, 'original.png');
+
+const response = await $fetch<TempUploadResponse>('/api/images/temp_upload', {
+method: 'POST',
+body: formData,
+headers: { Authorization: `Bearer ${token}` },
+});
+
+return response;
+};
+
+/**
+* Função utilitária para chamar a API de salvamento permanente (Cloudinary upload + edited DB).
+* Usada APENAS para o fluxo de "Baixar Imagem" (Download Forçado) E o salvamento condicional de imagens editadas.
 */
 const permanentSaveApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean, forceSave: boolean = false): Promise<{ id: string, type: string, fileId: string }> => {
- const token = authStore.token;
- if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
+const token = authStore.token;
+if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
 
- const formData = new FormData();
- formData.append('type', type); 
- formData.append('isPrivate', isPrivate ? 'true' : 'false');
-  formData.append('isEdited', isEdited ? 'true' : 'false');
-  formData.append('forceSave', forceSave ? 'true' : 'false'); 
-  
- formData.append('editedFile', editedBlob, 'edited.png');
- formData.append('originalFile', originalBlob, 'original.png');
+const formData = new FormData();
+formData.append('type', type); 
+formData.append('isPrivate', isPrivate ? 'true' : 'false');
+formData.append('isEdited', isEdited ? 'true' : 'false');
+formData.append('forceSave', forceSave ? 'true' : 'false'); 
 
- const response = await $fetch<{ id: string, type: string, fileId: string }>('/api/images/permanent_save', {
-  method: 'POST',
-  body: formData,
-  headers: { Authorization: `Bearer ${token}` },
- });
+formData.append('editedFile', editedBlob, 'edited.png');
+formData.append('originalFile', originalBlob, 'original.png');
 
- return response;
+const response = await $fetch<{ id: string, type: string, fileId: string }>('/api/images/permanent_save', {
+method: 'POST',
+body: formData,
+headers: { Authorization: `Bearer ${token}` },
+});
+
+return response;
 };
 
 
@@ -226,12 +247,11 @@ return;
 try {
 // 1. Gera os blobs necessários
 const { editedBlob, originalBlob } = await imageEditorRef.value.generateBlobs();
- // Acessa o ref exposto 'isPrivateLocal' e o NOVO 'isEdited' do componente filho
- const isPrivate = imageEditorRef.value.isPrivateLocal.value; 
-  const isEdited = imageEditorRef.value.isEdited.value; 
+// Acessa o ref exposto 'isPrivateLocal' e o NOVO 'isEdited' do componente filho
+const isPrivate = imageEditorRef.value.isPrivateLocal.value; 
+const isEdited = imageEditorRef.value.isEdited.value; 
 
-// 2. SALVAMENTO PERMANENTE na tabela 'edited' (FORCE SAVE TRUE AQUI)
-// O resultado é ignorado, pois apenas o download é importante neste fluxo.
+// 2. CHAMA ENDPOINT PERMANENTE: Salva no edited DB e Cloudinary (forceSave: true)
 await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, imageType.value, isEdited, true); 
 
 // 3. Executa o download local
@@ -252,56 +272,61 @@ const handleImageRotate = (newRotation: number) => {
 console.log('Imagem rotacionada para:', newRotation, 'graus');
 };
 
-// **FLUXO 1: "Continuar" (Salva Permanentemente e Adiciona à Lista Temporária)**
+// **FLUXO 1: "Continuar" (Salva na Lista Temporária)**
 const handleSaveEditedNewImage = async ({ editedBlob, originalBlob, isPrivate, type, isEdited }: { editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean }) => {
-let tempFileId: string; // Declaração de variável
+let tempFileId: string;
 
 try {
- if (!editedBlob || editedBlob.size === 0 || !originalBlob || originalBlob.size === 0) {
- uploadError.value = 'Erro: O editor não gerou os arquivos de imagem (Blob vazio). Por favor, tente novamente.';
- cancelEdit();
- return;
- }
+if (!editedBlob || editedBlob.size === 0 || !originalBlob || originalBlob.size === 0) {
+uploadError.value = 'Erro: O editor não gerou os arquivos de imagem (Blob vazio). Por favor, tente novamente.';
+cancelEdit();
+return;
+}
 
 if (isEditing.value) {
 uploadError.value = null;
 
-    // 🚨 CORREÇÃO PRINCIPAL: Bifurca o fluxo para tratar 'isEdited: false' localmente
-    if (!isEdited) {
-        // 1. Gera um ID temporário no frontend (UUID)
-        tempFileId = uuidv4(); 
-        console.log(`[FLOW] Imagem não editada. Usando UUID temporário: ${tempFileId}`);
-        // 2. Não chama permanentSaveApiCall (evitando o erro 409)
-    
-    } else {
-        // 1. SALVAMENTO PERMANENTE na tabela 'edited'
-        const response = await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, type, isEdited, false); 
+    // 1. SALVAMENTO PERMANENTE CONDICIONAL (REQUISITO 3: "SE EDITADA, a imagem DEVE SER enviada para a tabela edited")
+    if (isEdited) {
+        console.log(`[FLOW] Imagem editada. Chamando /api/images/permanent_save (tabela 'edited')...`);
         
-        // 2. O ID temporário é o UUID retornado pelo backend
-        tempFileId = response.fileId; 
-        console.log(`[FLOW] Imagem editada. Usando fileId do backend: ${tempFileId}`);
+        try {
+            // isEdited: true, forceSave: false. Ele será salvo porque isEdited é true.
+            await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, type, true, false); 
+        } catch (permanentErr: any) {
+            console.error('Falha no salvamento permanente condicional (edited):', permanentErr);
+            // O erro neste passo NÃO deve interromper o salvamento temporário.
+        }
     }
+
+    // 2. SALVAMENTO TEMPORÁRIO OBRIGATÓRIO (REQUISITO 2: Todas as imagens vão para edited_files)
+    console.log(`[FLOW] Imagem (Editada: ${isEdited}). Chamando /api/images/temp_upload (tabela 'edited_files')...`);
+    
+    // O tempUploadApiCall lida com a lógica de qual Blob salvar na edited_files.
+    const response = await tempUploadApiCall(editedBlob, originalBlob, isPrivate, type, isEdited); 
+
+    // O ID temporário é o UUID retornado pelo backend
+    tempFileId = response.fileId; 
+    console.log(`[FLOW] fileId retornado pelo backend: ${tempFileId}`);
 
 // 3. Adiciona à lista temporária (Fluxo Comum)
 const newFileObject = { 
- tempId: tempFileId, // Usa o ID obtido no fluxo bifurcado
- isPrivate: isPrivate, 
- type: type 
+tempId: tempFileId,
+isPrivate: isPrivate, 
+type: type 
 };
 
 addTempFile(newFileObject);
- // 🚨 CORREÇÃO DE REDUNDÂNCIA: syncFromSession() REMOVIDO aqui (o addTempFile já o faz internamente)
-
-  // Garante que o DOM registre a alteração antes de fechar o editor.
-  await nextTick(); 
+// Garante que o DOM registre a alteração antes de fechar o editor.
+await nextTick(); 
 }
 } catch (err: any) {
-const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar a imagem permanentemente (Continuar).';
+const errorMessage = err?.response?._data?.details || err?.message || 'Erro desconhecido ao salvar a imagem temporariamente.';
 
-// A verificação 409 não é mais estritamente necessária aqui, mas mantida para tratar quaisquer erros de API não relacionados ao fluxo principal.
-  if (err.response?.status !== 409) { 
-    uploadError.value = `Falha no Salvamento Permanente: ${errorMessage}`;
-  }
+// Se o erro 409 ocorrer, será do temp_upload, mas agora ele deve aceitar isEdited: false.
+if (err.response?.status !== 409) { 
+ uploadError.value = `Falha no Salvamento Temporário: ${errorMessage}`;
+}
 } finally {
 cancelEdit(); 
 }
