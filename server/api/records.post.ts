@@ -1,19 +1,20 @@
-// /server/api/records.post.ts - V3.10 - Ajuste de robustez no processamento de arquivos para Serverless e refinamento do log de diagnóstico.
+// /server/api/records.post.ts - V3.11 - Adaptação crítica para o retorno do utilitário Cloudinary_temp (V1.3), incluindo o public_id na tabela files.
 import { defineEventHandler, createError, readBody } from 'h3'
 import { prisma } from '~/server/utils/db'
+// 🚨 O utilitário agora retorna { url: string, publicId: string }
 import { uploadTempFileToCloudinary } from '~/server/utils/cloudinary_temp' 
 
 // Interface para o novo payload JSON (para tipagem)
 interface RecordPayload {
-  userId: number;
-  recordDate: string;
-  weight: number;
-  event?: string;
-  weeklyAction?: string;
-  workoutDays?: number | null;
-  observations?: string;
-  measurements: Array<{ measurement_id: number; value: number }>;
-  tempFiles: Array<{ tempId: string; type: 'photo' | 'forma'; isPrivate: boolean }>;
+ userId: number;
+ recordDate: string;
+ weight: number;
+ event?: string;
+ weeklyAction?: string;
+ workoutDays?: number | null;
+ observations?: string;
+ measurements: Array<{ measurement_id: number; value: number }>;
+ tempFiles: Array<{ tempId: string; type: 'photo' | 'forma'; isPrivate: boolean }>;
 }
 
 
@@ -66,23 +67,27 @@ const observations = body.observations || null
 
 // 🚨 MUDANÇA: Formata os tempFiles para o formato esperado pela lógica de upload (V3.7)
 const tempFilesFormatted = tempFilesPayload.map(file => {
-  let file_type: number;
-  let folder: string;
+ let file_type: number;
+ let folder: string;
 
-  if (file.type === 'photo') {
-    file_type = 1; // 1 para 'Evolução'
-    folder = 'record_photos';
-  } else {
-    file_type = 2; // 2 para 'Forma'
-    folder = 'record_forma';
-  }
-  
-  return {
-    tempId: file.tempId, 
-    isPrivate: file.isPrivate,
-    file_type, 
-    folder
-  };
+ if (file.type === 'photo') {
+  file_type = 1; // 1 para 'Evolução'
+  folder = 'records/public/photos'; // Ajuste o nome da pasta permanente se necessário
+ } else {
+  file_type = 2; // 2 para 'Forma'
+  folder = 'records/public/forma'; // Ajuste o nome da pasta permanente se necessário
+ }
+ 
+ // Se for privado, ajuste a pasta raiz
+ const finalFolder = file.isPrivate ? folder.replace('public', 'private') : folder;
+
+
+ return {
+  tempId: file.tempId, 
+  isPrivate: file.isPrivate,
+  file_type, 
+  folder: finalFolder // Pasta de destino final
+ };
 });
 
 let newRecord: any;
@@ -121,28 +126,33 @@ value: m.value,
 for (const file of tempFilesFormatted) {
 console.log(`[Cloudinary] Tentando upload para tempId: ${file.tempId} na pasta: ${file.folder}. isPrivate: ${file.isPrivate}`);
 
-// 🚨 Ponto crítico: A chamada ao utilitário.
-const file_url = await uploadTempFileToCloudinary(file.tempId, file.folder);
+// 🚨 PONTO DE CORREÇÃO CRÍTICA 1: O retorno AGORA é um objeto!
+const uploadResult = await uploadTempFileToCloudinary(file.tempId, file.folder);
 
-if (file_url) {
-console.log(`[Cloudinary] Sucesso! URL final: ${file_url.substring(0, 50)}...`);
-fileInserts.push({
-record_id: newRecord.id,
-file_url: file_url,
-file_type: file.file_type,
-is_private: file.isPrivate ? 1 : 0, 
-})
+if (uploadResult) {
+    // 🚨 PONTO DE CORREÇÃO CRÍTICA 2: Desestruturação para obter URL e Public ID
+    const { url, publicId } = uploadResult;
+
+    console.log(`[Cloudinary] Sucesso! URL final: ${url.substring(0, 50)}... Public ID: ${publicId}`);
+    
+    fileInserts.push({
+        record_id: newRecord.id,
+        file_url: url, // Usa a URL do objeto de retorno
+        public_id: publicId, // 👈 PONTO CHAVE: Salva o public_id do Cloudinary
+        file_type: file.file_type,
+        is_private: file.isPrivate ? 1 : 0, 
+    })
 } else {
 // 🚨 LOG MELHORADO: Detalhando que o arquivo não pôde ser encontrado/processado.
-console.warn(`[Cloudinary] ARQUIVO NÃO ENCONTRADO/FALHOU: Arquivo temporário ${file.tempId} foi ignorado. (Possível problema de Serverless Function e arquivos temporários)`);
+console.warn(`[Cloudinary] ARQUIVO NÃO ENCONTRADO/FALHOU: Arquivo temporário ${file.tempId} foi ignorado. (Verifique edited_files ou logs de Cloudinary_temp)`);
 }
 }
 
 if (fileInserts.length > 0) {
-    console.log(`[Prisma] Inserindo ${fileInserts.length} arquivos na tabela files.`);
-    await prisma.files.createMany({ data: fileInserts })
+  console.log(`[Prisma] Inserindo ${fileInserts.length} arquivos na tabela files.`);
+  await prisma.files.createMany({ data: fileInserts })
 } else if (tempFilesFormatted.length > 0) {
-    console.warn(`[Prisma] Nenhum arquivo inserido na tabela files, apesar de ${tempFilesFormatted.length} arquivos terem sido solicitados.`);
+  console.warn(`[Prisma] Nenhum arquivo inserido na tabela files, apesar de ${tempFilesFormatted.length} arquivos terem sido solicitados.`);
 }
 
 
