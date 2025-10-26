@@ -1,6 +1,6 @@
-// components/Footer.vue V1.0 Componente de rodapé.
+// components/Footer.vue - V1.1 - Componente de rodapé com estilização Tailwind
 <template>
-  <footer>
+  <footer class="bg-gray-100 border-t mt-10 p-4 text-center text-sm text-gray-500">
     <p>© 2025 G4C. Todos os direitos reservados.</p>
   </footer>
 </template>
@@ -8,12 +8,3 @@
 <script setup>
 // Lógica JavaScript do rodapé
 </script>
-
-<style scoped>
-/* Estilos para o rodapé */
-footer {
-  background-color: #f0f0f0;
-  padding: 1rem;
-  text-align: center;
-}
-</style>

@@ -25,8 +25,8 @@ throw createError({ statusCode: 401, statusMessage: 'Token inválido ou expirado
 }
 
 // Somente admin/owner tem permissão de consultar este endpoint
-if (payload.role !== 'admin' && payload.role !== 'owner') {
-throw createError({ statusCode: 403, statusMessage: 'Acesso Proibido. Requer cargo de Administrador.' })
+if (payload.role !== 'admin' && payload.role !== 'owner' && payload.role !== 'profissional') { // Role CORRETA
+    throw createError({ statusCode: 403, statusMessage: 'Acesso Proibido. Você não tem permissão para listar usuários.' })
 }
 
 try {

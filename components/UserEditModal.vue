@@ -10,7 +10,7 @@ class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-5
 
 <div>
 <h3 class="text-xl font-bold text-gray-800">
-Editar Usuário: {{ localUser.username }}
+{{ localUser.username }}
 </h3>
 </div>
 
@@ -57,8 +57,6 @@ key="user-data"
 class="border border-gray-200 p-4 rounded-md transition duration-300"
 v-show="viewMode === 'user'"
 >
-<legend class="text-sm font-medium px-1 text-gray-500">Dados do Usuário</legend>
-
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
 
  
@@ -161,7 +159,6 @@ class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:r
 <option v-if="authStore.isAdmin || authStore.isOwner" value="admin">Admin</option>
 <option v-if="authStore.isOwner" value="owner">Owner (Máximo)</option>
 </select>
- <p class="mt-1 text-xs text-gray-500">O status de Profissional é controlado pelo seletor acima. Altere o cargo para Admin/Owner se necessário.</p>
 </div>
 
 </div>
@@ -175,8 +172,6 @@ localUser.role !== 'user' ? 'border-indigo-400' : 'border-gray-200'
 ]"
 v-show="viewMode === 'profissional'"
 >
-<legend class="text-sm font-medium px-1 text-indigo-600">Dados do Profissional</legend>
-
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
 
 <div class="md:col-span-2">
