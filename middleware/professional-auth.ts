@@ -1,71 +1,57 @@
-// /middleware/professional-auth.ts - V4.4 - Aguarda hidratação completa da store (token + role) antes da validação de acesso.
-
+// /middleware/professional-auth.ts - V5.0 - Padronização com admin-auth.ts (SSR-safe)
 import { useAuthStore } from '~/stores/auth'
+import { defineNuxtRouteMiddleware, navigateTo } from '#app'
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
-  const authStore = useAuthStore()
-  const allowedRoles = ['profissional', 'admin', 'owner']
+ // 🛑 Adicionando a guarda SSR para evitar redirecionamento incorreto na renderização inicial
+ if (process.server) return 
 
-  // ⚙️ Garante inicialização da store antes da checagem
-  if (!authStore.initialized) {
-    await authStore.init()
-  }
+ const authStore = useAuthStore()
+ const allowedRoles = ['profissional', 'admin', 'owner']
 
-  // 🔁 Aguarda token ser carregado do localStorage
-  if (process.client && !authStore.token) {
-    await new Promise((resolve) => {
-      const checkToken = setInterval(() => {
-        if (authStore.token) {
-          clearInterval(checkToken)
-          resolve(true)
-        }
-      }, 50)
-      // timeout de segurança (1,5s)
-      setTimeout(() => {
-        clearInterval(checkToken)
-        resolve(true)
-      }, 1500)
-    })
-  }
+ // 🔄 Garante inicialização da store (que tentará carregar token/user do localStorage)
+ if (!authStore.initialized) {
+  await authStore.init()
+ }
 
-  // 🔁 Aguarda papel ser definido (quando carregado de localStorage)
-  if (process.client && !authStore.user?.role) {
-    await new Promise((resolve) => {
-      const checkRole = setInterval(() => {
-        if (authStore.user?.role) {
-          clearInterval(checkRole)
-          resolve(true)
-        }
-      }, 50)
-      // timeout de segurança (1,5s)
-      setTimeout(() => {
-        clearInterval(checkRole)
-        resolve(true)
-      }, 1500)
-    })
-  }
+ // 🔁 PADRÃO DE ADMIN-AUTH: Aguarda token E user.role carregarem completamente
+ // Isso unifica as duas esperas anteriores, garantindo que ambos cheguem juntos.
+ if (process.client && (!authStore.token || !authStore.user?.role)) {
+  await new Promise((resolve) => {
+   const check = setInterval(() => {
+    if (authStore.token && authStore.user?.role) {
+     clearInterval(check)
+     resolve(true)
+    }
+   }, 50)
+   // timeout de segurança (1,5s)
+   setTimeout(() => {
+    clearInterval(check)
+    resolve(true)
+   }, 1500)
+  })
+ }
 
-  // 🧩 Releitura segura após possível atraso de hidratação
-  const userRole = authStore.user?.role || 'Não Carregado/Sem Papel'
-  const hasToken = !!authStore.token
+ // 🧩 Releitura segura
+ const hasToken = !!authStore.token
+ const role = String(authStore.user?.role || '').toLowerCase()
+ 
+ // Verifica se a role do usuário está entre as permitidas
+ const isAuthorized = allowedRoles.includes(role)
 
-  // ✅ Fallback: se o usuário tiver token e role ainda indefinido,
-  // mantém temporariamente acesso até o Pinia definir o papel real.
-  const isAuthorized =
-    allowedRoles.includes(userRole) ||
-    (hasToken && userRole === 'Não Carregado/Sem Papel')
+ console.warn(`[PROF-AUTH] Role: ${role}`)
+ console.warn(`[PROF-AUTH] Token: ${hasToken}`)
+ console.warn(`[PROF-AUTH] Autorizado: ${isAuthorized}`)
 
-  console.warn(`[PROF-AUTH] Role: ${userRole}`)
-  console.warn(`[PROF-AUTH] Token: ${hasToken}`)
-  console.warn(`[PROF-AUTH] Autorizado: ${isAuthorized}`)
+ // 🛑 Redirecionamento 1: Se não houver token, vá para login
+ if (!hasToken) {
+  return navigateTo({ path: '/login', query: { redirect: to.fullPath } })
+ }
 
-  if (!hasToken) {
-    return navigateTo({ path: '/login', query: { redirect: to.fullPath } })
-  }
+ // 🛑 Redirecionamento 2: Se não for autorizado, vá para dashboard
+ if (!isAuthorized) {
+  return navigateTo({ path: '/dashboard', query: { error: 'unauthorized' } })
+ }
 
-  if (!isAuthorized) {
-    return navigateTo({ path: '/dashboard', query: { error: 'unauthorized' } })
-  }
-
-  // ✅ Caso válido, segue normalmente
+ // ✅ Caso válido, segue normalmente
 })

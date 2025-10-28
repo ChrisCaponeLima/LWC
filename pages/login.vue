@@ -2,9 +2,7 @@
 <template>
 <div class="min-h-screen flex flex-col">
 <header class="flex justify-between items-center p-4 shadow-md bg-white">
-<h1 class="text-xl font-bold text-gray-800">Login</h1>
 </header>
-
 <div class="flex flex-grow justify-center items-center p-4 bg-gray-50">
 <ClientOnly>
  <div class="w-full max-w-md form-card login-card p-8 bg-white rounded-xl shadow-2xl">

@@ -1,144 +1,181 @@
-// /components/Shared/AnnotationViewer.vue - V1.0 - Componente de visualização de foto e anotações JSON
+// /components/Shared/SharedAnnotationViewer.vue - V1.0 - Componente de Visualização Somente Leitura
 <template>
-  <div class="relative w-full overflow-hidden inline-block" ref="containerRef">
-    <img 
-      :src="imageUrl" 
-      alt="Foto com Anotações" 
-      class="w-full h-auto object-contain block"
-      @load="calculateScale"
-      ref="imageRef"
-    />
-
-    <svg 
-      v-if="parsedData && parsedData.lines"
-      :viewBox="`0 0 ${imageDimensions.naturalWidth} ${imageDimensions.naturalHeight}`"
-      :style="svgStyle"
-      class="absolute top-0 left-0 w-full h-full pointer-events-none"
+    <div 
+        ref="viewerContainerRef"
+        class="relative w-full overflow-hidden" 
+        :style="{ 
+            width: `${viewerDimensions.width}px`,
+            height: `${viewerDimensions.height}px`,
+        }"
     >
-      <template v-for="(line, index) in parsedData.lines" :key="`line-${index}`">
-        <line
-          :x1="line.x1"
-          :y1="line.y1"
-          :x2="line.x2"
-          :y2="line.y2"
-          :stroke="line.color || '#FF0000'"
-          :stroke-width="line.width || 5"
-          stroke-linecap="round"
+        <img 
+            ref="imageRef"
+            :src="imageUrl" 
+            alt="Foto de Avaliação" 
+            @load="handleImageLoad"
+            class="block w-full h-auto object-contain pointer-events-none"
         />
-      </template>
-      
-      <template v-for="(text, index) in parsedData.texts" :key="`text-${index}`">
-        <text
-          :x="text.position.x"
-          :y="text.position.y"
-          :fill="text.color || '#FFFF00'"
-          :font-size="text.size || 30"
-          :font-weight="'bold'"
-          text-anchor="middle"
+
+        <svg 
+            v-if="imageLoaded"
+            :width="viewerDimensions.width" 
+            :height="viewerDimensions.height" 
+            class="absolute top-0 left-0"
         >
-          {{ text.content }}
-        </text>
-      </template>
-      
-      </svg>
-    
-    <div v-else-if="imageUrl && hasAnnotation" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 text-white text-lg font-bold">
-        <i class="fas fa-pencil-alt mr-2"></i> Anotações presentes, mas não renderizadas.
+            <g v-for="(drawing, index) in localAnnotations.drawings" :key="`saved-draw-${index}`">
+                <polyline 
+                    :points="drawing.points.map(p => `${scalePoint(p).x},${scalePoint(p).y}`).join(' ')" 
+                    fill="none"
+                    :stroke="drawing.color || '#FF0000'" 
+                    :stroke-width="(drawing.size || 15) * inverseScaleFactor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+            </g>
+            
+            <g v-for="(text, index) in localAnnotations.texts" :key="`saved-text-${index}`">
+                <text
+                    :x="scalePoint(text).x"
+                    :y="scalePoint(text).y"
+                    :fill="text.color || '#FFFF00'"
+                    :font-size="(text.size || 30) * inverseScaleFactor"
+                    font-weight="bold"
+                    text-anchor="middle"
+                    dominant-baseline="hanging"
+                >
+                    {{ text.content }}
+                </text>
+            </g>
+        </svg>
+
     </div>
-  </div>
 </template>
 
-<script setup>
-// /components/Shared/AnnotationViewer.vue - V1.0 - Componente de visualização de foto e anotações JSON
+<script setup lang="ts">
+// /components/Shared/SharedAnnotationViewer.vue - V1.0 - Componente de Visualização Somente Leitura
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
-import { ref, computed, watch, nextTick } from 'vue'
+// === Tipagem ===
+interface Point { x: number; y: number; }
+interface DrawingAnnotation { 
+    points: Point[]; 
+    color: string; 
+    size: number; 
+}
+interface TextAnnotation extends Point {
+    content: string;
+    color: string;
+    size: number;
+}
+interface AnnotationData {
+    drawings: DrawingAnnotation[];
+    texts: TextAnnotation[];
+}
+// === /Tipagem ===
 
-const props = defineProps({
-  imageUrl: { type: String, required: true },
-  annotationData: { type: String, default: null } // String JSON com os dados do desenho
-})
+const props = defineProps<{
+    imageUrl: string;
+    annotationDataJson: string | null; // Dados JSON COMPLETO para visualização
+}>();
 
-const imageRef = ref(null)
-const containerRef = ref(null)
-const parsedData = ref(null)
-const imageDimensions = ref({
-    naturalWidth: 0,
-    naturalHeight: 0,
-    clientWidth: 0,
-    clientHeight: 0,
-})
+// --- Refs de Elementos e Estado ---
+const imageRef = ref<HTMLImageElement | null>(null);
+const imageLoaded = ref(false);
+const localAnnotations = ref<AnnotationData>({ drawings: [], texts: [] });
 
-// Estilo do SVG para garantir que ele se sobreponha e cubra exatamente a área da imagem.
-const svgStyle = computed(() => {
-    // Definimos explicitamente o tamanho do SVG com base na imagem de fundo, mas o viewBox 
-    // garante que as coordenadas do desenho (baseadas no tamanho natural) sejam escaladas corretamente.
-    return {
-        width: `${imageDimensions.clientWidth}px`,
-        height: `${imageDimensions.clientHeight}px`,
+// --- Dimensões e Escalas ---
+const naturalDimensions = ref({ width: 0, height: 0 }); // Dimensões originais (salvas)
+const viewerDimensions = ref({ width: 0, height: 0 }); // Dimensões atuais renderizadas
+
+// Fator de escala inverso: (largura_renderizada / largura_original). Usado para calcular o tamanho visual.
+const inverseScaleFactor = ref(1); 
+
+// --- Funções de Manipulação de Imagem e Escala ---
+
+const handleImageLoad = () => {
+    if (!imageRef.value) return;
+
+    imageLoaded.value = true;
+    
+    // 1. Coleta as dimensões naturais (coordenadas de salvamento)
+    naturalDimensions.value = {
+        width: imageRef.value.naturalWidth,
+        height: imageRef.value.naturalHeight,
     };
-});
-
-const hasAnnotation = computed(() => {
-    return !!props.annotationData && props.annotationData.trim() !== '';
-});
-
-// --- Funções de Lógica ---
-
-const parseAnnotationData = (data) => {
-    if (!data) {
-        parsedData.value = null
-        return
-    }
-    try {
-        // Tentativa de parsear o JSON
-        const json = JSON.parse(data)
-        // Normaliza a estrutura para garantir que as propriedades esperadas existam
-        parsedData.value = {
-            version: json.version || '1.0',
-            lines: Array.isArray(json.lines) ? json.lines : [],
-            texts: Array.isArray(json.texts) ? json.texts : [],
-            // Adicione outras coleções aqui (circles, boxes, etc.)
-        }
-    } catch (e) {
-        console.error('Falha ao analisar JSON de anotação:', e)
-        parsedData.value = null
-    }
-}
-
-const calculateScale = () => {
-    if (imageRef.value) {
-        // Armazena as dimensões da imagem para configurar o SVG viewBox
-        imageDimensions.value.naturalWidth = imageRef.value.naturalWidth
-        imageDimensions.value.naturalHeight = imageRef.value.naturalHeight
-        
-        // Armazena as dimensões renderizadas (clientWidth/Height)
-        imageDimensions.value.clientWidth = imageRef.value.clientWidth
-        imageDimensions.value.clientHeight = imageRef.value.clientHeight
-    }
-}
-
-// Recalcular em caso de redimensionamento da janela (debounce é recomendado em produção)
-onMounted(() => {
-    window.addEventListener('resize', calculateScale)
-})
-
-onBeforeUnmount(() => {
-    window.removeEventListener('resize', calculateScale)
-})
-
-
-// Observar a mudança nos dados da anotação
-watch(() => props.annotationData, (newVal) => {
-    parseAnnotationData(newVal)
-}, { immediate: true })
-
-// Observar a URL da imagem para garantir que o cálculo da escala seja feito após o carregamento da imagem
-watch(() => props.imageUrl, () => {
-    // Força o recálculo após o DOM ser atualizado (nextTick) e a imagem carregar (evento @load no template)
+    
+    // 2. Coleta as dimensões renderizadas (tamanho do viewer/SVG)
     nextTick(() => {
-        if (imageRef.value && imageRef.value.complete) {
-            calculateScale();
+        if (imageRef.value) {
+            viewerDimensions.value = {
+                width: imageRef.value.clientWidth,
+                height: imageRef.value.clientHeight,
+            };
+
+            // Calcula o fator de escala inverso (Renderizado / Natural)
+            inverseScaleFactor.value = viewerDimensions.value.width / naturalDimensions.value.width;
         }
     });
+};
+
+const updateDimensions = () => {
+    if (imageRef.value && imageLoaded.value) {
+        viewerDimensions.value = {
+            width: imageRef.value.clientWidth,
+            height: imageRef.value.clientHeight,
+        };
+        // Recalcula o fator de escala inverso
+        inverseScaleFactor.value = viewerDimensions.value.width / naturalDimensions.value.width;
+    }
+}
+
+/**
+ * Converte um ponto da coordenada NATURAL (salva) para a coordenada RENDERIZADA (visualização).
+ * NOTA: Multiplica-se pela escala inversa.
+ */
+const scalePoint = (p: Point): Point => {
+    return {
+        x: p.x * inverseScaleFactor.value,
+        y: p.y * inverseScaleFactor.value,
+    };
+}
+
+// --- Funções de Persistência e Inicialização ---
+
+const initializeAnnotations = (data: string | null) => {
+    if (data) {
+        try {
+            const parsed = JSON.parse(data);
+            localAnnotations.value = {
+                drawings: parsed.drawings || [],
+                texts: parsed.texts || [],
+            };
+        } catch (e) {
+            console.error('Erro ao inicializar anotações para visualização:', e);
+            localAnnotations.value = { drawings: [], texts: [] };
+        }
+    } else {
+        localAnnotations.value = { drawings: [], texts: [] };
+    }
+}
+
+// --- Watchers e Lifecycle ---
+
+// Inicializa anotações ao carregar o componente ou ao mudar o dado
+watch(() => props.annotationDataJson, initializeAnnotations, { immediate: true });
+
+// Reinicia o estado ao mudar a imagem
+watch(() => props.imageUrl, () => {
+    imageLoaded.value = false;
+    initializeAnnotations(null);
+}, { immediate: true });
+
+
+// Ouve o redimensionamento da janela para atualizar as dimensões de visualização
+onMounted(() => {
+    window.addEventListener('resize', updateDimensions);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateDimensions);
 });
 </script>
