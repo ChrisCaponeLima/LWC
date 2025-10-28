@@ -1,4 +1,4 @@
-// /server/api/images/temp_upload.post.ts - V2.4 - Corrigido: Erro de compilação (variável duplicada). Upload via Data URI.
+// /server/api/images/temp_upload.post.ts - V2.5 - Revertendo à lógica de Data URI que funcionava, com correção de compilação.
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
@@ -10,6 +10,11 @@ const getUserIdFromEvent = (event: H3Event): number => {
     const payload = verifyAuthToken(event);
     return payload.userId;
 };
+
+// 💡 Reintroduz a função utilitária, que deve ser a forma mais estável de converter o Buffer do H3.
+function bufferToDataURI(buffer: Buffer, mimetype: string): string {
+ return `data:${mimetype};base64,${buffer.toString('base64')}`
+}
 
 export default defineEventHandler(async (event) => {
     
@@ -71,11 +76,10 @@ export default defineEventHandler(async (event) => {
     const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
 
     try {
-        // CORREÇÃO: Removemos o código duplicado e mantemos apenas a chamada final para uploader.upload.
-        // Convertendo o Buffer para Base64 e formatando como Data URI.
-        const uploadData = fileToUpload.data.toString('base64');
+        // 💡 Retornando à função bufferToDataURI, corrigida para não ter problemas de importação (V2.1)
+        const dataUri = bufferToDataURI(fileToUpload.data, fileToUpload.type || 'image/jpeg');
         
-        const uploadResult = await cloudinary.uploader.upload(`data:${fileToUpload.type || 'image/jpeg'};base64,${uploadData}`, {
+        const uploadResult = await cloudinary.uploader.upload(dataUri, {
             folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
             resource_type: 'image',
         });
@@ -87,7 +91,7 @@ export default defineEventHandler(async (event) => {
     console.error('Erro no upload para Cloudinary (temp_upload):', error);
     throw createError({ 
            statusCode: 500, 
-           statusMessage: 'Falha ao fazer upload do arquivo para o Cloudinary. Verifique logs do Cloudinary/Vercel.', 
+           statusMessage: 'Falha ao fazer upload do arquivo para o Cloudinary.', 
            data: { details: error.message || 'Erro desconhecido no Cloudinary' } 
        });
     }
