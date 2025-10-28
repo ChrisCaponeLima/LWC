@@ -1,18 +1,15 @@
-// /server/api/images/temp_upload.post.ts - V2.13 - CORREÇÃO CRÍTICA: Upload direto do Buffer para o Cloudinary, eliminando a conversão instável para Base64.
+// /server/api/images/temp_upload.post.ts - V2.14 - Adaptação Crítica para Payload Único: Assumimos que apenas o arquivo a ser salvo (original OU editado) é enviado.
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
-// Nenhuma importação de Buffer é necessária; o Cloudinary processa o Buffer retornado pelo H3.
 
 // Funções utilitárias
 const getUserIdFromEvent = (event: H3Event): number => {
     const payload = verifyAuthToken(event);
     return payload.userId;
 };
-
-// ❌ REMOVEMOS A FUNÇÃO bufferToDataURI INSTÁVEL.
 
 export default defineEventHandler(async (event) => {
     let userId: number;
@@ -29,42 +26,44 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.' });
         }
 
-        // 3. Extrair Variáveis (Lógica de Negócio INALTERADA)
-        let editedFilePart: any | undefined; 
-        let originalFilePart: any | undefined;
+        // 3. Extrair Variáveis
+        // 💡 MODIFICADO: Apenas um arquivo deve estar presente (ou 'editedFile' ou 'originalFile')
+        let fileToUploadPart: any | undefined;
         let imageType: string = '';
         let isPrivate: boolean = false;
         let isEdited: boolean = false; 
 
         for (const part of formData) {
-        const partValue = part.data ? part.data.toString('utf-8') : '';
+            const partValue = part.data ? part.data.toString('utf-8') : '';
 
-        if (part.name === 'editedFile' && part.filename && part.data) {
-        editedFilePart = part;
-        } else if (part.name === 'originalFile' && part.filename && part.data) {
-        originalFilePart = part;
-        } else if (part.name === 'type' && part.data) {
-        imageType = partValue;
-        } else if (part.name === 'isPrivate' && part.data) {
-        isPrivate = partValue === 'true';
-        } else if (part.name === 'isEdited' && part.data) { 
-        isEdited = partValue === 'true';
-        }
-        }
-
-        if (!originalFilePart || !imageType) {
-        throw createError({ statusCode: 400, statusMessage: 'Bad Request: Campos essenciais (originalFile, type) estão faltando.' });
-        }
-
-        if (isEdited && !editedFilePart) {
-        throw createError({ statusCode: 400, statusMessage: 'Bad Request: editedFile é obrigatório quando isEdited é true.' });
+            // Se o arquivo for EDITADO, ele será enviado no campo 'editedFile'.
+            if (part.name === 'editedFile' && part.filename && part.data) {
+                fileToUploadPart = part;
+                // Se receber editedFile, garantimos que isEdited é true
+                if (fileToUploadPart) isEdited = true; 
+            // Se o arquivo NÃO FOR EDITADO (original), ele será enviado no campo 'originalFile'.
+            } else if (part.name === 'originalFile' && part.filename && part.data) {
+                fileToUploadPart = part;
+                isEdited = false;
+            } else if (part.name === 'type' && part.data) {
+                imageType = partValue;
+            } else if (part.name === 'isPrivate' && part.data) {
+                isPrivate = partValue === 'true';
+            } else if (part.name === 'isEdited' && part.data) { 
+                // Usamos o valor do campo 'isEdited' como fallback se o front-end forçar.
+                isEdited = partValue === 'true';
+            }
         }
 
-        // 4. Upload para Cloudinary e Persistência em edited_files
+        if (!fileToUploadPart || !imageType) {
+        throw createError({ statusCode: 400, statusMessage: 'Bad Request: Arquivo de imagem ou tipo faltando.' });
+        }
+
+        // 4. Upload para Cloudinary (Lógica de Negócio INALTERADA)
         let uploadedUrl: string | null = null;
         let uploadedPublicId: string | null = null;
 
-        const fileToUpload = isEdited ? editedFilePart : originalFilePart;
+        const fileToUpload = fileToUploadPart;
         const cloudinarySubFolder = isEdited ? 'edited' : 'original'; 
 
         const fileUniqueId = uuidv4(); 
@@ -74,15 +73,12 @@ export default defineEventHandler(async (event) => {
         const mimeType = fileToUpload.type || 'image/png'; 
 
         try {
-            // 💡 A ÚNICA ALTERAÇÃO CRÍTICA: Passamos o Buffer diretamente para o Cloudinary.
-            // O Cloudinary (v2) aceita o Buffer/Uint8Array do H3/Nitro diretamente.
-            // Isso ignora a conversão instável para Base64 no runtime.
+            // Utilizamos a V2.13 (Upload direto do Buffer) para maior estabilidade.
             const uploadResult = await cloudinary.uploader.upload(
                 fileToUpload.data, // Passa o Buffer/Uint8Array diretamente
                 {
                     folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
                     resource_type: 'image',
-                    // Adiciona o MIME type para ajudar o Cloudinary a processar
                     format: mimeType.split('/')[1] || 'png', 
                 }
             );
@@ -98,7 +94,8 @@ export default defineEventHandler(async (event) => {
                data: { details: error.message } 
            });
         }
-
+        
+        // ... (Passos 5 e 6 de Persistência permanecem IDÊNTICOS à V2.13)
         if (!uploadedUrl || !uploadedPublicId) {
         throw createError({ statusCode: 500, statusMessage: 'Upload do Cloudinary falhou.' });
         }
