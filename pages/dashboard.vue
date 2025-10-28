@@ -71,12 +71,6 @@ icon-alt="Ícone de Régua"
 <div class="mt-8 text-center">
 <div class="flex justify-center space-x-4"> 
 <button
- @click="startPhotoRecord"
- class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
->
-<i class="fas fa-camera mr-2"></i><i class="fas fa-bolt text-lg"></i> 
-</button>
-<button
  @click="startNewRecord"
  class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
 >
