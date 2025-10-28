@@ -1,4 +1,4 @@
-// /components/Treatments/TreatmentAssociationManager.vue - V1.5 - Ajuste de Layout (flex) para prevenir overflow.
+// /components/Treatments/TreatmentAssociationManager.vue - V1.6 - Ajuste de Layout (flex) aplicando min-w-0 nos itens.
 <template>
  <div class="bg-white shadow-lg rounded-xl p-6 mb-8">
   <h3 class="text-xl font-extrabold text-gray-800 mb-4 flex items-center">
@@ -36,11 +36,11 @@
   <div class="mt-6 pt-6 border-t border-gray-200">
    <h4 class="text-lg font-bold text-gray-700 mb-3">Associar Novo Tratamento</h4>
 
-         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full min-w-0">
+   <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full min-w-0">
     <select
      v-model="selectedTreatmentId"
      :disabled="isProcessing"
-     class="flex-1 border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+               class="flex-1 border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 min-w-0"
     >
      <option :value="null" disabled>Selecione um tratamento disponível</option>
      <option
@@ -55,7 +55,7 @@
         <select
      v-model="selectedAreaId"
      :disabled="isProcessing"
-     class="flex-1 border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+               class="flex-1 border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 min-w-0"
     >
      <option :value="0">Selecione a Área (Opcional)</option>
      <option
@@ -70,7 +70,7 @@
     <button
      @click="associateTreatment"
      :disabled="!selectedTreatmentId || isProcessing"
-               class="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-md disabled:bg-indigo-300 disabled:cursor-not-allowed flex-none w-auto"
+     class="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-md disabled:bg-indigo-300 disabled:cursor-not-allowed flex-none w-auto"
     >
      <i v-if="isProcessing" class="fas fa-spinner fa-spin mr-2"></i>
      <i v-else class="fas fa-plus-circle mr-2"></i>
