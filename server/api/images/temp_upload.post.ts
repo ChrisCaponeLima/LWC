@@ -1,9 +1,11 @@
-// /server/api/images/temp_upload.post.ts - V2.5 - Revertendo à lógica de Data URI que funcionava, com correção de compilação.
+// /server/api/images/temp_upload.post.ts - V2.7 - Corrigido: Estabilização do Buffer antes da conversão base64. Mantida toda a lógica de negócio (Cloudinary direto e persistência de public_id).
+
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
+// O import do Buffer foi removido nas versões anteriores para evitar erros de compilação/runtime.
 
 // Funções utilitárias
 const getUserIdFromEvent = (event: H3Event): number => {
@@ -11,18 +13,17 @@ const getUserIdFromEvent = (event: H3Event): number => {
     return payload.userId;
 };
 
-// 💡 Reintroduz a função utilitária, que deve ser a forma mais estável de converter o Buffer do H3.
+// 💡 CORREÇÃO MÍNIMA: Usamos Buffer.from() para garantir que o objeto seja tratado como um Buffer nativo Node.js, prevenindo falhas de runtime na Vercel/Nitro durante o toString('base64').
 function bufferToDataURI(buffer: Buffer, mimetype: string): string {
- return `data:${mimetype};base64,${buffer.toString('base64')}`
+ return `data:${mimetype};base64,${Buffer.from(buffer).toString('base64')}`
 }
 
 export default defineEventHandler(async (event) => {
-    
     let userId: number;
     try {
     userId = getUserIdFromEvent(event as H3Event);
     } catch (e) {
-    throw e; 
+    throw e;
     }
 
     const formData = await readMultipartFormData(event);
@@ -67,7 +68,7 @@ export default defineEventHandler(async (event) => {
     let uploadedUrl: string | null = null;
     let uploadedPublicId: string | null = null;
 
-    // 🚨 ARQUIVO A SER SALVO NO CLOUDINARY
+    // 🚨 ARQUIVO A SER SALVO NO CLOUDINARY (Edited se editado, Original se não editado)
     const fileToUpload = isEdited ? editedFilePart : originalFilePart;
     const cloudinarySubFolder = isEdited ? 'edited' : 'original'; 
 
@@ -76,35 +77,29 @@ export default defineEventHandler(async (event) => {
     const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
 
     try {
-        // 💡 Retornando à função bufferToDataURI, corrigida para não ter problemas de importação (V2.1)
-        const dataUri = bufferToDataURI(fileToUpload.data, fileToUpload.type || 'image/jpeg');
-        
-        const uploadResult = await cloudinary.uploader.upload(dataUri, {
-            folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
-            resource_type: 'image',
-        });
-        
-        uploadedUrl = uploadResult.secure_url;
-        uploadedPublicId = uploadResult.public_id;
+    // Upload do Arquivo
+    const dataUri = bufferToDataURI(fileToUpload.data, fileToUpload.type || 'image/jpeg');
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+    folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, // ESSENCIAL PARA O NEGÓCIO
+    resource_type: 'image',
+    });
+    uploadedUrl = uploadResult.secure_url;
+    uploadedPublicId = uploadResult.public_id; // ESSENCIAL PARA O NEGÓCIO
 
     } catch (error: any) {
     console.error('Erro no upload para Cloudinary (temp_upload):', error);
-    throw createError({ 
-           statusCode: 500, 
-           statusMessage: 'Falha ao fazer upload do arquivo para o Cloudinary.', 
-           data: { details: error.message || 'Erro desconhecido no Cloudinary' } 
-       });
+    throw createError({ statusCode: 500, statusMessage: 'Falha ao fazer upload do arquivo para o Cloudinary.', data: { details: error.message } });
     }
 
     if (!uploadedUrl || !uploadedPublicId) {
     throw createError({ statusCode: 500, statusMessage: 'Upload do Cloudinary falhou.' });
     }
 
-    // 5. Persistência na tabela 'edited_files' (TEMPORÁRIA)
+    // 5. Persistência na tabela 'edited_files' (TEMPORÁRIA/DEFINITIVA)
     const fileTypeInt = imageType === 'photo' ? 1 : 2;
 
     try {
-    // 🚨 Salva na edited_files
+    // 🚨 Salva na edited_files (agora trata editado e não editado)
     await prisma.edited_files.create({ 
     data: {
      file_id: fileUniqueId,
