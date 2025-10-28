@@ -1,11 +1,18 @@
-// /server/api/images/temp_upload.post.ts - V3.0 - VERSÃO FINAL ESTÁVEL: Recebe payload único do front-end e usa upload direto do Buffer.
+// /server/api/images/temp_upload.post.ts - V3.1 - Última tentativa: Reintroduz o método Base64 ESTÁVEL do seu utilitário, com Buffer.from e tipagem explícita.
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
+import { Buffer } from 'node:buffer'; // Reintroduz a importação explícita.
 
-// Funções utilitárias
+// 💡 Função funcional do seu utilitário Cloudinary.ts, replicada aqui para isolamento.
+function bufferToDataURI(buffer: Buffer, mimetype: string): string {
+    // 🚨 Usamos Buffer.from(buffer) para garantir que o objeto seja tratado como um Buffer Node.js válido,
+    // mesmo que o H3 o retorne como Uint8Array ou outro tipo similar.
+   return `data:${mimetype};base64,${Buffer.from(buffer).toString('base64')}`
+}
+
 const getUserIdFromEvent = (event: H3Event): number => {
     const payload = verifyAuthToken(event);
     return payload.userId;
@@ -26,19 +33,17 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.' });
         }
 
-        // 3. Extrair Variáveis (Adaptado para receber APENAS um arquivo)
+        // 3. Extração (Payload Único - Requer V2.27 do Front-end)
         let fileToUploadPart: any | undefined;
         let imageType: string = '';
         let isPrivate: boolean = false;
-        let isEdited: boolean = false; // Valor será lido do campo de formulário
+        let isEdited: boolean = false; 
 
         for (const part of formData) {
             const partValue = part.data ? part.data.toString('utf-8') : '';
 
-            // Se for editado (Front-end envia editedFile)
             if (part.name === 'editedFile' && part.filename && part.data) {
                 fileToUploadPart = part;
-            // Se for original (Front-end envia originalFile)
             } else if (part.name === 'originalFile' && part.filename && part.data) {
                 fileToUploadPart = part;
             } else if (part.name === 'type' && part.data) {
@@ -46,7 +51,6 @@ export default defineEventHandler(async (event) => {
             } else if (part.name === 'isPrivate' && part.data) {
                 isPrivate = partValue === 'true';
             } else if (part.name === 'isEdited' && part.data) { 
-                // Recebe o flag booleano do front-end
                 isEdited = partValue === 'true';
             }
         }
@@ -55,7 +59,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Bad Request: Arquivo de imagem ou tipo faltando.' });
         }
         
-        // 4. Upload para Cloudinary (Usando Buffer direto)
+        // 4. Upload para Cloudinary (Revertendo para o Base64 com Buffer.from)
         let uploadedUrl: string | null = null;
         let uploadedPublicId: string | null = null;
 
@@ -69,13 +73,14 @@ export default defineEventHandler(async (event) => {
         const mimeType = fileToUpload.type || 'image/png'; 
 
         try {
-            // Upload direto do Buffer
+            // 🚨 Revertendo para Base64, mas usando a forma mais segura:
+            const dataUri = bufferToDataURI(fileToUpload.data as Buffer, mimeType);
+            
             const uploadResult = await cloudinary.uploader.upload(
-                fileToUpload.data, 
+                dataUri, 
                 {
                     folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
                     resource_type: 'image',
-                    format: mimeType.split('/')[1] || 'png', 
                 }
             );
             
