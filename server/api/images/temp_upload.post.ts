@@ -1,4 +1,4 @@
-// /server/api/images/temp_upload.post.ts - V2.14 - Adaptação Crítica para Payload Único: Assumimos que apenas o arquivo a ser salvo (original OU editado) é enviado.
+// /server/api/images/temp_upload.post.ts - V3.0 - VERSÃO FINAL ESTÁVEL: Recebe payload único do front-end e usa upload direto do Buffer.
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
@@ -26,31 +26,27 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.' });
         }
 
-        // 3. Extrair Variáveis
-        // 💡 MODIFICADO: Apenas um arquivo deve estar presente (ou 'editedFile' ou 'originalFile')
+        // 3. Extrair Variáveis (Adaptado para receber APENAS um arquivo)
         let fileToUploadPart: any | undefined;
         let imageType: string = '';
         let isPrivate: boolean = false;
-        let isEdited: boolean = false; 
+        let isEdited: boolean = false; // Valor será lido do campo de formulário
 
         for (const part of formData) {
             const partValue = part.data ? part.data.toString('utf-8') : '';
 
-            // Se o arquivo for EDITADO, ele será enviado no campo 'editedFile'.
+            // Se for editado (Front-end envia editedFile)
             if (part.name === 'editedFile' && part.filename && part.data) {
                 fileToUploadPart = part;
-                // Se receber editedFile, garantimos que isEdited é true
-                if (fileToUploadPart) isEdited = true; 
-            // Se o arquivo NÃO FOR EDITADO (original), ele será enviado no campo 'originalFile'.
+            // Se for original (Front-end envia originalFile)
             } else if (part.name === 'originalFile' && part.filename && part.data) {
                 fileToUploadPart = part;
-                isEdited = false;
             } else if (part.name === 'type' && part.data) {
                 imageType = partValue;
             } else if (part.name === 'isPrivate' && part.data) {
                 isPrivate = partValue === 'true';
             } else if (part.name === 'isEdited' && part.data) { 
-                // Usamos o valor do campo 'isEdited' como fallback se o front-end forçar.
+                // Recebe o flag booleano do front-end
                 isEdited = partValue === 'true';
             }
         }
@@ -58,8 +54,8 @@ export default defineEventHandler(async (event) => {
         if (!fileToUploadPart || !imageType) {
         throw createError({ statusCode: 400, statusMessage: 'Bad Request: Arquivo de imagem ou tipo faltando.' });
         }
-
-        // 4. Upload para Cloudinary (Lógica de Negócio INALTERADA)
+        
+        // 4. Upload para Cloudinary (Usando Buffer direto)
         let uploadedUrl: string | null = null;
         let uploadedPublicId: string | null = null;
 
@@ -73,9 +69,9 @@ export default defineEventHandler(async (event) => {
         const mimeType = fileToUpload.type || 'image/png'; 
 
         try {
-            // Utilizamos a V2.13 (Upload direto do Buffer) para maior estabilidade.
+            // Upload direto do Buffer
             const uploadResult = await cloudinary.uploader.upload(
-                fileToUpload.data, // Passa o Buffer/Uint8Array diretamente
+                fileToUpload.data, 
                 {
                     folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
                     resource_type: 'image',
@@ -94,13 +90,12 @@ export default defineEventHandler(async (event) => {
                data: { details: error.message } 
            });
         }
-        
-        // ... (Passos 5 e 6 de Persistência permanecem IDÊNTICOS à V2.13)
+
         if (!uploadedUrl || !uploadedPublicId) {
         throw createError({ statusCode: 500, statusMessage: 'Upload do Cloudinary falhou.' });
         }
 
-        // 5. Persistência na tabela 'edited_files' (Lógica de Negócio INALTERADA)
+        // 5. Persistência na tabela 'edited_files'
         const fileTypeInt = imageType === 'photo' ? 1 : 2;
 
         await prisma.edited_files.create({ 
