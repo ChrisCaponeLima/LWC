@@ -1,10 +1,9 @@
-// /server/api/images/temp_upload.post.ts - V2.3 - Corrigido: Upload direto do Buffer para Cloudinary, removendo conversão para Data URI.
+// /server/api/images/temp_upload.post.ts - V2.4 - Corrigido: Erro de compilação (variável duplicada). Upload via Data URI.
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
-// A classe Buffer é global.
 
 // Funções utilitárias
 const getUserIdFromEvent = (event: H3Event): number => {
@@ -12,29 +11,13 @@ const getUserIdFromEvent = (event: H3Event): number => {
     return payload.userId;
 };
 
-// ❌ REMOVIDA: Não precisamos mais converter para Data URI.
-// function bufferToDataURI(buffer: Buffer, mimetype: string): string {
-//  return `data:${mimetype};base64,${buffer.toString('base64')}`
-// }
-
-// ⚠️ NOTA SOBRE INICIALIZAÇÃO: 
-// Se as credenciais estiverem em variables de ambiente da Vercel (ex: CLOUDINARY_URL), 
-// o Cloudinary deve ser configurado automaticamente na inicialização do server.
-// Se você está usando variáveis separadas (API_KEY, SECRET, NAME), a melhor prática 
-// para o Nuxt/Nitro é:
-// cloudinary.config({ 
-//    cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
-//    ... etc 
-// });
-// Vou manter a inicialização fora do handler, assumindo que ela é tratada no setup do server.
-
 export default defineEventHandler(async (event) => {
     
     let userId: number;
     try {
     userId = getUserIdFromEvent(event as H3Event);
     } catch (e) {
-    throw e; // Retorna erro 401/403 do verifyAuthToken
+    throw e; 
     }
 
     const formData = await readMultipartFormData(event);
@@ -88,38 +71,17 @@ export default defineEventHandler(async (event) => {
     const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
 
     try {
-    // Upload do Arquivo
-    // 💡 ALTERAÇÃO CHAVE: Envia o Buffer (fileToUpload.data) diretamente para o Cloudinary.
-    const uploadResult = await cloudinary.uploader.upload_stream({
-        folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
-        resource_type: 'image',
-    }, (error, result) => {
-             if (error) {
-                 console.error('Cloudinary Stream Upload Error:', error);
-                 throw error;
-             }
-             if (result) {
-                uploadedUrl = result.secure_url;
-                uploadedPublicId = result.public_id;
-             }
-         }).end(fileToUpload.data); // Encerra o stream e envia o buffer
-
-    // ⚠️ NOTA: upload_stream é síncrono para o Cloudinary, mas requer Promise wrapper.
-    // Para simplificar e evitar refatorar para um callback hell ou Promise wrapper completo, 
-    // vou usar o método síncrono `uploader.upload` com o Buffer/Data URI, 
-    // mas com uma correção de compatibilidade de Buffer:
-    
-    // Revertendo para uploader.upload, mas verificando o tipo de dado:
-    
-    const uploadData = fileToUpload.data.toString('base64');
-    
-    const uploadResult = await cloudinary.uploader.upload(`data:${fileToUpload.type || 'image/jpeg'};base64,${uploadData}`, {
-        folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
-        resource_type: 'image',
-    });
-    
-    uploadedUrl = uploadResult.secure_url;
-    uploadedPublicId = uploadResult.public_id;
+        // CORREÇÃO: Removemos o código duplicado e mantemos apenas a chamada final para uploader.upload.
+        // Convertendo o Buffer para Base64 e formatando como Data URI.
+        const uploadData = fileToUpload.data.toString('base64');
+        
+        const uploadResult = await cloudinary.uploader.upload(`data:${fileToUpload.type || 'image/jpeg'};base64,${uploadData}`, {
+            folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
+            resource_type: 'image',
+        });
+        
+        uploadedUrl = uploadResult.secure_url;
+        uploadedPublicId = uploadResult.public_id;
 
     } catch (error: any) {
     console.error('Erro no upload para Cloudinary (temp_upload):', error);
