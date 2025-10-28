@@ -1,10 +1,10 @@
-// /server/api/images/temp_upload.post.ts - V2.9 - Corrigido: Estabilização da conversão para Data URI, garantindo que o MIME type seja sempre válido.
-
+// /server/api/images/temp_upload.post.ts - V2.10 - Corrigido: Adiciona importação explícita do Buffer.
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
+import { Buffer } from 'node:buffer'; // 💡 CORREÇÃO CRÍTICA: Importação explícita.
 
 // Funções utilitárias
 const getUserIdFromEvent = (event: H3Event): number => {
@@ -12,12 +12,9 @@ const getUserIdFromEvent = (event: H3Event): number => {
     return payload.userId;
 };
 
-// 💡 MELHOR TRATAMENTO DE TYPE: Garantimos que o MIME type é fornecido.
-// O H3/Nitro geralmente retorna o Buffer/Uint8Array. Usamos Buffer.from para aceitar ambos.
+// 💡 FUNÇÃO IDENTICA À SUA UTILITÁRIA DE TRABALHO:
 function bufferToDataURI(buffer: Buffer, mimetype: string): string {
-    const finalMimeType = mimetype || 'image/png'; // Default seguro, pois o frontend envia PNG ou JPEG
-    const base64Data = Buffer.from(buffer).toString('base64');
-    return `data:${finalMimeType};base64,${base64Data}`;
+ return `data:${mimetype};base64,${buffer.toString('base64')}`
 }
 
 export default defineEventHandler(async (event) => {
@@ -28,14 +25,13 @@ export default defineEventHandler(async (event) => {
     throw e;
     }
 
-    // O erro 500 PODE estar aqui: readMultipartFormData.
     const formData = await readMultipartFormData(event);
 
     if (!formData) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.' });
     }
 
-    // 3. Extrair Variáveis
+    // 3. Extrair Variáveis (Lógica de Negócio INALTERADA)
     let editedFilePart: any | undefined; 
     let originalFilePart: any | undefined;
     let imageType: string = '';
@@ -62,16 +58,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request: Campos essenciais (originalFile, type) estão faltando.' });
     }
 
-    // Validação: Se é editado, editedFilePart é obrigatório.
     if (isEdited && !editedFilePart) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request: editedFile é obrigatório quando isEdited é true.' });
     }
 
-    // 4. Upload para Cloudinary e Persistência em edited_files
+    // 4. Upload para Cloudinary e Persistência em edited_files (Lógica de Negócio INALTERADA)
     let uploadedUrl: string | null = null;
     let uploadedPublicId: string | null = null;
 
-    // 🚨 ARQUIVO A SER SALVO NO CLOUDINARY
     const fileToUpload = isEdited ? editedFilePart : originalFilePart;
     const cloudinarySubFolder = isEdited ? 'edited' : 'original'; 
 
@@ -79,12 +73,11 @@ export default defineEventHandler(async (event) => {
     const folderBase = isPrivate ? 'private' : 'public';
     const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
     
-    // Garantimos que o MIME type é inferido ou o default (image/png)
     const mimeType = fileToUpload.type || 'image/png'; 
 
     try {
     // Upload do Arquivo
-    // Usamos o MIME type que o H3 nos forneceu, ou o default
+    // 💡 A falha ocorria aqui devido ao Buffer não estar definido corretamente no escopo
     const dataUri = bufferToDataURI(fileToUpload.data, mimeType);
     
     const uploadResult = await cloudinary.uploader.upload(dataUri, {
@@ -96,8 +89,6 @@ export default defineEventHandler(async (event) => {
 
     } catch (error: any) {
     console.error('Erro no upload para Cloudinary (temp_upload):', error);
-    // Se o erro for um 500 no Vercel, o Data URI provavelmente é inválido ou muito grande.
-    // Incluir o tipo de arquivo pode ajudar no debug, se o Vercel mostrar o erro.
     throw createError({ 
            statusCode: 500, 
            statusMessage: `Falha ao fazer upload do arquivo (${mimeType}) para o Cloudinary.`, 
@@ -109,7 +100,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Upload do Cloudinary falhou.' });
     }
 
-    // 5. Persistência na tabela 'edited_files'
+    // 5. Persistência na tabela 'edited_files' (Lógica de Negócio INALTERADA)
     const fileTypeInt = imageType === 'photo' ? 1 : 2;
 
     try {
