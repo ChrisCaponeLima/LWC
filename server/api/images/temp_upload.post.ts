@@ -1,4 +1,4 @@
-// /server/api/images/temp_upload.post.ts - V2.8 - Corrigido: Conversão ArrayBuffer/Uint8Array para Base64 mais compatível com Nitro/H3.
+// /server/api/images/temp_upload.post.ts - V2.9 - Corrigido: Estabilização da conversão para Data URI, garantindo que o MIME type seja sempre válido.
 
 import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,13 +12,12 @@ const getUserIdFromEvent = (event: H3Event): number => {
     return payload.userId;
 };
 
-// 💡 CORREÇÃO FINAL: Usamos Buffer.from(Uint8Array) para garantir a compatibilidade
-// já que o H3/Nitro trata buffers internamente como Uint8Array.
+// 💡 MELHOR TRATAMENTO DE TYPE: Garantimos que o MIME type é fornecido.
+// O H3/Nitro geralmente retorna o Buffer/Uint8Array. Usamos Buffer.from para aceitar ambos.
 function bufferToDataURI(buffer: Buffer, mimetype: string): string {
-    // Garante que o buffer é tratado como um Uint8Array e depois convertido
-    const uint8Array = new Uint8Array(buffer);
-    const base64Data = Buffer.from(uint8Array).toString('base64');
-    return `data:${mimetype};base64,${base64Data}`;
+    const finalMimeType = mimetype || 'image/png'; // Default seguro, pois o frontend envia PNG ou JPEG
+    const base64Data = Buffer.from(buffer).toString('base64');
+    return `data:${finalMimeType};base64,${base64Data}`;
 }
 
 export default defineEventHandler(async (event) => {
@@ -29,6 +28,7 @@ export default defineEventHandler(async (event) => {
     throw e;
     }
 
+    // O erro 500 PODE estar aqui: readMultipartFormData.
     const formData = await readMultipartFormData(event);
 
     if (!formData) {
@@ -78,11 +78,14 @@ export default defineEventHandler(async (event) => {
     const fileUniqueId = uuidv4(); 
     const folderBase = isPrivate ? 'private' : 'public';
     const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
+    
+    // Garantimos que o MIME type é inferido ou o default (image/png)
+    const mimeType = fileToUpload.type || 'image/png'; 
 
     try {
     // Upload do Arquivo
-    // 💡 Chamada à função de conversão estável
-    const dataUri = bufferToDataURI(fileToUpload.data, fileToUpload.type || 'image/jpeg');
+    // Usamos o MIME type que o H3 nos forneceu, ou o default
+    const dataUri = bufferToDataURI(fileToUpload.data, mimeType);
     
     const uploadResult = await cloudinary.uploader.upload(dataUri, {
     folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
@@ -93,18 +96,23 @@ export default defineEventHandler(async (event) => {
 
     } catch (error: any) {
     console.error('Erro no upload para Cloudinary (temp_upload):', error);
-    throw createError({ statusCode: 500, statusMessage: 'Falha ao fazer upload do arquivo para o Cloudinary.', data: { details: error.message } });
+    // Se o erro for um 500 no Vercel, o Data URI provavelmente é inválido ou muito grande.
+    // Incluir o tipo de arquivo pode ajudar no debug, se o Vercel mostrar o erro.
+    throw createError({ 
+           statusCode: 500, 
+           statusMessage: `Falha ao fazer upload do arquivo (${mimeType}) para o Cloudinary.`, 
+           data: { details: error.message } 
+       });
     }
 
     if (!uploadedUrl || !uploadedPublicId) {
     throw createError({ statusCode: 500, statusMessage: 'Upload do Cloudinary falhou.' });
     }
 
-    // 5. Persistência na tabela 'edited_files' (TEMPORÁRIA/DEFINITIVA)
+    // 5. Persistência na tabela 'edited_files'
     const fileTypeInt = imageType === 'photo' ? 1 : 2;
 
     try {
-    // 🚨 Salva na edited_files 
     await prisma.edited_files.create({ 
     data: {
      file_id: fileUniqueId,
