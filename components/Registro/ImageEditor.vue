@@ -1,4 +1,4 @@
-// /components/Registro/ImageEditor.vue - V2.27 - Ajustes Mobile: Scroll e Touch (baseado na V2.26).
+// /components/Registro/ImageEditor.vue - V2.28 - Ajustes Mobile: Solução 'touch-action: none' na área de edição para evitar scroll.
 
 <template>
 <div class="bg-gray-100 p-4 sm:p-8"> <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
@@ -114,15 +114,17 @@ class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded tran
 </div>
 
 <ClientOnly>
-<ImageEditorComponent 
-ref="imageEditorRef"
-:initial-image-url="editingFileUrl"
-:image-type="imageType"
-:initial-is-private="false" 
-@saveEditedImage="handleSaveEditedNewImage"
-@error="handleEditorError"
-@rotate="handleImageRotate"
-/>
+    <div class="image-editor-touch-control"> 
+        <ImageEditorComponent 
+            ref="imageEditorRef"
+            :initial-image-url="editingFileUrl"
+            :image-type="imageType"
+            :initial-is-private="false" 
+            @saveEditedImage="handleSaveEditedNewImage"
+            @error="handleEditorError"
+            @rotate="handleImageRotate"
+        />
+    </div>
 </ClientOnly>
 </div>
 </div>
@@ -152,8 +154,8 @@ const uploadError = ref<string | null>(null);
 const imageType = ref<'photo' | 'forma'>('photo'); 
 
 interface TempUploadResponse {
- fileId: string;
- type: string;
+fileId: string;
+type: string;
 }
 
 /**
@@ -284,28 +286,28 @@ return;
 if (isEditing.value) {
 uploadError.value = null;
 
-  // 1. SALVAMENTO PERMANENTE CONDICIONAL (REQUISITO 3: "SE EDITADA, a imagem DEVE SER enviada para a tabela edited")
-  if (isEdited) {
-    console.log(`[FLOW] Imagem editada. Chamando /api/images/permanent_save (tabela 'edited')...`);
-    
-    try {
-      // isEdited: true, forceSave: false. Ele será salvo porque isEdited é true.
-      await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, type, true, false); 
-    } catch (permanentErr: any) {
-      console.error('Falha no salvamento permanente condicional (edited):', permanentErr);
-      // O erro neste passo NÃO deve interromper o salvamento temporário.
-    }
-  }
-
-  // 2. SALVAMENTO TEMPORÁRIO OBRIGATÓRIO (REQUISITO 2: Todas as imagens vão para edited_files)
-  console.log(`[FLOW] Imagem (Editada: ${isEdited}). Chamando /api/images/temp_upload (tabela 'edited_files')...`);
+ // 1. SALVAMENTO PERMANENTE CONDICIONAL (REQUISITO 3: "SE EDITADA, a imagem DEVE SER enviada para a tabela edited")
+ if (isEdited) {
+  console.log(`[FLOW] Imagem editada. Chamando /api/images/permanent_save (tabela 'edited')...`);
   
-  // O tempUploadApiCall lida com a lógica de qual Blob salvar na edited_files.
-  const response = await tempUploadApiCall(editedBlob, originalBlob, isPrivate, type, isEdited); 
+  try {
+   // isEdited: true, forceSave: false. Ele será salvo porque isEdited é true.
+   await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, type, true, false); 
+  } catch (permanentErr: any) {
+   console.error('Falha no salvamento permanente condicional (edited):', permanentErr);
+   // O erro neste passo NÃO deve interromper o salvamento temporário.
+  }
+ }
 
-  // O ID temporário é o UUID retornado pelo backend
-  tempFileId = response.fileId; 
-  console.log(`[FLOW] fileId retornado pelo backend: ${tempFileId}`);
+ // 2. SALVAMENTO TEMPORÁRIO OBRIGATÓRIO (REQUISITO 2: Todas as imagens vão para edited_files)
+ console.log(`[FLOW] Imagem (Editada: ${isEdited}). Chamando /api/images/temp_upload (tabela 'edited_files')...`);
+ 
+ // O tempUploadApiCall lida com a lógica de qual Blob salvar na edited_files.
+ const response = await tempUploadApiCall(editedBlob, originalBlob, isPrivate, type, isEdited); 
+
+ // O ID temporário é o UUID retornado pelo backend
+ tempFileId = response.fileId; 
+ console.log(`[FLOW] fileId retornado pelo backend: ${tempFileId}`);
 
 // 3. Adiciona à lista temporária (Fluxo Comum)
 const newFileObject = { 
@@ -344,3 +346,17 @@ onMounted(() => {
 syncFromSession();
 });
 </script>
+
+<style scoped>
+/*
+ * Ajuste essencial para mobile: 
+ * Impede que o touch event na área do editor seja interpretado pelo navegador 
+ * como evento de scroll/arrastar, permitindo a interação com o canvas.
+ */
+.image-editor-touch-control {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none; /* Para navegadores WebKit (iOS/Safari) */
+    -webkit-user-drag: none;
+}
+</style>
