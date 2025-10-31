@@ -1,4 +1,4 @@
-// /pages/dashboard.vue - V1.21 - Ajuste final da rota de busca de tratamentos para o novo endpoint correto (users/[id]/treatment-photos).
+// /pages/dashboard.vue - V1.22 - Correção da função de agrupamento de fotos para padronizar as chaves 'name' e 'treatmentId' de acordo com o componente TreatmentGallery.
 <template>
 <div>
 <Header pageTitle="Dashboard" />
@@ -156,68 +156,68 @@ hasFormaPhotos
 const groupedTreatmentPhotos = ref([]);
 
 /**
- * Função utilitária para agrupar fotos por tratamento.
- * @param {Array} photos - Array de fotos com a propriedade associatedTreatment.
- * @returns {Array} Array de grupos formatado para o TreatmentGallery.
- */
+* Função utilitária para agrupar fotos por tratamento.
+* @param {Array} photos - Array de fotos com a propriedade associatedTreatment.
+* @returns {Array} Array de grupos formatado para o TreatmentGallery.
+*/
 const groupPhotosByTreatment = (photos) => {
- const groups = {};
+const groups = {};
 
- photos.forEach(photo => {
-   const treatmentName = photo.associatedTreatment?.name || 'Não Associado';
-   const userTreatmentId = photo.associatedTreatment?.userTreatmentId || 0;
+photos.forEach(photo => {
+ const treatmentName = photo.associatedTreatment?.name || 'Não Associado';
+ const treatmentId = photo.associatedTreatment?.userTreatmentId || 0; // Padronizando o nome da variável de ID.
 
-   if (!groups[treatmentName]) {
-     groups[treatmentName] = {
-       treatmentName: treatmentName,
-       userTreatmentId: userTreatmentId, // Adiciona o ID para referência
-       photos: []
-     };
-   }
-   groups[treatmentName].photos.push(photo);
- });
+ if (!groups[treatmentName]) { // Agrupamento pela string do nome (para ser chave do collapse no TreatmentGallery)
+  groups[treatmentName] = {
+   name: treatmentName, // ✅ CORREÇÃO: Chave padronizada para 'name' (esperado pelo TreatmentGallery)
+   treatmentId: treatmentId, // ✅ CORREÇÃO: Chave padronizada para 'treatmentId' (esperado pelo TreatmentGallery)
+   photos: []
+  };
+ }
+ groups[treatmentName].photos.push(photo);
+});
 
- // Converte o objeto de grupos em um array
- return Object.values(groups);
+// Converte o objeto de grupos em um array
+return Object.values(groups);
 };
 
 const fetchTreatmentPhotos = async () => {
 if (!authStore.initialized) {
- await authStore.init();
+await authStore.init();
 }
 const userId = authStore.user?.userId; 
 if (!userId) {
- console.warn('Não foi possível buscar fotos de tratamento: Usuário ID ausente.');
- return;
+console.warn('Não foi possível buscar fotos de tratamento: Usuário ID ausente.');
+return;
 }
 
 groupedTreatmentPhotos.value = []; // Limpa o estado antes de buscar
 
 try {
- const token = authStore.token;
- // CORREÇÃO (V1.21): Rota ajustada para o padrão 'users' no plural.
- const response = await $fetch(`/api/users/${userId}/treatment-photos`, {
-  headers: { Authorization: `Bearer ${token}` },
-  method: 'GET'
- });
- 
- // Leitura da resposta ajustada para usar 'response.photos'.
- let rawPhotosArray = [];
- if (response && Array.isArray(response.photos)) {
-  rawPhotosArray = response.photos;
- }
+const token = authStore.token;
+// CORREÇÃO (V1.21): Rota ajustada para o padrão 'users' no plural.
+const response = await $fetch(`/api/users/${userId}/treatment-photos`, {
+ headers: { Authorization: `Bearer ${token}` },
+ method: 'GET'
+});
 
- if (rawPhotosArray.length > 0) {
-   // Agrupa as fotos por tratamento, conforme esperado pelo TreatmentGallery.
-   groupedTreatmentPhotos.value = groupPhotosByTreatment(rawPhotosArray);
-   console.log(`[Dashboard] Tratamentos carregados: ${groupedTreatmentPhotos.value.length} grupos.`);
- } else {
-  console.log('[Dashboard] Nenhuma foto de tratamento encontrada.');
- }
+// Leitura da resposta ajustada para usar 'response.photos'.
+let rawPhotosArray = [];
+if (response && Array.isArray(response.photos)) {
+ rawPhotosArray = response.photos;
+}
+
+if (rawPhotosArray.length > 0) {
+ // Agrupa as fotos por tratamento, conforme esperado pelo TreatmentGallery.
+ groupedTreatmentPhotos.value = groupPhotosByTreatment(rawPhotosArray);
+ console.log(`[Dashboard] Tratamentos carregados: ${groupedTreatmentPhotos.value.length} grupos.`);
+} else {
+ console.log('[Dashboard] Nenhuma foto de tratamento encontrada.');
+}
 
 } catch (e) {
- console.error('Erro fatal ao buscar fotos de tratamento:', e);
- groupedTreatmentPhotos.value = [];
+console.error('Erro fatal ao buscar fotos de tratamento:', e);
+groupedTreatmentPhotos.value = [];
 }
 }
 
@@ -277,14 +277,14 @@ weatherData.value.code='error';
 
 // --- Handlers (Mantidos) ---
 const handleOpenImageEditor = () => {
-  // Garante que o DataForm esteja aberto (se não estiver) e depois abre o editor.
-  if(!showForm.value) startNewRecord(); 
+ // Garante que o DataForm esteja aberto (se não estiver) e depois abre o editor.
+ if(!showForm.value) startNewRecord(); 
 
-  // Abre o editor e bloqueia a tela (via watch)
-  showImageEditor.value = true;
-  
-  // Adiciona o scroll silencioso de volta
-  if(process.client) window.scrollTo({ top: 0, behavior: 'instant' }); 
+ // Abre o editor e bloqueia a tela (via watch)
+ showImageEditor.value = true;
+ 
+ // Adiciona o scroll silencioso de volta
+ if(process.client) window.scrollTo({ top: 0, behavior: 'instant' }); 
 };
 
 // Lógica padrão: abre o formulário e fecha o editor
