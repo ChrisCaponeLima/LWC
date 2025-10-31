@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.20 - Altera a lógica do isEdited para considerar SOMENTE a aplicação de efeitos (rects.length > 0) e IGNORAR rotação, conforme a nova regra de negócio.
+// /components/ImageEditorComponent.vue - V1.21 - Correção Mobile: Movidos os pointer events para o template com .prevent no pointermove para evitar o arrasto da tela em dispositivos móveis durante o desenho.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -17,7 +17,12 @@ crossorigin="anonymous"
 class="w-full h-full object-contain block transition-transform duration-300"
 :style="{ transform: `rotate(${rotation}deg)` }"
 />
-<canvas ref="overlayCanvas" class="absolute top-0 left-0"></canvas>
+<canvas 
+ref="overlayCanvas" 
+class="absolute top-0 left-0 cursor-crosshair"
+@pointerdown="onDown"
+@pointermove.prevent="onMove" @pointerup="onUp"
+@pointerleave="onUp" ></canvas>
 </div>
 </div>
 </div>
@@ -79,7 +84,6 @@ imageType: { type: String, required: true },
 initialIsPrivate: { type: Boolean, default: false },
 })
 
-// MUDANÇA: O evento 'saveEditedImage' agora espera { editedBlob, originalBlob, isPrivate, type, isEdited }
 const emit = defineEmits(['saveEditedImage', 'error', 'rotate']) 
 
 const isSaving = ref(false)
@@ -106,7 +110,7 @@ const mode = ref('blur')
 
 // 🚨 NOVO: Estado de Edição Real (true se houver SOMENTE aplicação de efeitos)
 const isEdited = computed(() => {
-    return rects.length > 0;
+    return rects.length > 0;
 });
 
 const rotationWrapperStyle = computed(() => {
@@ -166,7 +170,7 @@ redrawAll()
 }
 
 /**
-* Calcula as métricas de escala e offset do 'object-contain' no DOM.
+* Calcula as métricas de escala e offset do 'object-contain'.
 */
 const getImageRenderMetrics = () => {
 const canvas = overlayCanvas.value
@@ -199,7 +203,6 @@ const offsetX = (cw - renderedW) / 2;
 const offsetY = (ch - renderedH) / 2;
 
 // Escala de conversão: Renderização (Visual) para o Original (mapa de bits)
-// 1 pixel renderizado corresponde a 'scale' pixels na Imagem Original.
 // CORREÇÃO: Usar renderedW/H como base de escala para evitar erros de ponto flutuante.
 const scale = visualW / renderedW; 
 
@@ -375,10 +378,15 @@ resizeCanvasToImage()
 
 const getCoords = (e) => {
 const rect = overlayCanvas.value.getBoundingClientRect()
+// Usa clientX/Y que são unificados para pointer events.
 return { x: e.clientX - rect.left, y: e.clientY - rect.top }
 }
 
 const onDown = (e) => {
+ // 🚨 CORREÇÃO MOBILE: Garante que apenas o clique principal (botão esquerdo ou toque) inicie o desenho
+ // e.button === 0 é para mouse/ponteiro principal, e.isPrimary é para toque/caneta.
+ if (e.button !== 0 && !e.isPrimary) return; 
+
 const pos = getCoords(e)
 if (cropActive.value) {
 drawing = true
@@ -392,8 +400,8 @@ startY = pos.y
 }
 
 const onMove = (e) => {
-const pos = getCoords(e)
 if (!drawing) return
+const pos = getCoords(e)
 redrawAll()
 canvasCtx.setLineDash([6, 3])
 canvasCtx.strokeStyle = cropActive.value ? '#f87171' : '#38bdf8'
@@ -670,26 +678,19 @@ if (dataURL && dataURL.startsWith('blob:')) {
 
 
 onMounted(() => {
-const canvas = overlayCanvas.value
-canvas.addEventListener('pointerdown', onDown)
-canvas.addEventListener('pointermove', onMove)
-canvas.addEventListener('pointerup', onUp)
 window.addEventListener('resize', resizeCanvasToImage)
 })
 
 onUnmounted(() => {
 window.removeEventListener('resize', resizeCanvasToImage)
-if (overlayCanvas.value) {
-overlayCanvas.value.removeEventListener('pointerdown', onDown)
-overlayCanvas.value.removeEventListener('pointermove', onMove)
-overlayCanvas.value.removeEventListener('pointerup', onUp)
-}
+// 🚨 REMOVIDOS: Os listeners de pointer events (onDown, onMove, onUp) que estavam aqui, 
+// pois foram movidos para o template.
 })
 
 defineExpose({
 downloadEditedImage,
 generateBlobs, 
 isPrivateLocal,
-isEdited // 🚨 NOVO: Expõe a computed property para o pai
+isEdited 
 })
 </script>
