@@ -1,6 +1,4 @@
-// /server/utils/multipart_parser.ts - V1.0 - Utilitário para parsear Multipart/Form-Data com limite de tamanho definido.
-// Implementa Busboy para contornar o limite baixo e inconfigurável do H3/readMultipartFormData, 
-// garantindo que o payload de 4.5MB (4718592 bytes) seja aceito (Erro 413).
+// /server/utils/multipart_parser.ts - V1.1 - Revisão do limite do Busboy e adição de limite total de FIELDS/FILES para reforço contra 413.
 
 import Busboy from 'busboy';
 import { H3Event, createError } from 'h3';
@@ -37,32 +35,42 @@ export function readCustomMultipartFormData(event: H3Event): Promise<MultipartDa
     const busboy = Busboy({
         headers: event.node.req.headers,
         limits: {
-            fileSize: MAX_FILE_SIZE, // 🚨 SOLUÇÃO CRÍTICA DO 413
+            // 🚨 SOLUÇÃO CRÍTICA DO 413: Limite de tamanho por arquivo
+            fileSize: MAX_FILE_SIZE, 
+            // 🚨 NOVO REFORÇO: Limite de tamanho total do formulário (body size)
+            // Esta propriedade é a mais importante para evitar o 413.
+            fieldSize: MAX_FILE_SIZE,
+            fileHwm: MAX_FILE_SIZE,
             files: 2, // Limite máximo de arquivos (originalFile e editedFile)
         },
     });
 
     return new Promise((resolve, reject) => {
-        // Objeto para armazenar o Buffer do arquivo atual
-        let fileBuffer: Buffer | null = null;
-        let fileName: string = '';
-        let fieldName: string = '';
-        let mimeType: string = '';
+        let buffersTotalSize = 0; // Para rastrear o tamanho total (apenas para debug)
 
         busboy.on('file', (name, file, info) => {
-            // Inicializa o Buffer para o arquivo
             const buffers: Buffer[] = [];
             
-            fieldName = name;
-            fileName = info.filename;
-            mimeType = info.mimeType;
+            const fieldName = name;
+            const fileName = info.filename;
+            const mimeType = info.mimeType;
 
             file.on('data', (data) => {
                 buffers.push(data);
+                buffersTotalSize += data.length; // Rastreia o tamanho total
+
+                // Verificação de segurança adicional para o tamanho total (limite de memória)
+                if (buffersTotalSize > MAX_FILE_SIZE) {
+                    busboy.removeAllListeners();
+                    reject(createError({ 
+                        statusCode: 413, 
+                        statusMessage: `Payload total demasiado grande. O limite é de ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
+                    }));
+                }
             });
 
             file.on('end', () => {
-                fileBuffer = Buffer.concat(buffers);
+                const fileBuffer = Buffer.concat(buffers);
                 files.push({
                     name: fieldName,
                     filename: fileName,
@@ -72,23 +80,21 @@ export function readCustomMultipartFormData(event: H3Event): Promise<MultipartDa
                 });
             });
             
-            // O Busboy não rejeita no 'data' para fileSize, mas usa o evento 'limit'
+            // O Busboy dispara o evento 'limit' se fileSize for excedido
             file.on('limit', () => {
-                // Remove listeners para evitar chamadas duplas
                 busboy.removeAllListeners(); 
                 reject(createError({ 
                     statusCode: 413, 
-                    statusMessage: `Payload demasiado grande. O limite é de ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
+                    statusMessage: `Arquivo individual excedeu o limite de ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
                 }));
             });
         });
 
         busboy.on('field', (name, val) => {
-            fields[name] = val; // Campos não-arquivos (type, isPrivate, etc.)
+            fields[name] = val; 
         });
 
         busboy.on('finish', () => {
-            // Se o parsing foi bem-sucedido
             resolve({ fields, files });
         });
 
@@ -98,6 +104,16 @@ export function readCustomMultipartFormData(event: H3Event): Promise<MultipartDa
                 statusMessage: `Falha no parsing do formulário: ${err.message}` 
             }));
         });
+        
+        // 🚨 NOVO REFORÇO: Captura o limite de tamanho total do formulário
+        event.node.req.on('limit', () => {
+             busboy.removeAllListeners();
+             reject(createError({ 
+                statusCode: 413, 
+                statusMessage: `Limite total do formulário (body size) excedido. O limite é de ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
+            }));
+        });
+
 
         // Envia o stream da requisição nativa do Node para o Busboy
         event.node.req.pipe(busboy);

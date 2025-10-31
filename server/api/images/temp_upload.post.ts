@@ -1,14 +1,16 @@
-// /server/api/images/temp_upload.post.ts - V2.5 - Substitui readMultipartFormData por utilitário Busboy (V1.0) para corrigir o Erro 413.
+// /server/api/images/temp_upload.post.ts - V2.6 - Adiciona verificação do Content-Length (header) para diagnóstico do Erro 413 antes do parsing.
 
-import { defineEventHandler, createError, H3Event } from 'h3';
+import { defineEventHandler, createError, getRequestHeader, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream'; 
 import { Buffer } from 'node:buffer'; 
-// 🚨 NOVO: Importa o utilitário customizado para parsing
 import { readCustomMultipartFormData } from '~/server/utils/multipart_parser'; 
+
+// 🚨 Define o limite de payload em bytes (4.5 MB)
+const MAX_FILE_SIZE = 4718592; 
 
 // 🚨 CORREÇÃO 1: Força a configuração da instância do Cloudinary para resolver 'Must supply api_key'.
 cloudinary.config({
@@ -27,6 +29,22 @@ const getUserIdFromEvent = (event: H3Event): number => {
 // 🚨 REMOÇÃO: A função 'bufferToDataURI' foi removida por ser ineficiente e não será mais utilizada.
 
 export default defineEventHandler(async (event) => {
+  // 🚨 REFORÇO CONTRA 413: Verificar Content-Length antes de iniciar o parsing
+  const contentLengthHeader = getRequestHeader(event, 'content-length');
+  if (contentLengthHeader) {
+    const payloadSize = parseInt(contentLengthHeader, 10);
+    
+    console.log(`[CONTENT-LENGTH CHECK] Payload Size: ${payloadSize} bytes.`);
+
+    if (payloadSize > MAX_FILE_SIZE) {
+      console.warn(`[CONTENT-LENGTH CHECK] Rejeitado: ${payloadSize} bytes excede o limite de ${MAX_FILE_SIZE} bytes.`);
+      throw createError({
+        statusCode: 413,
+        statusMessage: `Payload Too Large: O tamanho do arquivo (${(payloadSize/1024/1024).toFixed(2)}MB) excede 4.5MB.`,
+      });
+    }
+  }
+    
   let userId: number;
   try {
   userId = getUserIdFromEvent(event as H3Event);
@@ -35,15 +53,14 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // 🚨 ALTERAÇÃO CRÍTICA: Substitui readMultipartFormData pelo utilitário customizado (Busboy)
+    // 🚨 ALTERAÇÃO CRÍTICA: Uso do utilitário Busboy com reforço de limite interno
     const parsedData = await readCustomMultipartFormData(event);
 
     if (!parsedData) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.' });
     }
 
-    // 3. Extrair Variáveis dos campos e arquivos (NOVA LÓGICA DE EXTRAÇÃO)
-    // O arquivo 'editedFilePart' e 'originalFilePart' agora possuem as propriedades 'data' e 'type'
+    // 3. Extrair Variáveis dos campos e arquivos 
     const editedFilePart = parsedData.files.find(f => f.name === 'editedFile');
     const originalFilePart = parsedData.files.find(f => f.name === 'originalFile');
         
@@ -64,7 +81,6 @@ export default defineEventHandler(async (event) => {
     let uploadedUrl: string | null = null;
     let uploadedPublicId: string | null = null;
 
-    // A variável 'fileToUpload' deve ser o 'part' (que contém o 'data' Buffer)
     const fileToUpload = isEdited ? editedFilePart : originalFilePart;
     const cloudinarySubFolder = isEdited ? 'edited' : 'original'; 
 
@@ -73,23 +89,20 @@ export default defineEventHandler(async (event) => {
     const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
 
     try {
-      // 🚨 CORREÇÃO CRÍTICA: Upload do Buffer usando stream (mais eficiente em memória)
-            // Cria uma Promise para envolver a função de stream do Cloudinary
+      // Upload do Buffer usando stream (mais eficiente em memória)
       const uploadResult = await new Promise((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream({
                     folder: `${cloudinaryFolder}/${cloudinarySubFolder}`, 
                     resource_type: 'image',
-                    // Sugestão de nome do arquivo no Cloudinary
                     public_id: fileUniqueId, 
                 }, (error, result) => {
                     if (error) return reject(error);
                     resolve(result);
                 });
 
-                // Cria um stream legível a partir do Buffer e o envia para o stream do Cloudinary
                 const readableStream = new Readable();
-                readableStream.push(fileToUpload.data); // Envia o Buffer completo
-                readableStream.push(null); // Sinaliza o fim do stream
+                readableStream.push(fileToUpload.data); 
+                readableStream.push(null); 
                 
                 readableStream.pipe(stream);
             });
@@ -97,7 +110,7 @@ export default defineEventHandler(async (event) => {
             const result = uploadResult as { secure_url: string, public_id: string };
 
       uploadedUrl = result.secure_url;
-      uploadedPublicId = result.public_id; // Usa o public_id retornado pelo Cloudinary (ou o que definimos)
+      uploadedPublicId = result.public_id; 
 
     } catch (error: any) {
     console.error('Erro no upload para Cloudinary (temp_upload - STREAM):', error);
@@ -139,7 +152,6 @@ export default defineEventHandler(async (event) => {
     });
     }
   } catch (error: any) {
-    // Captura o erro 500 que ocorre antes do processamento principal (parsing do formData)
     console.error('Erro CRÍTICO no POST /images/temp_upload (Global Catch):', error);
     if (error.statusCode) throw error;
     throw createError({
