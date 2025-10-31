@@ -1,25 +1,23 @@
-// /components/Shared/AnnotationEditor.vue - V2.4 - CORREÇÃO DE LAYOUT: Adicionada div wrapper para centralizar o conteúdo e ajustadas classes da tag <img> para priorizar a largura total no modal.
+// /components/Shared/AnnotationEditor.vue - V2.5 - CORREÇÃO DE INFRAESTRUTURA/COORDENADAS: Eventos de mouse movidos para o wrapper da Imagem/SVG. Refatorado getCoordinates para usar o novo wrapper, que é a área real de desenho.
 <template>
 <div 
 ref="editorContainerRef"
 class="relative w-full h-full overflow-hidden" 
-:style="{ 
-// REMOVIDO: width e height fixos. Agora usa w-full h-full do container pai (o Modal).
-'max-width': '100%',
-}"
-@mousedown="startAction"
-@mousemove="performAction"
-@mouseup="endAction"
-@mouseleave="endAction"
-@click="handleTextPlacement" 
+:style="{ 'max-width': '100%' }"
 >
 <div 
+ ref="imageSvgWrapperRef"
  class="w-full h-full flex items-center justify-center relative"
  :style="{
   'max-width': editorDimensions.width > 0 ? `${editorDimensions.width}px` : '100%',
   'max-height': editorDimensions.height > 0 ? `${editorDimensions.height}px` : '100%',
   'margin': '0 auto' 
  }"
+ @mousedown="startAction"
+ @mousemove="performAction"
+ @mouseup="endAction"
+ @mouseleave="endAction"
+ @click="handleTextPlacement" 
 >
  <img 
  ref="imageRef"
@@ -28,7 +26,9 @@ class="relative w-full h-full overflow-hidden"
  @load="handleImageLoad"
  
   class="block w-full h-auto max-h-full object-contain pointer-events-none" 
-  /> <svg 
+  />
+
+ <svg 
  v-if="imageLoaded && editorDimensions.width > 0"
  :width="editorDimensions.width" 
  :height="editorDimensions.height" 
@@ -90,7 +90,7 @@ class="absolute p-1 bg-white border border-indigo-500 shadow-xl rounded z-10"
 </template>
 
 <script setup lang="ts">
-// /components/Shared/AnnotationEditor.vue - V2.4 - CORREÇÃO DE LAYOUT: Ajustado `template` para garantir que a imagem ocupe a largura máxima do contêiner e seja corretamente centralizada no modal.
+// /components/Shared/AnnotationEditor.vue - V2.5 - CORREÇÃO DE INFRAESTRUTURA/COORDENADAS: Refatorado para mover os eventos de mouse para o imageSvgWrapperRef (área real de desenho) e ajustar o cálculo de coordenadas para ser mais robusto.
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 // === Tipagem ===
@@ -129,6 +129,7 @@ const emit = defineEmits<{
 // --- Refs de Elementos e Estado ---
 const imageRef = ref<HTMLImageElement | null>(null);
 const editorContainerRef = ref<HTMLDivElement | null>(null);
+const imageSvgWrapperRef = ref<HTMLDivElement | null>(null); // NOVO REF
 const textInputRef = ref<HTMLInputElement | null>(null); 
 const imageLoaded = ref(false);
 const isDrawing = ref(false);
@@ -275,26 +276,31 @@ y: Math.round(p.y * scaleFactor.value),
 // --- Funções de Desenho e Coordenadas ---
 
 const getCoordinates = (e: MouseEvent): Point | null => {
-if (!editorContainerRef.value) return null;
+if (!imageSvgWrapperRef.value || !imageRef.value) return null;
 
-// Obtem as coordenadas do mouse em relação ao wrapper da imagem/svg (não ao container total)
-// Como o editorContainerRef agora contém o wrapper que centraliza, o rect deve ser do imageRef ou do seu parent para precisão.
-// **USAR `editorContainerRef` É O CORRETO, POIS É ELE QUEM RECEBE OS EVENTOS DE MOUSE**
+// Obtém as coordenadas do wrapper (que agora recebe os eventos de mouse)
+const rect = imageSvgWrapperRef.value.getBoundingClientRect();
 
-const rect = imageRef.value?.getBoundingClientRect();
-
-if (!rect) return null;
-
-// Corrige o cálculo para levar em conta a posição da imagem DENTRO do container
+// O clique é relativo ao canto superior esquerdo do wrapper.
 const x = e.clientX - rect.left;
 const y = e.clientY - rect.top;
 
 // Garante que o clique está DENTRO dos limites da imagem renderizada
-if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+// Usamos as dimensões da imagem renderizada para criar uma "área de acerto" precisa.
+const imageRect = imageRef.value.getBoundingClientRect();
+const offsetX = imageRect.left - rect.left;
+const offsetY = imageRect.top - rect.top;
+
+const clickX = e.clientX - imageRect.left;
+const clickY = e.clientY - imageRect.top;
+
+// Garante que o clique ocorreu sobre a imagem, ignorando o espaço vazio.
+if (clickX < 0 || clickX > imageRect.width || clickY < 0 || clickY > imageRect.height) {
 return null;
 }
 
-return { x, y };
+// Retorna as coordenadas relativas ao canto superior esquerdo da IMAGEM RENDERIZADA.
+return { x: clickX, y: clickY };
 }
 
 const startAction = (e: MouseEvent) => {
