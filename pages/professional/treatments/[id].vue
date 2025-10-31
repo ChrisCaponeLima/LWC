@@ -58,7 +58,7 @@ class="w-16 h-16 rounded-full object-cover border-2 border-indigo-500"
 </div>
 
 <div v-if="activeTab === 'images'">
-<h3 class="text-xl font-semibold mb-4 text-gray-700">Galeria de Fotos e Comparação</h3>
+
 <PhotoGallery 
  :user-id="targetUserId"
  :refresh-trigger="galleryRefreshTrigger"

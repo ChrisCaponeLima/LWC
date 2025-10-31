@@ -237,6 +237,7 @@ model user_treatment_photos {
   is_private                        Boolean                             @default(true)
   created_at                        DateTime                            @default(now()) @db.Timestamptz(6)
   treatment_date                    DateTime?                           @db.Date
+  consideration                     String?
   professionals                     professionals?                      @relation(fields: [uploaded_by_professional_id], references: [id], onUpdate: NoAction, map: "fk_user_treatment_photos_professional")
   users                             users                               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_treatment_photos_user")
   treatments                        treatments                          @relation(fields: [treatment_id], references: [id], onUpdate: NoAction)
