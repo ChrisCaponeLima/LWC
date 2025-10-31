@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.29 - Implementa desfoque StackBlur Multi-Pass (3x Raio 15) para a saída final no Canvas (createFinalCanvas) para garantir intensidade no mobile (alto DPR), mantendo o filtro CSS (20px) para a visualização.
+// /components/ImageEditorComponent.vue - V1.30 - Implementa StackBlur Multi-Pass ajustado pelo DPR para garantir desfoque forte na exportação (mobile/alto DPI), mantendo filtro CSS para visualização.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -223,6 +223,7 @@ const emit = defineEmits(['saveEditedImage', 'error', 'rotate'])
 
 const isSaving = ref(false)
 const isPrivateLocal = ref(props.initialIsPrivate)
+// Variável reativa para armazenar o Device Pixel Ratio (DPR)
 const devicePixelRatio = ref(1); 
 
 watch(() => props.initialIsPrivate, (newVal) => {
@@ -244,9 +245,9 @@ let startY = 0
 const cropActive = ref(false)
 const mode = ref('blur')
 
-// 🚨 NOVO: Estado de Edição Real (true se houver SOMENTE aplicação de efeitos)
+// Estado de Edição Real (true se houver SOMENTE aplicação de efeitos)
 const isEdited = computed(() => {
- return rects.length > 0;
+  return rects.length > 0;
 });
 
 const rotationWrapperStyle = computed(() => {
@@ -339,7 +340,6 @@ const offsetX = (cw - renderedW) / 2;
 const offsetY = (ch - renderedH) / 2;
 
 // Escala de conversão: Renderização (Visual) para o Original (mapa de bits)
-// CORREÇÃO: Usar renderedW/H como base de escala para evitar erros de ponto flutuante.
 const scale = visualW / renderedW; 
 
 return {
@@ -489,26 +489,26 @@ if (r.type === 'stripe') {
 canvasCtx.fillStyle = 'rgba(0,0,0,0.95)'
 canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
-  try {
-  canvasCtx.save()
-  // ✅ Manter 20px para a visualização, pois funciona bem no PC e é mais leve.
-  canvasCtx.filter = 'blur(20px)'
-  
-  // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
-  canvasCtx.drawImage(
-   img, 
-   r.x, r.y, r.w, r.h, // Source: Da imagem original (coordenadas originais)
-   tx, ty, tw, th // Destination: No canvas de overlay (coordenadas renderizadas)
-  )
-  canvasCtx.restore()
-  } catch (e) {
-   // Fallback para overlay semi-transparente em caso de falha de CORS ou filtro
-   canvasCtx.save();
-   canvasCtx.fillStyle = 'rgba(255,165,0,0.5)';
-   canvasCtx.fillRect(tx, ty, tw, th);
-   canvasCtx.restore();
-   console.warn('Blur fallback ativado. Verifique se a imagem está servida com CORS (crossorigin="anonymous").', e);
-  }
+    try {
+     canvasCtx.save()
+     // O filtro CSS é mantido fixo em 20px para a visualização, por ser mais leve e evitar inconsistências de DPR no preview.
+     canvasCtx.filter = 'blur(20px)'
+     
+     // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+     canvasCtx.drawImage(
+       img, 
+       r.x, r.y, r.w, r.h, // Source: Da imagem original (coordenadas originais)
+       tx, ty, tw, th // Destination: No canvas de overlay (coordenadas renderizadas)
+     )
+     canvasCtx.restore()
+    } catch (e) {
+      // Fallback para overlay semi-transparente em caso de falha de CORS ou filtro
+      canvasCtx.save();
+      canvasCtx.fillStyle = 'rgba(255,165,0,0.5)';
+      canvasCtx.fillRect(tx, ty, tw, th);
+      canvasCtx.restore();
+      console.warn('Blur fallback ativado. Verifique se a imagem está servida com CORS (crossorigin="anonymous").', e);
+    }
 }
 })
 }
@@ -663,68 +663,70 @@ rects.forEach((r) => {
 let tx, ty, tw, th;
 
 switch (rotation.value) {
-case 0:
-tx = r.x;
-ty = r.y;
-tw = r.w;
-th = r.h;
-break;
-case 90:
-tx = r.y;
-ty = finalW - r.x - r.w; 
-tw = r.h;
-th = r.w;
-break;
-case 180:
-tx = finalW - r.x - r.w;
-ty = finalH - r.y - r.h;
-tw = r.w;
-th = r.h;
-break;
-case 270:
-tx = finalH - r.y - r.h; 
-ty = r.x;
-tw = r.h;
-th = r.w;
-break;
-default:
-return;
+ case 0:
+ tx = r.x;
+ ty = r.y;
+ tw = r.w;
+ th = r.h;
+ break;
+ case 90:
+ tx = r.y;
+ ty = finalW - r.x - r.w; 
+ tw = r.h;
+ th = r.w;
+ break;
+ case 180:
+ tx = finalW - r.x - r.w;
+ ty = finalH - r.y - r.h;
+ tw = r.w;
+ th = r.h;
+ break;
+ case 270:
+ tx = finalH - r.y - r.h; 
+ ty = r.x;
+ tw = r.h;
+ th = r.w;
+ break;
+ default:
+ return;
 }
 
 if (r.type === 'stripe') {
 ctx.fillStyle = '#000'
 ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordenadas final.
 } else if (r.type === 'blur') {
-// 🚨 MUDANÇA CRÍTICA: Implementa Desfoque Multi-Pass (3x) para garantir intensidade no mobile.
-const BLUR_RADIUS = 15; // Raio menor por passagem
-const BLUR_PASSES = 8;  // Número de repetições
+// Alteração: Raio base 15 multiplicado pelo DPR e aplicado em 3 passagens para forçar o desfoque em alto DPI.
+const BASE_RADIUS = 15; 
+const BLUR_RADIUS = BASE_RADIUS * devicePixelRatio.value; // Raio ajustado pelo DPR.
+const BLUR_PASSES = 3;  // Número de repetições mantido.
+
 try {
- // Desenha APENAS a área a ser desfocada em um canvas temporário
- const tempCanvas = document.createElement('canvas');
- tempCanvas.width = tw;
- tempCanvas.height = th;
- const tempCtx = tempCanvas.getContext('2d');
- 
- // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
- tempCtx.drawImage(
-  img, 
-  r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada, coordenadas originais)
-  0, 0, tw, th // Destination: No canvas temporário (sem rotação/offset, dimensões rotacionadas)
- );
- 
- // Aplica o StackBlur em múltiplas passagens
- for (let i = 0; i < BLUR_PASSES; i++) {
-  stackBlurCanvasRGB(tempCtx, 0, 0, tw, th, BLUR_RADIUS);
- }
- 
- // Desenha o resultado do canvas temporário de volta no canvas de saída (output)
- ctx.drawImage(tempCanvas, tx, ty);
+  // Desenha APENAS a área a ser desfocada em um canvas temporário
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = tw;
+  tempCanvas.height = th;
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+  tempCtx.drawImage(
+    img, 
+    r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada, coordenadas originais)
+    0, 0, tw, th // Destination: No canvas temporário (sem rotação/offset, dimensões rotacionadas)
+  );
+  
+  // Aplica o StackBlur em múltiplas passagens com o raio ajustado
+  for (let i = 0; i < BLUR_PASSES; i++) {
+    stackBlurCanvasRGB(tempCtx, 0, 0, tw, th, BLUR_RADIUS);
+  }
+  
+  // Desenha o resultado do canvas temporário de volta no canvas de saída (output)
+  ctx.drawImage(tempCanvas, tx, ty);
 
 } catch (e) {
- console.error("Erro ao aplicar StackBlur Multi-Pass, usando fallback para tarja preta.", e);
- // Fallback: tarja preta no canvas final em caso de falha.
- ctx.fillStyle = '#000'
- ctx.fillRect(tx, ty, tw, th) 
+  console.error("Erro ao aplicar StackBlur Multi-Pass (DPR), usando fallback para tarja preta.", e);
+  // Fallback: tarja preta no canvas final em caso de falha.
+  ctx.fillStyle = '#000'
+  ctx.fillRect(tx, ty, tw, th) 
 }
 }
 })
@@ -838,9 +840,9 @@ URL.revokeObjectURL(dataURL);
 
 
 onMounted(() => {
-  // Mantém a detecção do DPR, embora StackBlur não precise mais dela para o raio.
   if (typeof window !== 'undefined') {
-    devicePixelRatio.value = window.devicePixelRatio || 1;
+    // Inicializa o devicePixelRatio com o valor real, que será usado para multiplicar o raio do blur na exportação.
+    devicePixelRatio.value = window.devicePixelRatio || 1; 
   }
 window.addEventListener('resize', resizeCanvasToImage)
 })
