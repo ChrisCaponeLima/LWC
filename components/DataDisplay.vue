@@ -1,7 +1,7 @@
-// /components/DataDisplay.vue - V2.3 - Adicionado recordId na query do NuxtLink para consulta de edição.
+// /components/DataDisplay.vue - V2.5 - Correção da exibição da galeria de tratamentos: o componente TreatmentGallery é movido para o final do fluxo do DataDisplay (abaixo dos gráficos) para restaurar a visualização.
 <template>
 <div>
- <div class="mt-8 space-y-4">
+<div class="mt-8 space-y-4">
 <button 
 @click="toggleGallery('photo')" 
 :class="[
@@ -27,14 +27,14 @@ class="relative pb-[100%] cursor-pointer group block"
 class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-hover:opacity-75 transition-opacity"
 >
 
- <div v-if="photo.isPrivate" class="absolute top-2 right-2 p-1 bg-black/80 rounded-full text-white text-sm z-50 flex items-center justify-center" aria-hidden="true">
+<div v-if="photo.isPrivate" class="absolute top-2 right-2 p-1 bg-black/80 rounded-full text-white text-sm z-50 flex items-center justify-center" aria-hidden="true">
 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3">
- <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
- <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 </svg>
 </div>
 
- <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+<div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-md text-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
 {{ formatDate(photo.date) }}<span v-if="photo.isPrivate"> &nbsp;🔒</span>
 </div>
 </NuxtLink>
@@ -69,8 +69,8 @@ class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-ho
 
 <div v-if="forma.isPrivate" class="absolute top-2 right-2 p-1 bg-black/80 rounded-full text-white text-sm z-50 flex items-center justify-center" aria-hidden="true">
 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3">
- <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
- <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 </svg>
 </div>
 
@@ -81,9 +81,7 @@ class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-ho
 </template>
 <p v-else class="text-gray-500 col-span-full text-center py-4">Nenhuma foto de forma registrada.</p>
 </div>
-</div>
-
- <div class="section-header mt-12">
+</div> <div class="section-header mt-12">
 <h2 class="text-2xl font-bold text-gray-800">Gráficos de Evolução</h2>
 </div>
 
@@ -106,7 +104,7 @@ Nenhum dado de evolução disponível para gráficos.
 </p>
 </div>
 
- <TreatmentGallery :grouped-treatment-photos="groupedTreatmentPhotos" />
+<TreatmentGallery :grouped-treatment-photos="groupedTreatmentPhotos" />
 
 </div>
 </template>
@@ -143,11 +141,11 @@ type: 'registro' | 'forma';
 
 // 🚨 NOVO: Interface para o arquivo completo retornado do backend V5.0
 interface FileRecord {
- id: number; // 🚨 NOVO: O ID do arquivo é essencial
- url: string;
- isPrivate: boolean;
- type: 'registro' | 'forma' | 'outro';
- created_at: string;
+id: number; // 🚨 NOVO: O ID do arquivo é essencial
+url: string;
+isPrivate: boolean;
+type: 'registro' | 'forma' | 'outro';
+created_at: string;
 }
 
 interface RecordData {
@@ -203,66 +201,66 @@ currentFilter.value = key;
 
 // --- Lógica de Imagens (MUDANÇA AQUI: Agregação de todas as fotos) ---
 const aggregatePhotos = (type: 'registro' | 'forma'): PhotoData[] => {
- // 1. Agrega todas as fotos de todos os registros
- const allAggregatedPhotos: PhotoData[] = [];
+// 1. Agrega todas as fotos de todos os registros
+const allAggregatedPhotos: PhotoData[] = [];
 
- (props.rawChartData.records || []).forEach(record => {
-  if (record.all_files && Array.isArray(record.all_files)) {
-   record.all_files
-    .filter(file => file.type === type)
-    .forEach(file => {
-     allAggregatedPhotos.push({
-      url: file.url,
-      date: record.record_date, // Usa a data do registro
-      recordId: record.id,
-      fileId: file.id, // 🚨 CRÍTICO: Inclui o ID do arquivo
-      isPrivate: file.isPrivate,
-      type: type
-     });
-    });
-  } 
-  // Lógica de fallback para manter retrocompatibilidade se 'all_files' não existir (V1.9)
-  // OBS: O fallback não possui um fileId real, mas para evitar erros de tipagem, 
-  // usaremos o recordId como um placeholder se o fileId não estiver presente. 
-  // O backend deve tratar isso.
-  else if (type === 'registro' && record.photo_url) {
-   allAggregatedPhotos.push({
-    url: record.photo_url as string,
-    date: record.record_date,
-    recordId: record.id,
-    fileId: record.id, // 🚨 Fallback: Usa o ID do registro como fileId
-    isPrivate: !!record.photo_is_private,
-    type: 'registro'
-   });
-  }
-  else if (type === 'forma' && record.forma_url) {
-   allAggregatedPhotos.push({
-    url: record.forma_url as string,
-    date: record.record_date,
-    recordId: record.id,
-    fileId: record.id, // 🚨 Fallback: Usa o ID do registro como fileId
-    isPrivate: !!record.forma_is_private,
-    type: 'forma'
-   });
-  }
+(props.rawChartData.records || []).forEach(record => {
+ if (record.all_files && Array.isArray(record.all_files)) {
+ record.all_files
+  .filter(file => file.type === type)
+  .forEach(file => {
+  allAggregatedPhotos.push({
+   url: file.url,
+   date: record.record_date, // Usa a data do registro
+   recordId: record.id,
+   fileId: file.id, // 🚨 CRÍTICO: Inclui o ID do arquivo
+   isPrivate: file.isPrivate,
+   type: type
+  });
+  });
+ } 
+ // Lógica de fallback para manter retrocompatibilidade se 'all_files' não existir (V1.9)
+ // OBS: O fallback não possui um fileId real, mas para evitar erros de tipagem, 
+ // usaremos o recordId como um placeholder se o fileId não estiver presente. 
+ // O backend deve tratar isso.
+ else if (type === 'registro' && record.photo_url) {
+ allAggregatedPhotos.push({
+  url: record.photo_url as string,
+  date: record.record_date,
+  recordId: record.id,
+  fileId: record.id, // 🚨 Fallback: Usa o ID do registro como fileId
+  isPrivate: !!record.photo_is_private,
+  type: 'registro'
  });
-
- // 2. Remove duplicatas e Inverte para mostrar as mais recentes primeiro
- const uniquePhotosMap = new Map<string, PhotoData>();
- allAggregatedPhotos.forEach(photo => {
-  // Usa a URL e o fileId (que agora é único) como chave de unicidade
-  uniquePhotosMap.set(`${photo.url}-${photo.fileId}`, photo);
+ }
+ else if (type === 'forma' && record.forma_url) {
+ allAggregatedPhotos.push({
+  url: record.forma_url as string,
+  date: record.record_date,
+  recordId: record.id,
+  fileId: record.id, // 🚨 Fallback: Usa o ID do registro como fileId
+  isPrivate: !!record.forma_is_private,
+  type: 'forma'
  });
+ }
+});
 
- return Array.from(uniquePhotosMap.values()).reverse();
+// 2. Remove duplicatas e Inverte para mostrar as mais recentes primeiro
+const uniquePhotosMap = new Map<string, PhotoData>();
+allAggregatedPhotos.forEach(photo => {
+ // Usa a URL e o fileId (que agora é único) como chave de unicidade
+ uniquePhotosMap.set(`${photo.url}-${photo.fileId}`, photo);
+});
+
+return Array.from(uniquePhotosMap.values()).reverse();
 };
 
 const photoUrls = computed<PhotoData[]>(() => {
- return aggregatePhotos('registro');
+return aggregatePhotos('registro');
 });
 
 const formaUrls = computed<PhotoData[]>(() => {
- return aggregatePhotos('forma');
+return aggregatePhotos('forma');
 });
 // --- Fim da Lógica de Imagens ---
 
