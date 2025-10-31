@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.28 - Implementa desfoque StackBlur para a saída final no Canvas (createFinalCanvas) para garantir intensidade no mobile (alto DPR), mantendo o filtro CSS (20px) para a visualização.
+// /components/ImageEditorComponent.vue - V1.29 - Implementa desfoque StackBlur Multi-Pass (3x Raio 15) para a saída final no Canvas (createFinalCanvas) para garantir intensidade no mobile (alto DPR), mantendo o filtro CSS (20px) para a visualização.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -223,7 +223,6 @@ const emit = defineEmits(['saveEditedImage', 'error', 'rotate'])
 
 const isSaving = ref(false)
 const isPrivateLocal = ref(props.initialIsPrivate)
-// Variável para armazenar o Device Pixel Ratio (DPR) - mantida, mas não usada para blur
 const devicePixelRatio = ref(1); 
 
 watch(() => props.initialIsPrivate, (newVal) => {
@@ -696,9 +695,9 @@ if (r.type === 'stripe') {
 ctx.fillStyle = '#000'
 ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordenadas final.
 } else if (r.type === 'blur') {
-// 🚨 MUDANÇA CRÍTICA: Aplica o desfoque StackBlur diretamente no contexto final.
-// 40px é um raio seguro e forte para garantir a opacidade visual.
-const BLUR_RADIUS = 40; 
+// 🚨 MUDANÇA CRÍTICA: Implementa Desfoque Multi-Pass (3x) para garantir intensidade no mobile.
+const BLUR_RADIUS = 15; // Raio menor por passagem
+const BLUR_PASSES = 3;  // Número de repetições
 try {
  // Desenha APENAS a área a ser desfocada em um canvas temporário
  const tempCanvas = document.createElement('canvas');
@@ -713,15 +712,16 @@ try {
   0, 0, tw, th // Destination: No canvas temporário (sem rotação/offset, dimensões rotacionadas)
  );
  
- // Aplica o StackBlur no canvas temporário.
- // O 'tw' e 'th' aqui são as dimensões do canvas temporário
- stackBlurCanvasRGB(tempCtx, 0, 0, tw, th, BLUR_RADIUS);
+ // Aplica o StackBlur em múltiplas passagens
+ for (let i = 0; i < BLUR_PASSES; i++) {
+  stackBlurCanvasRGB(tempCtx, 0, 0, tw, th, BLUR_RADIUS);
+ }
  
  // Desenha o resultado do canvas temporário de volta no canvas de saída (output)
  ctx.drawImage(tempCanvas, tx, ty);
 
 } catch (e) {
- console.error("Erro ao aplicar StackBlur, usando fallback para tarja preta.", e);
+ console.error("Erro ao aplicar StackBlur Multi-Pass, usando fallback para tarja preta.", e);
  // Fallback: tarja preta no canvas final em caso de falha.
  ctx.fillStyle = '#000'
  ctx.fillRect(tx, ty, tw, th) 
