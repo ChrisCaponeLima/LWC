@@ -111,7 +111,7 @@ const mode = ref('blur')
 
 // 🚨 NOVO: Estado de Edição Real (true se houver SOMENTE aplicação de efeitos)
 const isEdited = computed(() => {
-    return rects.length > 0;
+  return rects.length > 0;
 });
 
 const rotationWrapperStyle = computed(() => {
@@ -315,65 +315,65 @@ let tx, ty, tw, th; // Coordenadas no Canvas de overlay (renderizado)
 // 1. Mapear do Original (r) para o Renderizado (tx, ty, tw, th) no Canvas
 switch (rotation.value) {
 case 0:
- tx = r.x * invScale + offsetX;
- ty = r.y * invScale + offsetY;
- tw = r.w * invScale;
- th = r.h * invScale;
- break;
+tx = r.x * invScale + offsetX;
+ty = r.y * invScale + offsetY;
+tw = r.w * invScale;
+th = r.h * invScale;
+break;
 case 90:
- // X Renderizado = (VisualH - Y Original - H Original) * invScale + Offset X
- // Y Renderizado = X Original * invScale + Offset Y
- tx = (naturalH - r.y - r.h) * invScale + offsetX;
- ty = r.x * invScale + offsetY;
- // Largura Renderizada = Altura Original * invScale
- // Altura Renderizada = Largura Original * invScale
- tw = r.h * invScale;
- th = r.w * invScale;
- break;
+// X Renderizado = (VisualH - Y Original - H Original) * invScale + Offset X
+// Y Renderizado = X Original * invScale + Offset Y
+tx = (naturalH - r.y - r.h) * invScale + offsetX;
+ty = r.x * invScale + offsetY;
+// Largura Renderizada = Altura Original * invScale
+// Altura Renderizada = Largura Original * invScale
+tw = r.h * invScale;
+th = r.w * invScale;
+break;
 case 180:
- tx = (naturalW - r.x - r.w) * invScale + offsetX;
- ty = (naturalH - r.y - r.h) * invScale + offsetY;
- tw = r.w * invScale;
- th = r.h * invScale;
- break;
+tx = (naturalW - r.x - r.w) * invScale + offsetX;
+ty = (naturalH - r.y - r.h) * invScale + offsetY;
+tw = r.w * invScale;
+th = r.h * invScale;
+break;
 case 270:
- // X Renderizado = Y Original * invScale + Offset X
- // Y Renderizado = (VisualW - X Original - W Original) * invScale + Offset Y
- tx = r.y * invScale + offsetX;
- ty = (naturalW - r.x - r.w) * invScale + offsetY;
- // Largura Renderizada = Altura Original * invScale
- // Altura Renderizada = Largura Original * invScale
- tw = r.h * invScale;
- th = r.w * invScale;
- break;
+// X Renderizado = Y Original * invScale + Offset X
+// Y Renderizado = (VisualW - X Original - W Original) * invScale + Offset Y
+tx = r.y * invScale + offsetX;
+ty = (naturalW - r.x - r.w) * invScale + offsetY;
+// Largura Renderizada = Altura Original * invScale
+// Altura Renderizada = Largura Original * invScale
+tw = r.h * invScale;
+th = r.w * invScale;
+break;
 default:
- return;
+return;
 }
 
 if (r.type === 'stripe') {
 canvasCtx.fillStyle = 'rgba(0,0,0,0.95)'
 canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
-    try {
-     canvasCtx.save()
-     // 🚨 CORREÇÃO: Aumenta o blur de 8px para 20px (melhor visibilidade em mobile)
-     canvasCtx.filter = 'blur(20px)'
-     
-     // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
-     canvasCtx.drawImage(
-       img, 
-       r.x, r.y, r.w, r.h, // Source: Da imagem original (coordenadas originais)
-       tx, ty, tw, th // Destination: No canvas de overlay (coordenadas renderizadas)
-     )
-     canvasCtx.restore()
-    } catch (e) {
-      // Fallback para overlay semi-transparente em caso de falha de CORS ou filtro
-      canvasCtx.save();
-      canvasCtx.fillStyle = 'rgba(255,165,0,0.5)';
-      canvasCtx.fillRect(tx, ty, tw, th);
-      canvasCtx.restore();
-      console.warn('Blur fallback ativado. Verifique se a imagem está servida com CORS (crossorigin="anonymous").', e);
-    }
+  try {
+  canvasCtx.save()
+  // 🚨 CORREÇÃO: Aumenta o blur de 8px para 20px (melhor visibilidade em mobile)
+  canvasCtx.filter = 'blur(20px)'
+  
+  // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+  canvasCtx.drawImage(
+   img, 
+   r.x, r.y, r.w, r.h, // Source: Da imagem original (coordenadas originais)
+   tx, ty, tw, th // Destination: No canvas de overlay (coordenadas renderizadas)
+  )
+  canvasCtx.restore()
+  } catch (e) {
+   // Fallback para overlay semi-transparente em caso de falha de CORS ou filtro
+   canvasCtx.save();
+   canvasCtx.fillStyle = 'rgba(255,165,0,0.5)';
+   canvasCtx.fillRect(tx, ty, tw, th);
+   canvasCtx.restore();
+   console.warn('Blur fallback ativado. Verifique se a imagem está servida com CORS (crossorigin="anonymous").', e);
+  }
 }
 })
 }
@@ -391,8 +391,8 @@ return { x: e.clientX - rect.left, y: e.clientY - rect.top }
 }
 
 const onDown = (e) => {
- // Garante que apenas o clique principal (botão esquerdo ou toque) inicie o desenho
- if (e.button !== 0 && !e.isPrimary) return; 
+// Garante que apenas o clique principal (botão esquerdo ou toque) inicie o desenho
+if (e.button !== 0 && !e.isPrimary) return; 
 
 const pos = getCoords(e)
 if (cropActive.value) {
@@ -523,38 +523,38 @@ const finalH = output.height;
 // === 2. Aplica Efeitos (Tarjas/Blur) em um contexto "limpo" mas nas coordenadas JÁ ROTACIONADAS ===
 // O contexto AGORA está no sistema final (0,0 no top-left, sem rotação).
 rects.forEach((r) => {
- // Calculamos as coordenadas de destino transformadas para o canvas final (finalW x finalH)
- // As coordenadas r.x, r.y, r.w, r.h são do sistema ORIGINAL (naturalW x naturalH).
- let tx, ty, tw, th;
+// Calculamos as coordenadas de destino transformadas para o canvas final (finalW x finalH)
+// As coordenadas r.x, r.y, r.w, r.h são do sistema ORIGINAL (naturalW x naturalH).
+let tx, ty, tw, th;
 
- switch (rotation.value) {
-  case 0:
-   tx = r.x;
-   ty = r.y;
-   tw = r.w;
-   th = r.h;
-   break;
-  case 90:
-   tx = r.y;
-   ty = finalW - r.x - r.w; 
-   tw = r.h;
-   th = r.w;
-   break;
-  case 180:
-   tx = finalW - r.x - r.w;
-   ty = finalH - r.y - r.h;
-   tw = r.w;
-   th = r.h;
-   break;
-  case 270:
-   tx = finalH - r.y - r.h; 
-   ty = r.x;
-   tw = r.h;
-   th = r.w;
-   break;
-  default:
-   return;
- }
+switch (rotation.value) {
+ case 0:
+ tx = r.x;
+ ty = r.y;
+ tw = r.w;
+ th = r.h;
+ break;
+ case 90:
+ tx = r.y;
+ ty = finalW - r.x - r.w; 
+ tw = r.h;
+ th = r.w;
+ break;
+ case 180:
+ tx = finalW - r.x - r.w;
+ ty = finalH - r.y - r.h;
+ tw = r.w;
+ th = r.h;
+ break;
+ case 270:
+ tx = finalH - r.y - r.h; 
+ ty = r.x;
+ tw = r.h;
+ th = r.w;
+ break;
+ default:
+ return;
+}
 
 if (r.type === 'stripe') {
 ctx.fillStyle = '#000'
@@ -568,9 +568,9 @@ ctx.filter = 'blur(20px)'
 // Source: recorta da imagem original (r.x,r.y,r.w,r.h)
 // Destino: no canvas (tx, ty, tw, th)
 ctx.drawImage(
- img, 
- r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada)
- tx, ty, tw, th // Destino: No contexto final (com coords e dimensões já rotacionadas)
+img, 
+r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada)
+tx, ty, tw, th // Destino: No contexto final (com coords e dimensões já rotacionadas)
 )
 ctx.restore()
 }
@@ -587,11 +587,11 @@ const editedCanvas = createFinalCanvas()
 const originalCanvas = createRotatedOriginalCanvas()
 
 const editedBlob = await new Promise((res, rej) => {
- editedCanvas.toBlob(res, 'image/png');
+editedCanvas.toBlob(res, 'image/png');
 })
 
 const originalBlob = await new Promise((res, rej) => {
- originalCanvas.toBlob(res, 'image/png');
+originalCanvas.toBlob(res, 'image/png');
 })
 
 if (!editedBlob) throw new Error('Falha ao gerar o Blob da imagem editada.');
@@ -649,9 +649,9 @@ console.warn('[DOWNLOAD] toBlob falhou (possível CORS). Tentando toDataURL como
 dataURL = finalCanvas.toDataURL('image/png', 1.0); 
 
 if (dataURL === 'data:,') {
- console.error('[DOWNLOAD] toDataURL retornou um dataURL inválido. CORS impede o download.');
- emit('error', 'Falha ao gerar o arquivo de download. O servidor de imagens está bloqueando o acesso (CORS).');
- return;
+console.error('[DOWNLOAD] toDataURL retornou um dataURL inválido. CORS impede o download.');
+emit('error', 'Falha ao gerar o arquivo de download. O servidor de imagens está bloqueando o acesso (CORS).');
+return;
 }
 }
 
@@ -678,7 +678,7 @@ emit('error', e?.message || 'Erro desconhecido ao gerar o arquivo de download.')
 } finally {
 // Revoga a URL temporária SE for uma blob URL (dataURLs não precisam)
 if (dataURL && dataURL.startsWith('blob:')) {
- URL.revokeObjectURL(dataURL);
+URL.revokeObjectURL(dataURL);
 }
 }
 };
