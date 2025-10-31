@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.21 - Correção Mobile: Movidos os pointer events para o template com .prevent no pointermove para evitar o arrasto da tela em dispositivos móveis durante o desenho.
+// /components/ImageEditorComponent.vue - V1.23 - Aumento da intensidade do blur de 8px para 20px para melhor visibilidade em telas mobile.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -84,6 +84,7 @@ imageType: { type: String, required: true },
 initialIsPrivate: { type: Boolean, default: false },
 })
 
+// MUDANÇA: O evento 'saveEditedImage' agora espera { editedBlob, originalBlob, isPrivate, type, isEdited }
 const emit = defineEmits(['saveEditedImage', 'error', 'rotate']) 
 
 const isSaving = ref(false)
@@ -170,7 +171,7 @@ redrawAll()
 }
 
 /**
-* Calcula as métricas de escala e offset do 'object-contain'.
+* Calcula as métricas de escala e offset do 'object-contain' no DOM.
 */
 const getImageRenderMetrics = () => {
 const canvas = overlayCanvas.value
@@ -353,18 +354,26 @@ if (r.type === 'stripe') {
 canvasCtx.fillStyle = 'rgba(0,0,0,0.95)'
 canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
-try {
- canvasCtx.save()
- canvasCtx.filter = 'blur(8px)'
- 
- // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
- canvasCtx.drawImage(
- img, 
- r.x, r.y, r.w, r.h, // Source: Da imagem original
- tx, ty, tw, th // Destination: No canvas de overlay
- )
- canvasCtx.restore()
-} catch {}
+    try {
+     canvasCtx.save()
+     // 🚨 CORREÇÃO: Aumenta o blur de 8px para 20px (melhor visibilidade em mobile)
+     canvasCtx.filter = 'blur(20px)'
+     
+     // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+     canvasCtx.drawImage(
+       img, 
+       r.x, r.y, r.w, r.h, // Source: Da imagem original (coordenadas originais)
+       tx, ty, tw, th // Destination: No canvas de overlay (coordenadas renderizadas)
+     )
+     canvasCtx.restore()
+    } catch (e) {
+      // Fallback para overlay semi-transparente em caso de falha de CORS ou filtro
+      canvasCtx.save();
+      canvasCtx.fillStyle = 'rgba(255,165,0,0.5)';
+      canvasCtx.fillRect(tx, ty, tw, th);
+      canvasCtx.restore();
+      console.warn('Blur fallback ativado. Verifique se a imagem está servida com CORS (crossorigin="anonymous").', e);
+    }
 }
 })
 }
@@ -378,13 +387,11 @@ resizeCanvasToImage()
 
 const getCoords = (e) => {
 const rect = overlayCanvas.value.getBoundingClientRect()
-// Usa clientX/Y que são unificados para pointer events.
 return { x: e.clientX - rect.left, y: e.clientY - rect.top }
 }
 
 const onDown = (e) => {
- // 🚨 CORREÇÃO MOBILE: Garante que apenas o clique principal (botão esquerdo ou toque) inicie o desenho
- // e.button === 0 é para mouse/ponteiro principal, e.isPrimary é para toque/caneta.
+ // Garante que apenas o clique principal (botão esquerdo ou toque) inicie o desenho
  if (e.button !== 0 && !e.isPrimary) return; 
 
 const pos = getCoords(e)
@@ -554,7 +561,8 @@ ctx.fillStyle = '#000'
 ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordenadas final.
 } else if (r.type === 'blur') {
 ctx.save() 
-ctx.filter = 'blur(8px)'
+// 🚨 CORREÇÃO: Aumenta o blur de 8px para 20px (para o arquivo final)
+ctx.filter = 'blur(20px)'
 
 // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
 // Source: recorta da imagem original (r.x,r.y,r.w,r.h)
@@ -572,7 +580,6 @@ return output;
 }
 
 /**
-* Função exposta para uso externo, gerando ambos os blobs para salvamento.
 * @returns {Promise<{editedBlob: Blob, originalBlob: Blob}>}
 */
 const generateBlobs = async () => {
@@ -607,7 +614,7 @@ editedBlob: editedBlob,
 originalBlob: originalBlob, 
 isPrivate: isPrivateLocal.value,
 type: props.imageType,
-isEdited: isEdited.value, // 🚨 NOVO: Passa o status de edição (baseado APENAS em rects.length)
+isEdited: isEdited.value, // Passa o status de edição (baseado APENAS em rects.length)
 })
 
 } catch (err) {
@@ -683,8 +690,6 @@ window.addEventListener('resize', resizeCanvasToImage)
 
 onUnmounted(() => {
 window.removeEventListener('resize', resizeCanvasToImage)
-// 🚨 REMOVIDOS: Os listeners de pointer events (onDown, onMove, onUp) que estavam aqui, 
-// pois foram movidos para o template.
 })
 
 defineExpose({
