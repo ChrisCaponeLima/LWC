@@ -1,10 +1,12 @@
-// /server/api/images/permanent_save.post.ts - V5.2 - Adiciona o campo 'forceSave' e modifica a regra de aborto para permitir o salvamento (upload e DB) quando forceSave=true (Fluxo de Download).
+// /server/api/images/permanent_save.post.ts - V5.4 - Substitui readMultipartFormData por utilitário Busboy (V1.0) para corrigir o Erro 413.
 
-import { defineEventHandler, readMultipartFormData, createError, getRequestHeader, H3Event } from 'h3';
+import { defineEventHandler, createError, getRequestHeader, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { uploadToCloudinary } from '~/server/utils/cloudinary'; 
-import { verifyAuthToken } from '~/server/utils/auth'; // 🚨 IMPORTAÇÃO DA FUNÇÃO REAL DE AUTENTICAÇÃO
+import { verifyAuthToken } from '~/server/utils/auth'; 
+// 🚨 ALTERAÇÃO CRÍTICA: Substitui a importação do H3 readMultipartFormData
+import { readCustomMultipartFormData } from '~/server/utils/multipart_parser'; 
 
 // Função real para extrair o userId
 const getUserIdFromEvent = (event: H3Event): number => {
@@ -24,9 +26,10 @@ export default defineEventHandler(async (event) => {
  }
  
  // 2. Processar o FormData multipart
- const formData = await readMultipartFormData(event);
+ // 🚨 ALTERAÇÃO CRÍTICA: Substitui readMultipartFormData pelo utilitário customizado (Busboy) para respeitar o limite de 4.5MB.
+ const parsedData = await readCustomMultipartFormData(event);
 
- if (!formData) {
+ if (!parsedData) {
   throw createError({
    statusCode: 400,
    statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.',
@@ -34,31 +37,17 @@ export default defineEventHandler(async (event) => {
  }
 
  // 3. Extrair e Padronizar Variáveis (camelCase)
- let editedFilePart: any | undefined;
- let originalFilePart: any | undefined;
- let imageType: string = '';
- let isPrivate: boolean = false;
-  let isEdited: boolean = false; 
-  let forceSave: boolean = false; // 🚨 NOVO: Variável para forçar o salvamento (Download)
-
- for (const part of formData) {
-  // Verificação de Variáveis Padronizada
-  if (part.name === 'editedFile' && part.filename && part.data) {
-   editedFilePart = part;
-  } else if (part.name === 'originalFile' && part.filename && part.data) {
-   originalFilePart = part;
-  } else if (part.name === 'type' && part.data) {
-   imageType = part.data.toString('utf-8');
-  } else if (part.name === 'isPrivate' && part.data) {
-   isPrivate = part.data.toString('utf-8') === 'true';
-  } else if (part.name === 'isEdited' && part.data) { 
-   isEdited = part.data.toString('utf-8') === 'true';
-  } else if (part.name === 'forceSave' && part.data) { // 🚨 NOVO: Extrai o status de forceSave
-   forceSave = part.data.toString('utf-8') === 'true';
-  }
- }
-  
-  // 🚨 Regra de Negócio: Abortar se: (NÃO HOUVE EDIÇÃO) E (NÃO HÁ PEDIDO PARA FORÇAR SALVAMENTO)
+ // Os arquivos agora vêm de parsedData.files, e os campos simples de parsedData.fields.
+ let editedFilePart: any | undefined = parsedData.files.find(f => f.name === 'editedFile');
+ let originalFilePart: any | undefined = parsedData.files.find(f => f.name === 'originalFile');
+ // Os campos simples (type, isPrivate, etc.) vêm do objeto fields
+ let imageType: string = parsedData.fields.type || '';
+ let isPrivate: boolean = parsedData.fields.isPrivate === 'true';
+ let isEdited: boolean = parsedData.fields.isEdited === 'true'; 
+ let forceSave: boolean = parsedData.fields.forceSave === 'true'; 
+ 
+  // 🚨 Regra de Negócio Crítica (MANTIDA)
+  // Abortar se: (NÃO HOUVE EDIÇÃO) E (NÃO HÁ PEDIDO PARA FORÇAR SALVAMENTO)
   if (isEdited === false && forceSave === false) {
     console.log(`[PERMANENT_SAVE] Imagem não editada (isEdited: false) e forceSave: false. Abortando salvamento Cloudinary/DB para o usuário ${userId}.`);
   
@@ -70,7 +59,7 @@ export default defineEventHandler(async (event) => {
  }
 
 
- // 4. Validação (Após a checagem, os arquivos DEVEM estar presentes)
+ // 4. Validação
  if (!editedFilePart || !originalFilePart || !imageType) {
   throw createError({
    statusCode: 400,
@@ -86,6 +75,8 @@ export default defineEventHandler(async (event) => {
  const cloudinaryFolder = `edited_images/${folderBase}/${imageType}`; 
 
  try {
+  // Nota: uploadToCloudinary já foi refatorado para usar stream e Buffer, 
+  // e os objetos editedFilePart/originalFilePart do Busboy são compatíveis.
   editedUrl = await uploadToCloudinary(editedFilePart, `${cloudinaryFolder}/edited`);
   originalUrl = await uploadToCloudinary(originalFilePart, `${cloudinaryFolder}/original`);
   
@@ -105,7 +96,7 @@ export default defineEventHandler(async (event) => {
   });
  }
 
- // 6. Persistência no Banco de Dados (Prisma: model edited) 👈 ESTA PARTE FOI MANTIDA
+ // 6. Persistência no Banco de Dados (Prisma: model edited)
  let newEditedRecord: any;
  try {
   console.log(`[PRISMA] Tentando criar registro 'edited' para user_id: ${userId}`);

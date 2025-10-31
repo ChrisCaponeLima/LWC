@@ -1,14 +1,14 @@
-// /server/api/images/temp_upload.post.ts - V2.4 - Refatoração CRÍTICA para usar cloudinary.uploader.upload_stream.
-// Isso evita a duplicação de memória de Base64, que poderia causar falha de memória (Erro 500) 
-// ou contribuir para o erro 413 ao sobrecarregar o Node.
+// /server/api/images/temp_upload.post.ts - V2.5 - Substitui readMultipartFormData por utilitário Busboy (V1.0) para corrigir o Erro 413.
 
-import { defineEventHandler, readMultipartFormData, createError, H3Event } from 'h3';
+import { defineEventHandler, createError, H3Event } from 'h3';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '~/server/utils/db'; 
 import { verifyAuthToken } from '~/server/utils/auth'; 
 import { v2 as cloudinary } from 'cloudinary';
+import { Readable } from 'stream'; 
 import { Buffer } from 'node:buffer'; 
-import { Readable } from 'stream'; // 🚨 NOVO: Para criar stream do Buffer
+// 🚨 NOVO: Importa o utilitário customizado para parsing
+import { readCustomMultipartFormData } from '~/server/utils/multipart_parser'; 
 
 // 🚨 CORREÇÃO 1: Força a configuração da instância do Cloudinary para resolver 'Must supply api_key'.
 cloudinary.config({
@@ -24,7 +24,7 @@ const getUserIdFromEvent = (event: H3Event): number => {
   return payload.userId;
 };
 
-// 🚨 REMOVIDA A FUNÇÃO bufferToDataURI: Não é mais necessária, pois vamos usar stream.
+// 🚨 REMOÇÃO: A função 'bufferToDataURI' foi removida por ser ineficiente e não será mais utilizada.
 
 export default defineEventHandler(async (event) => {
   let userId: number;
@@ -34,37 +34,23 @@ export default defineEventHandler(async (event) => {
   throw e;
   }
 
-  // Usamos um try/catch global para capturar erros de parsing do formData que levam ao 500
   try {
-    // A linha abaixo é a que lança o 413, devido ao limite de body size não configurado corretamente no H3.
-    const formData = await readMultipartFormData(event);
+    // 🚨 ALTERAÇÃO CRÍTICA: Substitui readMultipartFormData pelo utilitário customizado (Busboy)
+    const parsedData = await readCustomMultipartFormData(event);
 
-    if (!formData) {
+    if (!parsedData) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request: Nenhum dado de formulário multipart recebido.' });
     }
 
-    // 3. Extrair Variáveis
-    let editedFilePart: any | undefined; 
-    let originalFilePart: any | undefined;
-    let imageType: string = '';
-    let isPrivate: boolean = false;
-    let isEdited: boolean = false; 
-
-    for (const part of formData) {
-    const partValue = part.data ? part.data.toString('utf-8') : '';
-
-    if (part.name === 'editedFile' && part.filename && part.data) {
-    editedFilePart = part;
-    } else if (part.name === 'originalFile' && part.filename && part.data) {
-    originalFilePart = part;
-    } else if (part.name === 'type' && part.data) {
-    imageType = partValue;
-    } else if (part.name === 'isPrivate' && part.data) {
-    isPrivate = partValue === 'true';
-    } else if (part.name === 'isEdited' && part.data) { 
-    isEdited = partValue === 'true';
-    }
-    }
+    // 3. Extrair Variáveis dos campos e arquivos (NOVA LÓGICA DE EXTRAÇÃO)
+    // O arquivo 'editedFilePart' e 'originalFilePart' agora possuem as propriedades 'data' e 'type'
+    const editedFilePart = parsedData.files.find(f => f.name === 'editedFile');
+    const originalFilePart = parsedData.files.find(f => f.name === 'originalFile');
+        
+    // Campos simples vêm do objeto fields
+    const imageType: string = parsedData.fields.type || '';
+    const isPrivate: boolean = parsedData.fields.isPrivate === 'true';
+    const isEdited: boolean = parsedData.fields.isEdited === 'true'; 
 
     if (!originalFilePart || !imageType) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request: Campos essenciais (originalFile, type) estão faltando.' });
@@ -123,7 +109,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // 5. Persistência na tabela 'edited_files' (TEMPORÁRIA)
-    const fileTypeInt = imageType === 'photo' ? 1 : 2; // Padronização de variável 'imageType' -> 'fileTypeInt'
+    const fileTypeInt = imageType === 'photo' ? 1 : 2;
 
     try {
     await prisma.edited_files.create({ 
