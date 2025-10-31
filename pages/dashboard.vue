@@ -1,4 +1,4 @@
-// /pages/dashboard.vue - V1.15 - Revertendo a lógica de remontagem do DataForm para preservar o estado do formulário preenchido.
+// /pages/dashboard.vue - V1.21 - Ajuste final da rota de busca de tratamentos para o novo endpoint correto (users/[id]/treatment-photos).
 <template>
 <div>
 <Header pageTitle="Dashboard" />
@@ -71,10 +71,10 @@ icon-alt="Ícone de Régua"
 <div class="mt-8 text-center">
 <div class="flex justify-center space-x-4"> 
 <button
- @click="startNewRecord"
- class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
+@click="startNewRecord"
+class="px-6 py-3 bg-btn-principal text-btn-font-principal rounded-md font-bold hover:opacity-80 transition duration-150 shadow-md flex items-center"
 >
- <i class="fas fa-plus-circle mr-2"></i> Novo Registro
+<i class="fas fa-plus-circle mr-2"></i> Novo Registro
 </button>
 </div>
 </div>
@@ -96,6 +96,8 @@ v-if="showForm"
 :raw-chart-data="chartData" 
 :has-registro-photos="hasRegistroPhotos" 
 :has-forma-photos="hasFormaPhotos" 
+:grouped-treatment-photos="groupedTreatmentPhotos"
+:available-areas="[]"
 @editRecord="handleEditRecord"
 />
 </div>
@@ -131,13 +133,11 @@ const { allTempFiles } = useTempFiles();
 // --- Lógica de Scroll Lock (Mantida) ---
 watch(showImageEditor, (isEditorOpen) => {
 if (process.client) {
- if (isEditorOpen) {
- // Bloqueia a rolagem do corpo da página
- document.body.classList.add('overflow-hidden');
- } else {
- // Reativa a rolagem
- document.body.classList.remove('overflow-hidden');
- }
+if (isEditorOpen) {
+document.body.classList.add('overflow-hidden');
+} else {
+document.body.classList.remove('overflow-hidden');
+}
 }
 });
 
@@ -152,7 +152,77 @@ hasRegistroPhotos,
 hasFormaPhotos 
 } = useKpiData();
 
-// --- Contadores de fotos (REATIVOS) ---
+// --- Tratamentos: Estado e Funções de Busca ---
+const groupedTreatmentPhotos = ref([]);
+
+/**
+ * Função utilitária para agrupar fotos por tratamento.
+ * @param {Array} photos - Array de fotos com a propriedade associatedTreatment.
+ * @returns {Array} Array de grupos formatado para o TreatmentGallery.
+ */
+const groupPhotosByTreatment = (photos) => {
+ const groups = {};
+
+ photos.forEach(photo => {
+   const treatmentName = photo.associatedTreatment?.name || 'Não Associado';
+   const userTreatmentId = photo.associatedTreatment?.userTreatmentId || 0;
+
+   if (!groups[treatmentName]) {
+     groups[treatmentName] = {
+       treatmentName: treatmentName,
+       userTreatmentId: userTreatmentId, // Adiciona o ID para referência
+       photos: []
+     };
+   }
+   groups[treatmentName].photos.push(photo);
+ });
+
+ // Converte o objeto de grupos em um array
+ return Object.values(groups);
+};
+
+const fetchTreatmentPhotos = async () => {
+if (!authStore.initialized) {
+ await authStore.init();
+}
+const userId = authStore.user?.userId; 
+if (!userId) {
+ console.warn('Não foi possível buscar fotos de tratamento: Usuário ID ausente.');
+ return;
+}
+
+groupedTreatmentPhotos.value = []; // Limpa o estado antes de buscar
+
+try {
+ const token = authStore.token;
+ // CORREÇÃO (V1.21): Rota ajustada para o padrão 'users' no plural.
+ const response = await $fetch(`/api/users/${userId}/treatment-photos`, {
+  headers: { Authorization: `Bearer ${token}` },
+  method: 'GET'
+ });
+ 
+ // Leitura da resposta ajustada para usar 'response.photos'.
+ let rawPhotosArray = [];
+ if (response && Array.isArray(response.photos)) {
+  rawPhotosArray = response.photos;
+ }
+
+ if (rawPhotosArray.length > 0) {
+   // Agrupa as fotos por tratamento, conforme esperado pelo TreatmentGallery.
+   groupedTreatmentPhotos.value = groupPhotosByTreatment(rawPhotosArray);
+   console.log(`[Dashboard] Tratamentos carregados: ${groupedTreatmentPhotos.value.length} grupos.`);
+ } else {
+  console.log('[Dashboard] Nenhuma foto de tratamento encontrada.');
+ }
+
+} catch (e) {
+ console.error('Erro fatal ao buscar fotos de tratamento:', e);
+ groupedTreatmentPhotos.value = [];
+}
+}
+
+
+// --- Contadores de fotos (REATIVOS, Mantidos) ---
 const tempPhotoFilesCount = computed(() => allTempFiles.value.filter(f => f.type === 'photo').length);
 const tempFormaFilesCount = computed(() => allTempFiles.value.filter(f => f.type === 'forma').length);
 
@@ -205,25 +275,24 @@ weatherData.value.code='error';
 }finally{isWeatherLoading.value=false;}
 };
 
-// --- Handlers (Corrigido para evitar a perda de estado) ---
+// --- Handlers (Mantidos) ---
 const handleOpenImageEditor = () => {
-    // Garante que o DataForm esteja aberto (se não estiver) e depois abre o editor.
-    if(!showForm.value) startNewRecord(); 
+  // Garante que o DataForm esteja aberto (se não estiver) e depois abre o editor.
+  if(!showForm.value) startNewRecord(); 
 
-    // Abre o editor e bloqueia a tela (via watch)
-    showImageEditor.value = true;
-    
-    // Adiciona o scroll silencioso de volta
-    if(process.client) window.scrollTo({ top: 0, behavior: 'instant' }); 
+  // Abre o editor e bloqueia a tela (via watch)
+  showImageEditor.value = true;
+  
+  // Adiciona o scroll silencioso de volta
+  if(process.client) window.scrollTo({ top: 0, behavior: 'instant' }); 
 };
-
-const startPhotoRecord = () => handleOpenImageEditor();
 
 // Lógica padrão: abre o formulário e fecha o editor
 const startNewRecord = () => { editingRecordId.value=null; showForm.value=true; showImageEditor.value=false; };
 const handleEditRecord = (id) => { editingRecordId.value=id; showForm.value=true; showImageEditor.value=false; };
 
-const handleRecordSaved = () => { fetchData(); showForm.value=false; editingRecordId.value=null; showImageEditor.value=false; };
+// Altera o handler para buscar as fotos de tratamento também
+const handleRecordSaved = () => { fetchData(); fetchTreatmentPhotos(); showForm.value=false; editingRecordId.value=null; showImageEditor.value=false; };
 
-onMounted(()=>{ fetchData(); fetchWeather(); });
+onMounted(()=>{ fetchData(); fetchWeather(); fetchTreatmentPhotos(); }); // Chamada inicial
 </script>
