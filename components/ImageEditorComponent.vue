@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.27 - Aplica blur adaptativo (base 20px multiplicado pelo Device Pixel Ratio) ao arquivo de saída, mantendo 20px na visualização do PC.
+// /components/ImageEditorComponent.vue - V1.28 - Implementa desfoque StackBlur para a saída final no Canvas (createFinalCanvas) para garantir intensidade no mobile (alto DPR), mantendo o filtro CSS (20px) para a visualização.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -78,6 +78,140 @@ class="w-full py-3 bg-indigo-600 text-white rounded-md font-bold hover:bg-indigo
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch, computed, onUnmounted } from 'vue'
 
+// --- START: STACKBLUR IMPLEMENTATION ---
+/**
+ * StackBlur - a fast, almost Gaussian blur implementation
+ * by Mario Klingemann
+ * @param {CanvasRenderingContext2D} ctx The context containing the ImageData
+ * @param {number} x The x coordinate of the area to blur
+ * @param {number} y The y coordinate of the area to blur
+ * @param {number} w The width of the area to blur
+ * @param {number} h The height of the area to blur
+ * @param {number} radius The blur radius
+ */
+function stackBlurCanvasRGB(ctx, x, y, w, h, radius) {
+  if (isNaN(radius) || radius < 1) return;
+  
+  radius |= 0;
+  
+  const imageData = ctx.getImageData(x, y, w, h);
+  const pixels = imageData.data;
+  
+  let p = w * h;
+  const dv = new Int32Array(p);
+  const hm = radius;
+  const wm = w - 1;
+  const wh = w * h;
+  const div = radius + radius + 1;
+  
+  const r = new Int32Array(wh);
+  const g = new Int32Array(wh);
+  const b = new Int32Array(wh);
+  
+  let rsum, gsum, bsum, xmax, ymax, yi, yp, i;
+  let next, prev;
+
+  const vmin = new Int32Array(Math.max(w, h));
+  
+  let divsum = (div + 1) >> 1;
+  divsum *= divsum;
+  const dvcv = new Int32Array(256 * divsum);
+  for (i = 0; i < 256 * divsum; i++) {
+    dvcv[i] = (i / divsum) | 0;
+  }
+  
+  // R G B channels
+  let ri = 0;
+  let bi = 0;
+  for (i = 0; i < p; i++) {
+    r[i] = pixels[ri];
+    g[i] = pixels[ri + 1];
+    b[i] = pixels[ri + 2];
+    ri += 4;
+  }
+  
+  let yw = 0;
+  let singleDiv = 1 / div; // Pre-calculate 1/div
+  
+  // Horizontal Pass
+  for (y = 0; y < h; y++) {
+    rsum = gsum = bsum = 0;
+    
+    yp = -radius * w;
+    for (i = -radius; i <= radius; i++) {
+      yi = Math.max(0, yp) + x;
+      rsum += r[yi];
+      gsum += g[yi];
+      bsum += b[yi];
+      yp += w;
+    }
+    
+    yi = yw;
+    for (x = 0; x < w; x++) {
+      dv[yi] = dvcv[rsum];
+      dv[yi + 1] = dvcv[gsum];
+      dv[yi + 2] = dvcv[bsum];
+      
+      if (x === 0) {
+        vmin[y] = Math.min(y + radius + 1, h - 1) * w;
+      }
+      
+      next = x + radius + 1;
+      next = Math.min(next, wm);
+      
+      prev = x - radius;
+      prev = Math.max(0, prev);
+      
+      rsum += r[yw + next] - r[yw + prev];
+      gsum += g[yw + next] - g[yw + prev];
+      bsum += b[yw + next] - b[yw + prev];
+      
+      yi += 4;
+    }
+    yw += w;
+  }
+
+  // Vertical Pass
+  for (x = 0; x < w; x++) {
+    rsum = gsum = bsum = 0;
+    yp = -radius * w;
+    for (i = -radius; i <= radius; i++) {
+      yi = Math.max(0, yw + yp) + x;
+      rsum += dv[yi];
+      gsum += dv[yi + 1];
+      bsum += dv[yi + 2];
+      yp += w;
+    }
+    
+    yi = x;
+    for (y = 0; y < h; y++) {
+      pixels[yi] = dvcv[rsum];
+      pixels[yi + 1] = dvcv[gsum];
+      pixels[yi + 2] = dvcv[bsum];
+      
+      if (y === 0) {
+        vmin[x] = Math.min(x + radius + 1, w - 1);
+      }
+      
+      next = y + radius + 1;
+      next = Math.min(next, hm);
+      
+      prev = y - radius;
+      prev = Math.max(0, prev);
+      
+      rsum += dv[vmin[y] + x] - dv[prev * w + x];
+      gsum += dv[vmin[y] + x + 1] - dv[prev * w + x + 1];
+      bsum += dv[vmin[y] + x + 2] - dv[prev * w + x + 2];
+      
+      yi += w * 4;
+    }
+  }
+  
+  ctx.putImageData(imageData, x, y);
+}
+// --- END: STACKBLUR IMPLEMENTATION ---
+
+
 const props = defineProps({
 initialImageUrl: { type: String, required: true },
 imageType: { type: String, required: true }, 
@@ -89,9 +223,8 @@ const emit = defineEmits(['saveEditedImage', 'error', 'rotate'])
 
 const isSaving = ref(false)
 const isPrivateLocal = ref(props.initialIsPrivate)
-// 🚨 NOVO: Variável para armazenar o Device Pixel Ratio (DPR)
+// Variável para armazenar o Device Pixel Ratio (DPR) - mantida, mas não usada para blur
 const devicePixelRatio = ref(1); 
-
 
 watch(() => props.initialIsPrivate, (newVal) => {
 isPrivateLocal.value = newVal
@@ -359,7 +492,7 @@ canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
   try {
   canvasCtx.save()
-  // ✅ Manter 20px para a visualização, pois funciona bem no PC.
+  // ✅ Manter 20px para a visualização, pois funciona bem no PC e é mais leve.
   canvasCtx.filter = 'blur(20px)'
   
   // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
@@ -563,20 +696,36 @@ if (r.type === 'stripe') {
 ctx.fillStyle = '#000'
 ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordenadas final.
 } else if (r.type === 'blur') {
-ctx.save() 
-// 🚨 MUDANÇA CRÍTICA: Aplica o blur base (20px) multiplicado pelo DPR.
-const adaptiveBlurPx = Math.ceil(20 * devicePixelRatio.value);
-ctx.filter = `blur(${adaptiveBlurPx}px)`
+// 🚨 MUDANÇA CRÍTICA: Aplica o desfoque StackBlur diretamente no contexto final.
+// 40px é um raio seguro e forte para garantir a opacidade visual.
+const BLUR_RADIUS = 40; 
+try {
+ // Desenha APENAS a área a ser desfocada em um canvas temporário
+ const tempCanvas = document.createElement('canvas');
+ tempCanvas.width = tw;
+ tempCanvas.height = th;
+ const tempCtx = tempCanvas.getContext('2d');
+ 
+ // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+ tempCtx.drawImage(
+  img, 
+  r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada, coordenadas originais)
+  0, 0, tw, th // Destination: No canvas temporário (sem rotação/offset, dimensões rotacionadas)
+ );
+ 
+ // Aplica o StackBlur no canvas temporário.
+ // O 'tw' e 'th' aqui são as dimensões do canvas temporário
+ stackBlurCanvasRGB(tempCtx, 0, 0, tw, th, BLUR_RADIUS);
+ 
+ // Desenha o resultado do canvas temporário de volta no canvas de saída (output)
+ ctx.drawImage(tempCanvas, tx, ty);
 
-// drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
-// Source: recorta da imagem original (r.x,r.y,r.w,r.h)
-// Destino: no canvas (tx, ty, tw, th)
-ctx.drawImage(
-img, 
-r.x, r.y, r.w, r.h, // Source: Da imagem base (não rotacionada)
-tx, ty, tw, th // Destino: No contexto final (com coords e dimensões já rotacionadas)
-)
-ctx.restore()
+} catch (e) {
+ console.error("Erro ao aplicar StackBlur, usando fallback para tarja preta.", e);
+ // Fallback: tarja preta no canvas final em caso de falha.
+ ctx.fillStyle = '#000'
+ ctx.fillRect(tx, ty, tw, th) 
+}
 }
 })
 
@@ -689,7 +838,7 @@ URL.revokeObjectURL(dataURL);
 
 
 onMounted(() => {
-  // 🚨 NOVO: Detecta o DPR na montagem
+  // Mantém a detecção do DPR, embora StackBlur não precise mais dela para o raio.
   if (typeof window !== 'undefined') {
     devicePixelRatio.value = window.devicePixelRatio || 1;
   }
