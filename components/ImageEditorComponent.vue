@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.23 - Aumento da intensidade do blur de 8px para 20px para melhor visibilidade em telas mobile.
+// /components/ImageEditorComponent.vue - V1.24 - Aumento da intensidade do blur de 20px para 40px para garantir visibilidade em telas mobile com alta densidade de pixels.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -356,8 +356,8 @@ canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
     try {
      canvasCtx.save()
-     // 🚨 CORREÇÃO: Aumenta o blur de 8px para 20px (melhor visibilidade em mobile)
-     canvasCtx.filter = 'blur(20px)'
+     // 🚨 CORREÇÃO: Aumenta o blur de 20px para 40px (garantindo visibilidade)
+     canvasCtx.filter = 'blur(40px)'
      
      // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
      canvasCtx.drawImage(
@@ -561,8 +561,8 @@ ctx.fillStyle = '#000'
 ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordenadas final.
 } else if (r.type === 'blur') {
 ctx.save() 
-// 🚨 CORREÇÃO: Aumenta o blur de 8px para 20px (para o arquivo final)
-ctx.filter = 'blur(20px)'
+// 🚨 CORREÇÃO: Aumenta o blur de 20px para 40px (para o arquivo final)
+ctx.filter = 'blur(40px)'
 
 // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
 // Source: recorta da imagem original (r.x,r.y,r.w,r.h)
@@ -580,6 +580,7 @@ return output;
 }
 
 /**
+* Função exposta para uso externo, gerando ambos os blobs para salvamento.
 * @returns {Promise<{editedBlob: Blob, originalBlob: Blob}>}
 */
 const generateBlobs = async () => {
@@ -595,7 +596,7 @@ const originalBlob = await new Promise((res, rej) => {
 })
 
 if (!editedBlob) throw new Error('Falha ao gerar o Blob da imagem editada.');
-if (!originalBlob) throw new Error('Falha ao gerar o Blob da imagem original rotacionada.');
+if (!originalBlob) throw throw new Error('Falha ao gerar o Blob da imagem original rotacionada.');
 
 return { editedBlob, originalBlob };
 }
