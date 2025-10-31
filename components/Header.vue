@@ -1,199 +1,202 @@
-// /components/Header.vue - V1.19 - CORREÇÃO: Uso de "ClientOnly" para resolver Mismatches de Hydration.
-  <template>
-   <header class="flex items-center justify-between p-4 shadow-md bg-[#222B45] relative">
-    <div class="flex items-center space-x-3">
-     <NuxtLink to="/dashboard" class="focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded-lg">
-      <img
-       src="/images/logoWLCb1.png"
-       alt="Logotipo"
-       class="h-12 w-12 object-contain"
-      />
-     </NuxtLink>
-     <h1 v-if="pageTitle" class="text-2xl font-bold text-white">{{ pageTitle }}</h1>
-    </div>
-  
-    <div class="flex items-center gap-4 relative" ref="menuContainerRef">
-     <span
-      class="font-medium transition-colors duration-300"
-      :class="authStore.isOwner ? 'text-red-400' : (authStore.isAdmin ? 'text-yellow-400' : 'text-white')"
-     >
-      {{ firstName }}
-     </span>
-        
-        <ClientOnly>
-      <div class="relative">
-       <button @click="toggleMenu"
-        :class="[
-         'w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200 focus:outline-none',
-                // Classes condicionais que causam mismatch
-         authStore.isOwner ? 'ring-2 ring-red-400' : (authStore.isAdmin ? 'border-2 border-yellow-400' : 'border border-gray-300')
-        ]"
-       >
-        <img
-         v-if="authStore.user?.photo_perfil_url"
-         :src="authStore.user.photo_perfil_url"
-         alt="Foto de Perfil"
-         class="w-full h-full object-cover"
-         @error="handleImgError"
-        />
-                    <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
-       </button>
-  
-       <div
-        v-if="menuOpen"
-        class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
-        @mouseleave="closeAdminMenu"
-        @click.stop
-       >
-        <ul class="py-2">
-         <li>
-          <button
-           @click="goToProfile"
-           class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
-          >
-           <i class="fas fa-user mr-2"></i> Meu Perfil
-          </button>
-         </li>
-         
-         <li v-if="authStore.isProfessional || authStore.isAdmin || authStore.isOwner">
-          <button
-           @click="goToProfessionalSearch"
-           class="w-full text-left px-4 py-2 hover:bg-gray-100 text-indigo-700 font-semibold border-t border-b my-1 border-gray-100"
-          >
-           <i class="fas fa-stethoscope mr-2"></i> Atendimento
-          </button>
-         </li>
-  
-         <li>
-          <button
-           @click="goToChat"
-           class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
-          >
-           <i class="fas fa-comments mr-2"></i> Mensagens
-          </button>
-         </li>
-  
-         <li v-if="authStore.isAdmin || authStore.isOwner"
-           class="relative"
-           @mouseenter="openAdminMenu"
-           @mouseleave="closeAdminMenu"
-         >
-          <div
-           class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
-          >
-           <div>
-             <i class="fas fa-cog mr-2"></i> Administrar
-           </div>
-           <span class="text-gray-500">▶</span>
-          </div>
-  
-          <ul
-           v-if="adminSubMenuOpen"
-           class="absolute top-0 right-full mr-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
-          >
-           <li>
-            <button
-             @click="goToUserAdmin"
-             class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+// /components/Header.vue - V2.1 - Correção estrutural do Fragment. O elemento de agrupamento dentro do ClientOnly foi simplificado para evitar conflito de classes e garantir o parsing correto das tags internas, resolvendo o erro 'Invalid end tag'.
+<template>
+ <header class="flex items-center justify-between p-4 shadow-md bg-[#222B45] relative">
+  <div class="flex items-center space-x-3">
+  <NuxtLink to="/dashboard" class="focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded-lg">
+   <img
+   src="/images/logoWLCb1.png"
+   alt="Logotipo"
+   class="h-12 w-12 object-contain"
+   />
+  </NuxtLink>
+  <h1 v-if="pageTitle" class="text-2xl font-bold text-white">{{ pageTitle }}</h1>
+  </div>
+ 
+  <div class="flex items-center gap-4 relative" ref="menuContainerRef">
+    
+    <ClientOnly>
+          <div> 
+            <span
+              class="font-medium transition-colors duration-300"
+              :class="authStore.isOwner ? 'text-red-400' : (authStore.isAdmin ? 'text-yellow-400' : 'text-white')"
             >
-             Administração de Usuários
-            </button>
-           </li>
-          </ul>
-         </li>
-  
-         <li>
-          <button
-           @click="logout"
-           class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-semibold border-t mt-1 pt-3"
-          >
-           <i class="fas fa-sign-out-alt mr-2"></i> Sair
-          </button>
-         </li>
-        </ul>
-       </div>
-      </div>
-        </ClientOnly>
+              {{ firstName }}
+            </span>
+            
+            <div class="relative inline-block ml-4">
+              <button @click="toggleMenu"
+                :class="[
+                  'w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200 focus:outline-none',
+                  // Classes condicionais que causam mismatch, agora dentro de ClientOnly
+                  authStore.isOwner ? 'ring-2 ring-red-400' : (authStore.isAdmin ? 'border-2 border-yellow-400' : 'border border-gray-300')
+                ]"
+              >
+                <img
+                  v-if="authStore.user?.photo_perfil_url"
+                  :src="authStore.user.photo_perfil_url"
+                  alt="Foto de Perfil"
+                  class="w-full h-full object-cover"
+                  @error="handleImgError"
+                />
+                <span v-else class="text-sm font-bold text-gray-600">{{ initials }}</span>
+              </button>
+      
+              <div
+                v-if="menuOpen"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                @mouseleave="closeAdminMenu"
+                @click.stop
+              >
+                <ul class="py-2">
+                  <li>
+                    <button
+                      @click="goToProfile"
+                      class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                    >
+                      <i class="fas fa-user mr-2"></i> Meu Perfil
+                    </button>
+                  </li>
+                  
+                  <li v-if="authStore.isProfessional || authStore.isAdmin || authStore.isOwner">
+                    <button
+                      @click="goToProfessionalSearch"
+                      class="w-full text-left px-4 py-2 hover:bg-gray-100 text-indigo-700 font-semibold border-t border-b my-1 border-gray-100"
+                    >
+                      <i class="fas fa-stethoscope mr-2"></i> Atendimento
+                    </button>
+                  </li>
+      
+                  <li>
+                    <button
+                      @click="goToChat"
+                      class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                    >
+                      <i class="fas fa-comments mr-2"></i> Mensagens
+                    </button>
+                  </li>
+      
+                  <li v-if="authStore.isAdmin || authStore.isOwner"
+                    class="relative"
+                    @mouseenter="openAdminMenu"
+                    @mouseleave="closeAdminMenu"
+                  >
+                    <div
+                      class="w-full px-4 py-2 flex justify-between items-center hover:bg-gray-100 text-gray-700 cursor-pointer"
+                    >
+                      <div>
+                        <i class="fas fa-cog mr-2"></i> Administrar
+                      </div>
+                      <span class="text-gray-500">▶</span>
+                    </div>
+      
+                    <ul
+                      v-if="adminSubMenuOpen"
+                      class="absolute top-0 right-full mr-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                    >
+                      <li>
+                        <button
+                          @click="goToUserAdmin"
+                          class="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                        >
+                          Administração de Usuários
+                        </button>
+                      </li>
+                    </ul>
+                  </li>
+      
+                  <li>
+                    <button
+                      @click="logout"
+                      class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-semibold border-t mt-1 pt-3"
+                    >
+                      <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-   </header>
-  </template>
-  
-  <script setup>
-  // /components/Header.vue - V1.19 - Uso de <ClientOnly> para Hydration e isProfessional corrigido na store.
-  import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-  import { useAuthStore } from '~/stores/auth'
-  import { navigateTo } from '#app'
-  
-  const props = defineProps({
-   pageTitle: { type: String, default: '' }
-  })
-  
-  const authStore = useAuthStore()
-  const menuOpen = ref(false)
-  const adminSubMenuOpen = ref(false)
-  const menuContainerRef = ref(null) 
-  
-  const firstName = computed(() => {
-   if (authStore.user?.username) return authStore.user.username.split(' ')[0]
-   return 'Usuário'
-  })
-  
-  const initials = computed(() => {
-   if (authStore.user?.username) return authStore.user.username.charAt(0).toUpperCase()
-   return 'U'
-  })
-  
-  const handleImgError = () => {
-   if (authStore.user) authStore.user.photo_perfil_url = null
-  }
-  
-  const toggleMenu = () => {
-   menuOpen.value = !menuOpen.value
-   if (!menuOpen.value) adminSubMenuOpen.value = false
-  }
-  const openAdminMenu = () => (adminSubMenuOpen.value = true)
-  const closeAdminMenu = () => (adminSubMenuOpen.value = false)
-  
-  const closeMenu = (event) => {
-   if (menuOpen.value && menuContainerRef.value && !menuContainerRef.value.contains(event.target)) {
-    menuOpen.value = false
-    adminSubMenuOpen.value = false
-   }
-  }
-  
-  onMounted(() => document.addEventListener('click', closeMenu))
-  onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
-  
-  // --- Funções de Navegação ---
-  
-  const goToProfile = () => {
-   menuOpen.value = false
-   adminSubMenuOpen.value = false
-   navigateTo('/profile')
-  }
-  
-  const goToChat = () => {
-   menuOpen.value = false
-   adminSubMenuOpen.value = false
-   navigateTo('/chat')
-  }
-  
-  const goToUserAdmin = () => {
-   menuOpen.value = false
-   adminSubMenuOpen.value = false
-   navigateTo('/user_management')
-  }
-  
-  const goToProfessionalSearch = () => {
-   menuOpen.value = false
-   adminSubMenuOpen.value = false
-   navigateTo('/professional/user_search')
-  }
-  
-  const logout = () => {
-   authStore.logout()
-   menuOpen.value = false
-   adminSubMenuOpen.value = false
-   navigateTo('/login')
-  }
-  </script>
+    </ClientOnly>
+   </div>
+ </header>
+ </template>
+ 
+ <script setup>
+ // /components/Header.vue - V2.1 - Uso de <ClientOnly> para Hydration e isProfessional corrigido na store.
+ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+ import { useAuthStore } from '~/stores/auth'
+ import { navigateTo } from '#app'
+ 
+ const props = defineProps({
+ pageTitle: { type: String, default: '' }
+ })
+ 
+ const authStore = useAuthStore()
+ const menuOpen = ref(false)
+ const adminSubMenuOpen = ref(false)
+ const menuContainerRef = ref(null) 
+ 
+ const firstName = computed(() => {
+ if (authStore.user?.username) return authStore.user.username.split(' ')[0]
+ return 'Usuário'
+ })
+ 
+ const initials = computed(() => {
+ if (authStore.user?.username) return authStore.user.username.charAt(0).toUpperCase()
+ return 'U'
+ })
+ 
+ const handleImgError = () => {
+ if (authStore.user) authStore.user.photo_perfil_url = null
+ }
+ 
+ const toggleMenu = () => {
+ menuOpen.value = !menuOpen.value
+ if (!menuOpen.value) adminSubMenuOpen.value = false
+ }
+ const openAdminMenu = () => (adminSubMenuOpen.value = true)
+ const closeAdminMenu = () => (adminSubMenuOpen.value = false)
+ 
+ const closeMenu = (event) => {
+ if (menuOpen.value && menuContainerRef.value && !menuContainerRef.value.contains(event.target)) {
+  menuOpen.value = false
+  adminSubMenuOpen.value = false
+ }
+ }
+ 
+ onMounted(() => document.addEventListener('click', closeMenu))
+ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
+ 
+ // --- Funções de Navegação ---
+ 
+ const goToProfile = () => {
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/profile')
+ }
+ 
+ const goToChat = () => {
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/chat')
+ }
+ 
+ const goToUserAdmin = () => {
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/user_management')
+ }
+ 
+ const goToProfessionalSearch = () => {
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/professional/user_search')
+ }
+ 
+ const logout = () => {
+ authStore.logout()
+ menuOpen.value = false
+ adminSubMenuOpen.value = false
+ navigateTo('/login')
+ }
+ </script>
