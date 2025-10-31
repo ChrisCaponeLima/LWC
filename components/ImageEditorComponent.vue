@@ -697,7 +697,7 @@ ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordena
 } else if (r.type === 'blur') {
 // 🚨 MUDANÇA CRÍTICA: Implementa Desfoque Multi-Pass (3x) para garantir intensidade no mobile.
 const BLUR_RADIUS = 15; // Raio menor por passagem
-const BLUR_PASSES = 3;  // Número de repetições
+const BLUR_PASSES = 8;  // Número de repetições
 try {
  // Desenha APENAS a área a ser desfocada em um canvas temporário
  const tempCanvas = document.createElement('canvas');
