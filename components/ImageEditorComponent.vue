@@ -1,4 +1,4 @@
-// /components/ImageEditorComponent.vue - V1.26 - Aumento da intensidade do blur de 40px para 80px para tentar resolver a baixa visibilidade em telas mobile (HiDPI).
+// /components/ImageEditorComponent.vue - V1.27 - Aplica blur adaptativo (base 20px multiplicado pelo Device Pixel Ratio) ao arquivo de saída, mantendo 20px na visualização do PC.
 <template>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
@@ -89,6 +89,9 @@ const emit = defineEmits(['saveEditedImage', 'error', 'rotate'])
 
 const isSaving = ref(false)
 const isPrivateLocal = ref(props.initialIsPrivate)
+// 🚨 NOVO: Variável para armazenar o Device Pixel Ratio (DPR)
+const devicePixelRatio = ref(1); 
+
 
 watch(() => props.initialIsPrivate, (newVal) => {
 isPrivateLocal.value = newVal
@@ -111,7 +114,7 @@ const mode = ref('blur')
 
 // 🚨 NOVO: Estado de Edição Real (true se houver SOMENTE aplicação de efeitos)
 const isEdited = computed(() => {
-  return rects.length > 0;
+ return rects.length > 0;
 });
 
 const rotationWrapperStyle = computed(() => {
@@ -356,8 +359,8 @@ canvasCtx.fillRect(tx, ty, tw, th)
 } else if (r.type === 'blur') {
   try {
   canvasCtx.save()
-  // 🚨 CORREÇÃO: Aumenta o blur de 40px para 80px (última tentativa com filtro CSS)
-  canvasCtx.filter = 'blur(80px)'
+  // ✅ Manter 20px para a visualização, pois funciona bem no PC.
+  canvasCtx.filter = 'blur(20px)'
   
   // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
   canvasCtx.drawImage(
@@ -528,32 +531,32 @@ rects.forEach((r) => {
 let tx, ty, tw, th;
 
 switch (rotation.value) {
- case 0:
- tx = r.x;
- ty = r.y;
- tw = r.w;
- th = r.h;
- break;
- case 90:
- tx = r.y;
- ty = finalW - r.x - r.w; 
- tw = r.h;
- th = r.w;
- break;
- case 180:
- tx = finalW - r.x - r.w;
- ty = finalH - r.y - r.h;
- tw = r.w;
- th = r.h;
- break;
- case 270:
- tx = finalH - r.y - r.h; 
- ty = r.x;
- tw = r.h;
- th = r.w;
- break;
- default:
- return;
+case 0:
+tx = r.x;
+ty = r.y;
+tw = r.w;
+th = r.h;
+break;
+case 90:
+tx = r.y;
+ty = finalW - r.x - r.w; 
+tw = r.h;
+th = r.w;
+break;
+case 180:
+tx = finalW - r.x - r.w;
+ty = finalH - r.y - r.h;
+tw = r.w;
+th = r.h;
+break;
+case 270:
+tx = finalH - r.y - r.h; 
+ty = r.x;
+tw = r.h;
+th = r.w;
+break;
+default:
+return;
 }
 
 if (r.type === 'stripe') {
@@ -561,8 +564,9 @@ ctx.fillStyle = '#000'
 ctx.fillRect(tx, ty, tw, th) // tx, ty, tw, th já estão no sistema de coordenadas final.
 } else if (r.type === 'blur') {
 ctx.save() 
-// 🚨 CORREÇÃO: Aumenta o blur de 40px para 80px (para o arquivo final)
-ctx.filter = 'blur(80px)'
+// 🚨 MUDANÇA CRÍTICA: Aplica o blur base (20px) multiplicado pelo DPR.
+const adaptiveBlurPx = Math.ceil(20 * devicePixelRatio.value);
+ctx.filter = `blur(${adaptiveBlurPx}px)`
 
 // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
 // Source: recorta da imagem original (r.x,r.y,r.w,r.h)
@@ -685,6 +689,10 @@ URL.revokeObjectURL(dataURL);
 
 
 onMounted(() => {
+  // 🚨 NOVO: Detecta o DPR na montagem
+  if (typeof window !== 'undefined') {
+    devicePixelRatio.value = window.devicePixelRatio || 1;
+  }
 window.addEventListener('resize', resizeCanvasToImage)
 })
 
