@@ -74,8 +74,12 @@ model records {
 model treatments {
   id                         Int                          @id @default(autoincrement())
   treatment_name             String                       @unique @db.VarChar(255)
+  precoP                     Decimal?                     @db.Decimal(10, 2)
+  precoM                     Decimal?                     @db.Decimal(10, 2)
+  precoG                     Decimal?                     @db.Decimal(10, 2)
+  precoGG                    Decimal?                     @db.Decimal(10, 2)
   attention_point_treatments attention_point_treatments[]
-  treatment_products         treatment_products[]
+  user_administered_products user_administered_products[]
   user_treatment_photos      user_treatment_photos[]
   user_treatments            user_treatments[]
 }
@@ -105,7 +109,7 @@ model users {
   messages                                                                                      messages[]
   professionals                                                                                 professionals[]
   records                                                                                       records[]
-  treatment_products                                                                            treatment_products[]
+  user_administered_products                                                                    user_administered_products[]
   user_partnerships_user_partnerships_partner_user_idTousers                                    user_partnerships[]                 @relation("user_partnerships_partner_user_idTousers")
   user_partnerships_user_partnerships_user_idTousers                                            user_partnerships[]                 @relation("user_partnerships_user_idTousers")
   user_treatment_photos                                                                         user_treatment_photos[]
@@ -203,7 +207,7 @@ model professionals {
   user_id                           Int
   users                             users                               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_professionals_users")
   professionals_specialties         professionals_specialties[]
-  treatment_products                treatment_products[]
+  user_administered_products        user_administered_products[]
   user_treatment_photos             user_treatment_photos[]
   user_treatment_photos_annotations user_treatment_photos_annotations[]
 }
@@ -257,21 +261,6 @@ model edited_files {
   created_at           DateTime? @default(now()) @db.Timestamp(6)
 }
 
-model treatment_products {
-  id                              Int            @id @default(autoincrement())
-  user_id                         Int
-  treatment_id                    Int?
-  product_name                    String         @db.VarChar(255)
-  dosage                          String?        @db.VarChar(100)
-  notes                           String?
-  administered_date               DateTime?      @default(dbgenerated("CURRENT_DATE")) @db.Date
-  administered_by_professional_id Int?
-  created_at                      DateTime?      @default(now()) @db.Timestamptz(6)
-  professionals                   professionals? @relation(fields: [administered_by_professional_id], references: [id], onUpdate: NoAction, map: "fk_tp_professional")
-  treatments                      treatments?    @relation(fields: [treatment_id], references: [id], onUpdate: NoAction, map: "fk_tp_treatment")
-  users                           users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tp_user")
-}
-
 model user_treatments {
   id                                Int                                 @id @default(autoincrement())
   user_id                           Int
@@ -281,6 +270,7 @@ model user_treatments {
   created_at                        DateTime?                           @default(now()) @db.Timestamptz(6)
   treatment_area_id                 Int?
   end_date                          DateTime?                           @db.Date
+  is_courtesy                       Boolean?                            @default(false)
   user_treatment_photos_annotations user_treatment_photos_annotations[]
   treatment_areas                   treatment_areas?                    @relation(fields: [treatment_area_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ut_area")
   treatments                        treatments                          @relation(fields: [treatment_id], references: [id], onUpdate: NoAction, map: "fk_ut_treatment")
@@ -316,4 +306,36 @@ model treatment_areas {
   name            String            @unique @db.VarChar(100)
   created_at      DateTime?         @default(now()) @db.Timestamptz(6)
   user_treatments user_treatments[]
+}
+
+model products {
+  id                         Int                          @id @default(autoincrement())
+  product_name               String                       @unique @db.VarChar(255)
+  description                String?
+  precoP                     Decimal?                     @db.Decimal(10, 2)
+  precoM                     Decimal?                     @db.Decimal(10, 2)
+  precoG                     Decimal?                     @db.Decimal(10, 2)
+  precoGG                    Decimal?                     @db.Decimal(10, 2)
+  is_active                  Boolean                      @default(true)
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  user_administered_products user_administered_products[]
+}
+
+model user_administered_products {
+  id                              Int            @id(map: "treatment_products_pkey") @default(autoincrement())
+  user_id                         Int
+  treatment_id                    Int?
+  product_name                    String         @db.VarChar(255)
+  dosage                          String?        @db.VarChar(100)
+  notes                           String?
+  administered_date               DateTime?      @default(dbgenerated("CURRENT_DATE")) @db.Date
+  administered_by_professional_id Int?
+  created_at                      DateTime?      @default(now()) @db.Timestamptz(6)
+  product_id                      Int?
+  products                        products?      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_administered_product")
+  professionals                   professionals? @relation(fields: [administered_by_professional_id], references: [id], onUpdate: NoAction, map: "fk_tp_professional")
+  treatments                      treatments?    @relation(fields: [treatment_id], references: [id], onUpdate: NoAction, map: "fk_tp_treatment")
+  users                           users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tp_user")
+
+  @@index([product_id], map: "idx_user_administered_products_product_id")
 }
