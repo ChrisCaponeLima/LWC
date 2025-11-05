@@ -1,4 +1,4 @@
-// /components/Treatments/AssessmentImageEditor.vue - V2.7 - CORREÇÃO DE ERRO: Alterado o texto do commit na linha 1. Removida menção literal à tag de fechamento para evitar erro de `Invalid end tag`.
+// /components/Treatments/AssessmentImageEditor.vue - V2.9 - Correção: Adição do 'openMeasurementsForm' ao defineEmits.
 <template>
 <div class="space-y-6">
 <h3 class="text-xl font-bold text-gray-800 flex items-center mb-4">
@@ -10,40 +10,40 @@
 <h4 class="text-lg font-semibold text-gray-700 mb-4">Dados da Imagem</h4>
 
 <button 
-  @click="isConsiderationVisible = !isConsiderationVisible"
-  :class="[
-   'absolute top-6 right-6 p-2 rounded-full transition duration-150 z-10', 
-   isConsiderationVisible 
-    ? 'bg-red-500 text-white hover:bg-red-600' // Estado ATIVO: vermelho
-    : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' // Estado INATIVO: azul/indigo
-  ]"
-  title="Adicionar / Ocultar Considerações Internas"
+ @click="isConsiderationVisible = !isConsiderationVisible"
+ :class="[
+ 'absolute top-6 right-6 p-2 rounded-full transition duration-150 z-10', 
+ isConsiderationVisible 
+  ? 'bg-red-500 text-white hover:bg-red-600' // Estado ATIVO: vermelho
+  : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' // Estado INATIVO: azul/indigo
+ ]"
+ title="Adicionar / Ocultar Considerações Internas"
 >
-  <i class="fas fa-pencil-alt"></i>
+ <i class="fas fa-pencil-alt"></i>
 </button>
 
- <div>
- <label for="treatment-type" class="block text-sm font-medium text-gray-700">
- Tipo de Tratamento <span class="text-red-500">*</span>
- </label>
- <select
- id="treatment-type"
- v-model="selectedTreatmentId"  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
- >
- <option :value="null" disabled>-- Selecione o Tipo de Tratamento --</option>
- 
- <option 
-  v-for="treatment in availableTreatments" 
-  :key="treatment.id" 
-  :value="treatment.id"
- >
-  {{ treatment.name }}
- </option>
- </select>
- <p v-if="!availableTreatments || availableTreatments.length === 0" class="mt-1 text-xs text-red-500">
- ⚠️ Nenhuma opção de tratamento disponível.
- </p>
- </div>
+<div>
+<label for="treatment-type" class="block text-sm font-medium text-gray-700">
+Tipo de Tratamento <span class="text-red-500">*</span>
+</label>
+<select
+id="treatment-type"
+v-model="selectedTreatmentId" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+>
+<option :value="null" disabled>-- Selecione o Tipo de Tratamento --</option>
+
+<option 
+ v-for="treatment in availableTreatments" 
+ :key="treatment.id" 
+ :value="treatment.id"
+>
+ {{ treatment.name }}
+</option>
+</select>
+<p v-if="!availableTreatments || availableTreatments.length === 0" class="mt-1 text-xs text-red-500">
+⚠️ Nenhuma opção de tratamento disponível.
+</p>
+</div>
 
 <div>
 <label for="photo-type" class="block text-sm font-medium text-gray-700">
@@ -58,35 +58,45 @@ class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:r
 />
 </div>
 
- <div>
- <label for="photo-description" class="block text-sm font-medium text-gray-700">
- Observações / Descrição (Opcional)
+<div>
+<label for="photo-description" class="block text-sm font-medium text-gray-700">
+Observações / Descrição (Opcional)
+</label>
+<textarea
+id="photo-description"
+v-model="photoDescription"
+rows="3"
+placeholder="Anotações sobre a condição do local, métricas ou outros detalhes."
+class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+></textarea>
+</div>
+
+ <Transition name="slide-fade">
+ <div v-if="isConsiderationVisible" class="border-t pt-4">
+ <label for="photo-consideration" class="block text-sm font-medium text-gray-700">
+ Considerações (Notas Internas)
  </label>
  <textarea
- id="photo-description"
- v-model="photoDescription"
- rows="3"
- placeholder="Anotações sobre a condição do local, métricas ou outros detalhes."
- class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+  id="photo-consideration"
+  v-model="photoConsideration"
+  rows="3"
+  placeholder="Notas adicionais de tratamento ou considerações internas para uso do profissional."
+  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
  ></textarea>
  </div>
- 
-  <Transition name="slide-fade">
-  <div v-if="isConsiderationVisible" class="border-t pt-4">
-   <label for="photo-consideration" class="block text-sm font-medium text-gray-700">
-   Considerações (Notas Internas)
-   </label>
-   <textarea
-    id="photo-consideration"
-    v-model="photoConsideration"
-    rows="3"
-    placeholder="Notas adicionais de tratamento ou considerações internas para uso do profissional."
-    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
-   ></textarea>
-  </div>
- </Transition>
+</Transition>
 
- 
+<div class="pt-4 border-t">
+    <button 
+        @click="$emit('openMeasurementsForm')"
+        class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
+        title="Abrir formulário para registrar peso, cintura e outras medidas."
+    >
+        <i class="fas fa-ruler-vertical mr-2"></i> 
+        Registrar Medidas
+    </button>
+</div>
+
 <div>
 <label class="block text-sm font-medium text-gray-700">
 Imagem <span class="text-red-500">*</span>
@@ -116,18 +126,18 @@ Escolher Arquivo
 </div>
 
 <div v-if="currentImageUrl" class="pt-4 border-t">
-  <div class="p-3 bg-indigo-50 rounded-lg flex items-center justify-between">
-   <p class="text-indigo-700 text-sm font-medium">
-    Anotar: <span class="text-gray-800">{{ annotationDataJson ? 'Anotações existentes.' : 'Nenhuma anotação.' }}</span>
-   </p>
-   <button
-    @click="openAnnotationModal"
-    :disabled="isUploading"
-    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-   >
-    <i class="fas fa-expand-alt mr-2"></i> Abrir Anotação
-   </button>
-  </div>
+ <div class="p-3 bg-indigo-50 rounded-lg flex items-center justify-between">
+ <p class="text-indigo-700 text-sm font-medium">
+  Anotar: <span class="text-gray-800">{{ annotationDataJson ? 'Anotações existentes.' : 'Nenhuma anotação.' }}</span>
+ </p>
+ <button
+  @click="openAnnotationModal"
+  :disabled="isUploading"
+  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+ >
+  <i class="fas fa-expand-alt mr-2"></i> Abrir Anotação
+ </button>
+ </div>
 </div>
 
 
@@ -145,73 +155,73 @@ class="w-full inline-flex justify-center py-2 px-4 border border-transparent sha
 </p>
 </div> <div class="hidden lg:block">
 <div v-if="!currentImageUrl" class="h-full flex items-center justify-center bg-gray-100 border-2 border-dashed border-gray-300 rounded">
- <p class="text-gray-500"><i class="fas fa-image mr-2"></i> Selecione uma imagem para a avaliação</p>
+<p class="text-gray-500"><i class="fas fa-image mr-2"></i> Selecione uma imagem para a avaliação</p>
 </div>
 <div v-else class="h-full flex items-center justify-center bg-gray-100 border border-gray-300 rounded relative">
-  <img :src="currentImageUrl" alt="Pré-visualização" class="max-h-full max-w-full object-contain p-2"/>
- <p class="absolute bottom-2 left-2 text-xs text-gray-500 bg-white bg-opacity-70 p-1 rounded">
-  {{ selectedFileName }}
- </p>
+ <img :src="currentImageUrl" alt="Pré-visualização" class="max-h-full max-w-full object-contain p-2"/>
+<p class="absolute bottom-2 left-2 text-xs text-gray-500 bg-white bg-opacity-70 p-1 rounded">
+ {{ selectedFileName }}
+</p>
 </div>
 </div> </div> <Transition name="modal-fade">
 <div v-if="isAnnotationModalOpen" class="fixed inset-0 z-50 bg-white p-4 sm:p-6 overflow-y-auto">
- <div class="flex flex-col h-full w-full">
-   <div class="flex justify-between items-center mb-4 border-b pb-3 sticky top-0 bg-white z-10">
-    <h3 class="text-xl font-bold text-gray-800">
-     <i class="fas fa-paint-brush mr-2 text-indigo-600"></i> Editor de Anotações em Tela Cheia
-    </h3>
-    <button 
-     @click="isAnnotationModalOpen = false"
-     class="text-gray-400 hover:text-gray-600 p-2 transition"
-    >
-     <i class="fas fa-times text-2xl"></i>
-    </button>
-   </div>
+<div class="flex flex-col h-full w-full">
+ <div class="flex justify-between items-center mb-4 border-b pb-3 sticky top-0 bg-white z-10">
+  <h3 class="text-xl font-bold text-gray-800">
+  <i class="fas fa-paint-brush mr-2 text-indigo-600"></i> Editor de Anotações em Tela Cheia
+  </h3>
+  <button 
+  @click="isAnnotationModalOpen = false"
+  class="text-gray-400 hover:text-gray-600 p-2 transition"
+  >
+  <i class="fas fa-times text-2xl"></i>
+  </button>
+ </div>
 
-      <div v-if="currentImageUrl" class="flex flex-wrap items-center space-x-4 mb-4">
-    <button @click="currentTool = 'pen'" :class="toolClass('pen')">
-     <i class="fas fa-pencil-alt"></i> Caneta
-    </button>
-    <button @click="currentTool = 'text'" :class="toolClass('text')">
-     <i class="fas fa-font"></i> Texto
-    </button>
-    <input type="color" v-model="penColor" class="w-8 h-8 rounded-full border-2 border-gray-300"/>
-    <input type="range" v-model.number="penSize" min="1" max="50" class="w-24 h-8"/>
-    <span class="text-sm text-gray-600">{{ penSize }}px</span>
-    <button 
-     @click="clearAnnotations"
-     :disabled="isUploading"
-     class="text-red-500 hover:text-red-700 text-sm disabled:opacity-50 ml-auto"
-     title="Limpar todos os desenhos"
-    >
-     <i class="fas fa-trash-alt mr-1"></i> Limpar
-    </button>
-   </div>
+   <div v-if="currentImageUrl" class="flex flex-wrap items-center space-x-4 mb-4">
+  <button @click="currentTool = 'pen'" :class="toolClass('pen')">
+  <i class="fas fa-pencil-alt"></i> Caneta
+  </button>
+  <button @click="currentTool = 'text'" :class="toolClass('text')">
+  <i class="fas fa-font"></i> Texto
+  </button>
+  <input type="color" v-model="penColor" class="w-8 h-8 rounded-full border-2 border-gray-300"/>
+  <input type="range" v-model.number="penSize" min="1" max="50" class="w-24 h-8"/>
+  <span class="text-sm text-gray-600">{{ penSize }}px</span>
+  <button 
+  @click="clearAnnotations"
+  :disabled="isUploading"
+  class="text-red-500 hover:text-red-700 text-sm disabled:opacity-50 ml-auto"
+  title="Limpar todos os desenhos"
+  >
+  <i class="fas fa-trash-alt mr-1"></i> Limpar
+  </button>
+ </div>
 
-      <div v-if="currentImageUrl" class="flex-grow min-h-0 w-full relative border rounded-lg overflow-hidden"> 
-    <AnnotationEditor
-     ref="annotationEditorRef"
-     :key="imageKey"
-     :image-url="currentImageUrl"
-     :tool="currentTool"
-     :pen-color="penColor"
-     :text-color="penColor" 
-     :pen-size="penSize"
-     :text-size="penSize * 3" 
-     :initial-annotation-data="annotationDataJson"
-     @update:annotation-data="handleAnnotationUpdate"
-     class="w-full h-full"
-    />
-   </div>
+   <div v-if="currentImageUrl" class="flex-grow min-h-0 w-full relative border rounded-lg overflow-hidden"> 
+  <AnnotationEditor
+  ref="annotationEditorRef"
+  :key="imageKey"
+  :image-url="currentImageUrl"
+  :tool="currentTool"
+  :pen-color="penColor"
+  :text-color="penColor" 
+  :pen-size="penSize"
+  :text-size="penSize * 3" 
+  :initial-annotation-data="annotationDataJson"
+  @update:annotation-data="handleAnnotationUpdate"
+  class="w-full h-full"
+  />
+ </div>
 
-  </div>
+ </div>
 </div>
 </Transition>
 </div>
 </template>
 
 <script setup>
-// /components/Treatments/AssessmentImageEditor.vue - V2.7 - Correção do erro de sintaxe. Alterado texto do cabeçalho.
+// /components/Treatments/AssessmentImageEditor.vue - V2.9 - Correção: Adição do 'openMeasurementsForm' ao defineEmits.
 import { ref, computed, watch, nextTick } from "vue";
 import { useAuthStore } from "~/stores/auth";
 import AnnotationEditor from "~/components/Shared/AnnotationEditor.vue"; 
@@ -220,13 +230,14 @@ import AnnotationEditor from "~/components/Shared/AnnotationEditor.vue";
 const props = defineProps({
 userId: { type: Number, required: true },
 availableTreatments: {
- type: Array,
- default: () => [],
+type: Array,
+default: () => [],
 }
 });
 
 // Emits para notificar o componente pai (que geralmente é a página [id].vue)
-const emit = defineEmits(['evaluationSaved']);
+// 🚨 CORREÇÃO AQUI: Adicionando 'openMeasurementsForm'
+const emit = defineEmits(['evaluationSaved', 'openMeasurementsForm']);
 
 const authStore = useAuthStore();
 const fileInputRef = ref(null);
@@ -298,11 +309,11 @@ formData.append('treatmentId', selectedTreatmentId.value.toString());
 }
 
 if (photoDescription.value.trim() !== '') {
- formData.append('description', photoDescription.value.trim());
+formData.append('description', photoDescription.value.trim());
 }
 
 if (photoConsideration.value.trim() !== '') {
- formData.append('consideration', photoConsideration.value.trim());
+formData.append('consideration', photoConsideration.value.trim());
 }
 
 // Anotações são opcionais
@@ -387,7 +398,7 @@ isAnnotationModalOpen.value = false;
 
 const openAnnotationModal = () => {
 if (currentImageUrl.value) {
- isAnnotationModalOpen.value = true;
+isAnnotationModalOpen.value = true;
 }
 }
 
@@ -426,17 +437,17 @@ padding-bottom: 0;
 }
 
 .slide-fade-enter-active {
- max-height: 500px; 
+max-height: 500px; 
 }
 
 /* Estilo para a transição (fade) do Modal Fullscreen */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
- transition: opacity 0.3s ease;
+transition: opacity 0.3s ease;
 }
 
 .modal-fade-enter-from,
 .modal-fade-leave-to {
- opacity: 0;
+opacity: 0;
 }
 </style>

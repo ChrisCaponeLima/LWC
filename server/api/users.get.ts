@@ -2,7 +2,7 @@
 import { defineEventHandler, createError, H3Event } from 'h3'
 import { prisma } from '~/server/utils/db.ts'
 import { verifyToken } from '~/server/utils/auth.ts'
-import { calculateLatestMeasurementsWithTrend, LatestMeasurementData } from '~/server/utils/measurementUtils' 
+import { calculateLatestMeasurementsWithTrend, LatestMeasurementData } from '~/server/utils/measurements' 
 
 // Tipo de dados esperado no token
 interface AuthPayload {

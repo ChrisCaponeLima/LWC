@@ -1,4 +1,5 @@
-// /components/PatientEditModal.vue - V1.1 - Modal para edição exclusiva de dados de paciente/usuário.
+// /components/PatientEditModal.vue - V1.2 - Inclusão de Campos de Altura e Peso no Tratamento de Dados
+
 <template>
 <div 
 v-if="isOpen && localUser" 
@@ -10,7 +11,7 @@ class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-5
 
 <div>
 <h3 class="text-xl font-bold text-gray-800">
-{{ localUser.username }} 
+<i class="fas fa-user-edit mr-2 text-indigo-500"></i> Editando Paciente: {{ localUser.username }} 
 </h3>
 </div>
 
@@ -31,6 +32,7 @@ class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-5
 key="user-data" 
 class="border border-gray-200 p-4 rounded-md transition duration-300"
 >
+<legend class="text-sm font-medium text-gray-700 px-1">Dados Cadastrais e Físicos</legend>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
 
 <div>
@@ -87,6 +89,7 @@ id="height_cm"
 v-model.number="localUser.height_cm"
 type="number"
 min="50"
+step="1"
 :disabled="isSubmitting"
 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
 />
@@ -135,7 +138,7 @@ Cancelar
 <button 
 type="submit"
 :disabled="isSubmitting"
-class="px-4 py-2 bg-btn-secundario text-btn-font-secundario rounded-md font-semibold hover:opacity-80 transition disabled:opacity-50"
+class="px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
 >
 <i v-if="isSubmitting" class="fas fa-spinner fa-spin mr-2"></i>
 Salvar Alterações
@@ -148,117 +151,137 @@ Salvar Alterações
 </div>
 </template>
 
-<script setup>
-import { ref, watch } from 'vue'
+<script setup lang="ts">
+import { ref, watch, PropType } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
-const props = defineProps({
-isOpen: {
-type: Boolean,
-default: false,
-},
-userData: {
-type: Object,
-default: null,
+// Interface para garantir a tipagem do objeto de usuário, incluindo os novos campos
+interface UserData {
+    id: number;
+    username: string;
+    email: string;
+    phone: string | null;
+    birthdate: string | null;
+    sexo: 'M' | 'F' | null;
+    role: string;
+    // Campos estáticos de paciente
+    height_cm: number | null;
+    initial_weight_kg: number | null;
 }
+
+const props = defineProps({
+    isOpen: {
+        type: Boolean,
+        default: false,
+    },
+    userData: {
+        type: Object as PropType<UserData>, // Usamos a nova interface
+        default: null,
+    }
 })
 
 const emit = defineEmits(['close', 'user-updated'])
 const authStore = useAuthStore()
 
-const localUser = ref(null)
+const localUser = ref<UserData | null>(null) // Tipagem corrigida
 const isSubmitting = ref(false)
-const error = ref(null)
+const error = ref<string | null>(null) // Tipagem corrigida
 
 // Converte a string de data ISO para o formato 'YYYY-MM-DD'
-const formatBirthdateForInput = (dateString) => {
-if (!dateString) return null
-try {
-if (typeof dateString === 'string' && dateString.includes('T')) {
-return dateString.split('T')[0]
-}
-if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-return dateString
-}
-const d = new Date(dateString)
-if (!isNaN(d.getTime())) {
-return d.toISOString().split('T')[0]
-}
-} catch (e) {
-console.error("Erro ao formatar data de nascimento:", e)
-}
-return null
+const formatBirthdateForInput = (dateString: string | null) => {
+    if (!dateString) return null
+    try {
+        if (typeof dateString === 'string' && dateString.includes('T')) {
+            return dateString.split('T')[0]
+        }
+        if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return dateString
+        }
+        const d = new Date(dateString)
+        if (!isNaN(d.getTime())) {
+            return d.toISOString().split('T')[0]
+        }
+    } catch (e) {
+        console.error("Erro ao formatar data de nascimento:", e)
+    }
+    return null
 }
 
 // Watcher para carregar e inicializar dados do usuário
 watch(() => props.userData, (newUserData) => {
-if (newUserData) {
-localUser.value = {
-...newUserData,
-// Campos de Usuário
-birthdate: formatBirthdateForInput(newUserData.birthdate),
-sexo: ['M', 'F'].includes(newUserData.sexo) ? newUserData.sexo : null,
-phone: newUserData.phone || null,
-// Garante que o role não seja incluído localmente, mantendo apenas os dados de paciente
-role: newUserData.role,
-}
+    if (newUserData) {
+        // Assegura que todos os campos de paciente sejam inicializados, mesmo que venham como undefined da API
+        localUser.value = {
+            ...newUserData,
+            birthdate: formatBirthdateForInput(newUserData.birthdate),
+            sexo: ['M', 'F'].includes(newUserData.sexo) ? newUserData.sexo : null,
+            phone: newUserData.phone || null,
+            
+            // Tratamento de Campos Numéricos de Paciente
+            height_cm: newUserData.height_cm === undefined ? null : newUserData.height_cm,
+            initial_weight_kg: newUserData.initial_weight_kg === undefined ? null : newUserData.initial_weight_kg,
+        }
 
-error.value = null
-} else {
-localUser.value = null
-}
+        error.value = null
+    } else {
+        localUser.value = null
+    }
 }, { immediate: true })
 
 
 const handleClose = () => {
-if (isSubmitting.value) return
-emit('close')
+    if (isSubmitting.value) return
+    emit('close')
 }
 
-// 🎯 LÓGICA DE SUBMISSÃO SIMPLIFICADA
+// 🎯 LÓGICA DE SUBMISSÃO
 const submitUpdate = async () => {
-error.value = null
-if (isSubmitting.value || !localUser.value) return
+    error.value = null
+    if (isSubmitting.value || !localUser.value) return
 
-isSubmitting.value = true
+    isSubmitting.value = true
 
-// Payload contendo APENAS campos do usuário/paciente (role é implicitamente excluído do body, mas pode ser enviado)
-const payload = {
-id: localUser.value.id,
-username: localUser.value.username,
-email: localUser.value.email,
-// O campo 'role' é omitido do payload, preservando o role existente do usuário.
-birthdate: localUser.value.birthdate || null,
-height_cm: localUser.value.height_cm === '' || localUser.value.height_cm === null ? null : Number(localUser.value.height_cm),
-initial_weight_kg: localUser.value.initial_weight_kg === '' || localUser.value.initial_weight_kg === null ? null : Number(localUser.value.initial_weight_kg),
-sexo: localUser.value.sexo || null,
-phone: localUser.value.phone || null,
-// O professionalData foi excluído.
-}
+    // Garante que os valores numéricos sejam convertidos ou se tornem null se vazios/undefined
+    const heightValue = localUser.value.height_cm === '' || localUser.value.height_cm === null ? null : Number(localUser.value.height_cm);
+    const weightValue = localUser.value.initial_weight_kg === '' || localUser.value.initial_weight_kg === null ? null : Number(localUser.value.initial_weight_kg);
 
-try {
-const token = authStore.token;
-if (!token) throw new Error('Token de autenticação não encontrado.');
+    const payload = {
+        id: localUser.value.id,
+        username: localUser.value.username,
+        email: localUser.value.email,
+        birthdate: localUser.value.birthdate || null,
+        
+        // Campos de Paciente
+        height_cm: heightValue, // Uso da variável local garantindo o tipo Number|null
+        initial_weight_kg: weightValue, // Uso da variável local garantindo o tipo Number|null
+        
+        sexo: localUser.value.sexo || null,
+        phone: localUser.value.phone || null,
+    }
 
-// Chamada da API PUT
-const updatedUser = await $fetch(`/api/users/${localUser.value.id}`, {
-method: 'PUT',
-headers: {
-'Authorization': `Bearer ${token}`,
-'Content-Type': 'application/json'
-},
-body: payload
-});
+    try {
+        const token = authStore.token;
+        if (!token) throw new Error('Token de autenticação não encontrado.');
 
-emit('user-updated', updatedUser);
-emit('close');
+        // Chamada da API PUT
+        const updatedUser = await $fetch(`/api/users/${localUser.value.id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: payload
+        });
 
-} catch (e) {
-console.error('Falha ao atualizar paciente:', e);
-const statusMessage = e.data?.statusMessage || 'Erro interno do servidor ao atualizar paciente.';
-error.value = statusMessage;
-} finally {
-isSubmitting.value = false; 
-}
+        emit('user-updated', updatedUser);
+        emit('close');
+
+    } catch (e: any) {
+        console.error('Falha ao atualizar paciente:', e);
+        const statusMessage = e.data?.statusMessage || 'Erro interno do servidor ao atualizar paciente.';
+        error.value = statusMessage;
+    } finally {
+        isSubmitting.value = false; 
+    }
 }
 </script>
