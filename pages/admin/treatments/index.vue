@@ -1,7 +1,8 @@
-// /pages/admin/treatments/index.vue - V2.0 - Adição do Botão e Modal de Gerenciamento de Regras Avançadas
-
+// /pages/admin/treatments/index.vue - V3.1 - Adição de rolagem horizontal à tabela para ajuste em telas pequenas (overflow-x-auto).
 <template>
-    <NuxtLayout name="admin">
+    <div>
+        <Header pageTitle="Gerenciamento de Tratamentos" />
+
         <div class="p-4 sm:p-8">
             <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Gerenciamento de Tratamentos</h1>
 
@@ -23,7 +24,7 @@
                 </button>
             </div>
 
-            <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+            <div class="bg-white shadow-xl rounded-lg"> 
                 
                 <div v-if="isLoading" class="p-10 text-center">
                     <i class="fas fa-spinner fa-spin text-4xl text-indigo-500"></i>
@@ -34,60 +35,62 @@
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     {{ error }}
                 </div>
-
-                <table v-else-if="treatments.length" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Tratamento
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Preço P
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Preço M
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Preço G
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Preço GG
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                Ações
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="treatment in treatments" :key="treatment.id">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ treatment.treatment_name }}
-                                <p class="text-xs text-gray-500 truncate">{{ treatment.description }}</p>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                R$ {{ formatPrice(treatment.precoP) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                R$ {{ formatPrice(treatment.precoM) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                R$ {{ formatPrice(treatment.precoG) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                R$ {{ formatPrice(treatment.precoGG) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button 
-                                    @click="openEditModal(treatment)"
-                                    class="text-indigo-600 hover:text-indigo-900 transition mr-3"
-                                    title="Editar"
-                                >
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
+                
+                <div v-else-if="treatments.length" class="overflow-x-auto"> 
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Tratamento
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Preço P
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Preço M
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Preço G
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Preço GG
+                                </th>
+                                <th scope="col" class="relative px-6 py-3">
+                                    Ações
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="treatment in treatments" :key="treatment.id">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ treatment.treatment_name }}
+                                    <p class="text-xs text-gray-500 truncate">{{ treatment.description }}</p>
                                 </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    R$ {{ formatPrice(treatment.precoP) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    R$ {{ formatPrice(treatment.precoM) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    R$ {{ formatPrice(treatment.precoG) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    R$ {{ formatPrice(treatment.precoGG) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button 
+                                        @click="openEditModal(treatment)"
+                                        class="text-indigo-600 hover:text-indigo-900 transition mr-3"
+                                        title="Editar"
+                                    >
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </button>
+                                    </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div v-else class="p-10 text-center text-gray-500">
                     <i class="fas fa-info-circle mr-2"></i>
                     Nenhum tratamento cadastrado. Clique em "Novo Tratamento" para começar.
@@ -107,34 +110,35 @@
             @close="isAreaRuleManagerOpen = false" 
         />
         
-    </NuxtLayout>
+        <Footer />
+    </div>
 </template>
 
 <script setup lang="ts">
-// /pages/admin/treatments/index.vue - V2.0 - Adição do Estado e Componente de Regras Avançadas
+// /pages/admin/treatments/index.vue - V3.1 - Adição de rolagem horizontal à tabela para ajuste em telas pequenas (overflow-x-auto).
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import TreatmentForm from '~/components/Admin/TreatmentForm.vue';
-import AreaRuleManager from '~/components/Admin/Treatment/AreaRuleManager.vue'; // 👈 NOVO IMPORT
+import AreaRuleManager from '~/components/Admin/Treatment/AreaRuleManager.vue'; 
 
 // Definições de Meta e Segurança
 definePageMeta({ 
-    middleware: ['professional-auth'],
-    allowedRoles: ['admin', 'owner'], // Apenas admins e owners podem gerenciar
+  middleware: ['professional-auth'],
+  allowedRoles: ['admin', 'owner'], // Apenas admins e owners podem gerenciar
 });
 useHead({ title: 'Gerenciar Tratamentos - Admin' });
 
 // Interfaces (Refletindo a estrutura do model treatments)
 interface Treatment {
-    id: number;
-    treatment_name: string;
-    description: string;
-    // Assume que a API retorna como string para evitar problemas de Decimal
-    precoP: string; 
-    precoM: string;
-    precoG: string;
-    precoGG: string;
-    // ... outros campos (created_at, etc.)
+  id: number;
+  treatment_name: string;
+  description: string;
+  // Assume que a API retorna como string para evitar problemas de Decimal
+  precoP: string; 
+  precoM: string;
+  precoG: string;
+  precoGG: string;
+  // ... outros campos (created_at, etc.)
 }
 
 const authStore = useAuthStore();
@@ -154,24 +158,24 @@ const isAreaRuleManagerOpen = ref(false); // 👈 NOVO ESTADO
 // -----------------------------------------------------------
 
 const fetchTreatments = async () => {
-    isLoading.value = true;
-    error.value = null;
-    const token = authStore.token;
+  isLoading.value = true;
+  error.value = null;
+  const token = authStore.token;
 
-    try {
-        const response = await $fetch<Treatment[]>('/api/admin/treatments/list', { 
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` },
-        });
+  try {
+    const response = await $fetch<Treatment[]>('/api/admin/treatments/list', { 
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-        treatments.value = response;
+    treatments.value = response;
 
-    } catch (e: any) {
-        console.error('Erro ao buscar tratamentos:', e);
-        error.value = e?.data?.statusMessage || 'Falha ao carregar a lista de tratamentos.';
-    } finally {
-        isLoading.value = false;
-    }
+  } catch (e: any) {
+    console.error('Erro ao buscar tratamentos:', e);
+    error.value = e?.data?.statusMessage || 'Falha ao carregar a lista de tratamentos.';
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 // -----------------------------------------------------------
@@ -179,18 +183,18 @@ const fetchTreatments = async () => {
 // -----------------------------------------------------------
 
 const openCreateModal = () => {
-    selectedTreatment.value = null; // Modo Criação
-    isModalOpen.value = true;
+  selectedTreatment.value = null; // Modo Criação
+  isModalOpen.value = true;
 };
 
 const openEditModal = (treatment: Treatment) => {
-    selectedTreatment.value = treatment; // Modo Edição
-    isModalOpen.value = true;
+  selectedTreatment.value = treatment; // Modo Edição
+  isModalOpen.value = true;
 };
 
 const closeModal = () => {
-    isModalOpen.value = false;
-    selectedTreatment.value = null;
+  isModalOpen.value = false;
+  selectedTreatment.value = null;
 };
 
 // -----------------------------------------------------------
@@ -198,9 +202,9 @@ const closeModal = () => {
 // -----------------------------------------------------------
 
 const formatPrice = (price: string) => {
-    if (!price || price === '0.00' || price === '0') return '0,00';
-    // Garante que o número é formatado corretamente (usa ponto como decimal para parseFloat, depois vírgula)
-    return parseFloat(price.toString().replace(',', '.')).toFixed(2).replace('.', ',');
+  if (!price || price === '0.00' || price === '0') return '0,00';
+  // Garante que o número é formatado corretamente (usa ponto como decimal para parseFloat, depois vírgula)
+  return parseFloat(price.toString().replace(',', '.')).toFixed(2).replace('.', ',');
 };
 
 
@@ -208,7 +212,7 @@ const formatPrice = (price: string) => {
 // HOOKS
 // -----------------------------------------------------------
 onMounted(() => {
-    fetchTreatments();
+  fetchTreatments();
 });
 </script>
 

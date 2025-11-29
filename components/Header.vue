@@ -222,7 +222,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
 // --- Funções de Navegação (mantidas) ---
 const goToProfile = () => {
 menuOpen.value = false
-adminSubMenuMenu.value = false
+adminSubMenuOpen.value = false
 navigateTo('/profile')
 }
 

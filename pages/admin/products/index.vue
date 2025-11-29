@@ -1,6 +1,8 @@
-// /pages/admin/products/index.vue - V1.0 - Listagem e Gerenciamento de Produtos
+// /pages/admin/products/index.vue - V3.0 - Remoção do NuxtLayout e Inclusão Direta do Header/Footer para padronização.
 <template>
-    <NuxtLayout name="admin">
+    <div>
+        <Header :page-title="pageTitle" />
+
         <div class="p-4 sm:p-8">
             <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Gerenciamento de Produtos</h1>
 
@@ -100,20 +102,27 @@
             @close="closeModal"
             @refreshData="fetchProducts"
         />
-    </NuxtLayout>
+        
+        <Footer />
+    </div>
 </template>
 
 <script setup lang="ts">
+// /pages/admin/products/index.vue - V3.0 - Remoção do NuxtLayout e Inclusão Direta do Header/Footer para padronização.
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import ProductForm from '~/components/Admin/ProductForm.vue';
+
+// NOVO: Define o título da página para ser exibido no Header (passado via prop)
+const pageTitle = ref('Gerenciamento de Produtos');
 
 // Definições de Meta e Segurança
 definePageMeta({ 
     middleware: ['professional-auth'],
     allowedRoles: ['admin', 'owner'], // Apenas admins e owners podem gerenciar
 });
-useHead({ title: 'Gerenciar Produtos - Admin' });
+// ALTERADO: Usando a ref pageTitle para o título do documento
+useHead({ title: `${pageTitle.value} - Admin` });
 
 // Interfaces (Refletindo a estrutura do model products)
 interface Product {

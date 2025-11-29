@@ -1,4 +1,4 @@
-// /components/PatientEditModal.vue - V1.2 - Inclusão de Campos de Altura e Peso no Tratamento de Dados
+// /components/PatientEditModal.vue - V1.3 - Correção do nome da chave ID no payload (id -> userId) para compatibilidade com o backend.
 
 <template>
 <div 
@@ -157,27 +157,27 @@ import { useAuthStore } from '~/stores/auth'
 
 // Interface para garantir a tipagem do objeto de usuário, incluindo os novos campos
 interface UserData {
-    id: number;
-    username: string;
-    email: string;
-    phone: string | null;
-    birthdate: string | null;
-    sexo: 'M' | 'F' | null;
-    role: string;
-    // Campos estáticos de paciente
-    height_cm: number | null;
-    initial_weight_kg: number | null;
+  id: number;
+  username: string;
+  email: string;
+  phone: string | null;
+  birthdate: string | null;
+  sexo: 'M' | 'F' | null;
+  role: string;
+  // Campos estáticos de paciente
+  height_cm: number | null;
+  initial_weight_kg: number | null;
 }
 
 const props = defineProps({
-    isOpen: {
-        type: Boolean,
-        default: false,
-    },
-    userData: {
-        type: Object as PropType<UserData>, // Usamos a nova interface
-        default: null,
-    }
+  isOpen: {
+    type: Boolean,
+    default: false,
+  },
+  userData: {
+    type: Object as PropType<UserData>, // Usamos a nova interface
+    default: null,
+  }
 })
 
 const emit = defineEmits(['close', 'user-updated'])
@@ -189,99 +189,100 @@ const error = ref<string | null>(null) // Tipagem corrigida
 
 // Converte a string de data ISO para o formato 'YYYY-MM-DD'
 const formatBirthdateForInput = (dateString: string | null) => {
-    if (!dateString) return null
-    try {
-        if (typeof dateString === 'string' && dateString.includes('T')) {
-            return dateString.split('T')[0]
-        }
-        if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            return dateString
-        }
-        const d = new Date(dateString)
-        if (!isNaN(d.getTime())) {
-            return d.toISOString().split('T')[0]
-        }
-    } catch (e) {
-        console.error("Erro ao formatar data de nascimento:", e)
+  if (!dateString) return null
+  try {
+    if (typeof dateString === 'string' && dateString.includes('T')) {
+      return dateString.split('T')[0]
     }
-    return null
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return dateString
+    }
+    const d = new Date(dateString)
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0]
+    }
+  } catch (e) {
+    console.error("Erro ao formatar data de nascimento:", e)
+  }
+  return null
 }
 
 // Watcher para carregar e inicializar dados do usuário
 watch(() => props.userData, (newUserData) => {
-    if (newUserData) {
-        // Assegura que todos os campos de paciente sejam inicializados, mesmo que venham como undefined da API
-        localUser.value = {
-            ...newUserData,
-            birthdate: formatBirthdateForInput(newUserData.birthdate),
-            sexo: ['M', 'F'].includes(newUserData.sexo) ? newUserData.sexo : null,
-            phone: newUserData.phone || null,
-            
-            // Tratamento de Campos Numéricos de Paciente
-            height_cm: newUserData.height_cm === undefined ? null : newUserData.height_cm,
-            initial_weight_kg: newUserData.initial_weight_kg === undefined ? null : newUserData.initial_weight_kg,
-        }
-
-        error.value = null
-    } else {
-        localUser.value = null
+  if (newUserData) {
+    // Assegura que todos os campos de paciente sejam inicializados, mesmo que venham como undefined da API
+    localUser.value = {
+      ...newUserData,
+      birthdate: formatBirthdateForInput(newUserData.birthdate),
+      sexo: ['M', 'F'].includes(newUserData.sexo) ? newUserData.sexo : null,
+      phone: newUserData.phone || null,
+      
+      // Tratamento de Campos Numéricos de Paciente
+      height_cm: newUserData.height_cm === undefined ? null : newUserData.height_cm,
+      initial_weight_kg: newUserData.initial_weight_kg === undefined ? null : newUserData.initial_weight_kg,
     }
+
+    error.value = null
+  } else {
+    localUser.value = null
+  }
 }, { immediate: true })
 
 
 const handleClose = () => {
-    if (isSubmitting.value) return
-    emit('close')
+  if (isSubmitting.value) return
+  emit('close')
 }
 
 // 🎯 LÓGICA DE SUBMISSÃO
 const submitUpdate = async () => {
-    error.value = null
-    if (isSubmitting.value || !localUser.value) return
+  error.value = null
+  if (isSubmitting.value || !localUser.value) return
 
-    isSubmitting.value = true
+  isSubmitting.value = true
 
-    // Garante que os valores numéricos sejam convertidos ou se tornem null se vazios/undefined
-    const heightValue = localUser.value.height_cm === '' || localUser.value.height_cm === null ? null : Number(localUser.value.height_cm);
-    const weightValue = localUser.value.initial_weight_kg === '' || localUser.value.initial_weight_kg === null ? null : Number(localUser.value.initial_weight_kg);
+  // Garante que os valores numéricos sejam convertidos ou se tornem null se vazios/undefined
+  const heightValue = localUser.value.height_cm === '' || localUser.value.height_cm === null ? null : Number(localUser.value.height_cm);
+  const weightValue = localUser.value.initial_weight_kg === '' || localUser.value.initial_weight_kg === null ? null : Number(localUser.value.initial_weight_kg);
 
-    const payload = {
-        id: localUser.value.id,
-        username: localUser.value.username,
-        email: localUser.value.email,
-        birthdate: localUser.value.birthdate || null,
-        
-        // Campos de Paciente
-        height_cm: heightValue, // Uso da variável local garantindo o tipo Number|null
-        initial_weight_kg: weightValue, // Uso da variável local garantindo o tipo Number|null
-        
-        sexo: localUser.value.sexo || null,
-        phone: localUser.value.phone || null,
-    }
+  const payload = {
+    // CORREÇÃO: Alterar 'id' para 'userId' para compatibilidade com o backend /api/users.put.ts
+    userId: localUser.value.id,
+    username: localUser.value.username,
+    email: localUser.value.email,
+    birthdate: localUser.value.birthdate || null,
+    
+    // Campos de Paciente
+    height_cm: heightValue, // Uso da variável local garantindo o tipo Number|null
+    initial_weight_kg: weightValue, // Uso da variável local garantindo o tipo Number|null
+    
+    sexo: localUser.value.sexo || null,
+    phone: localUser.value.phone || null,
+  }
 
-    try {
-        const token = authStore.token;
-        if (!token) throw new Error('Token de autenticação não encontrado.');
+  try {
+    const token = authStore.token;
+    if (!token) throw new Error('Token de autenticação não encontrado.');
 
-        // Chamada da API PUT
-        const updatedUser = await $fetch(`/api/users/${localUser.value.id}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: payload
-        });
+    // Chamada da API PUT
+    const updatedUser = await $fetch(`/api/users/${localUser.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: payload
+    });
 
-        emit('user-updated', updatedUser);
-        emit('close');
+    emit('user-updated', updatedUser);
+    emit('close');
 
-    } catch (e: any) {
-        console.error('Falha ao atualizar paciente:', e);
-        const statusMessage = e.data?.statusMessage || 'Erro interno do servidor ao atualizar paciente.';
-        error.value = statusMessage;
-    } finally {
-        isSubmitting.value = false; 
-    }
+  } catch (e: any) {
+    console.error('Falha ao atualizar paciente:', e);
+    const statusMessage = e.data?.statusMessage || 'Erro interno do servidor ao atualizar paciente.';
+    error.value = statusMessage;
+  } finally {
+    isSubmitting.value = false; 
+  }
 }
 </script>
