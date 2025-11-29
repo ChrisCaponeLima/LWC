@@ -1,23 +1,26 @@
-// ~/server/utils/cloudinary.ts - V1.2 - Adição da função deleteFromCloudinary e função utilitária para extrair Public ID.
-// Isso evita a duplicação de memória de Base64 (Data URI), que é ineficiente e pode causar erros de limite de memória ou contribuir para o 413.
+// ~/server/utils/cloudinary.ts - V1.3 - Correção CRÍTICA: Uso de useRuntimeConfig para garantir carregamento das variáveis de ambiente do Cloudinary no servidor.
 
 import { v2 as cloudinary } from 'cloudinary'
 import { Buffer } from 'node:buffer'
 import { Readable } from 'stream' 
+import { useRuntimeConfig } from '#app' // 🟢 NOVIDADE: Importação do useRuntimeConfig para acesso às variáveis de ambiente
+
+// 🚨 CORREÇÃO: Busca as configurações de runtime
+// Isso garante que as variáveis de ambiente definidas no nuxt.config.ts sejam acessíveis no servidor.
+const config = useRuntimeConfig();
 
 // 🔹 Configuração do Cloudinary via variáveis de ambiente
 cloudinary.config({
-cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-_key: process.env.CLOUDINARY__KEY,
-_secret: process.env.CLOUDINARY__SECRET,
+cloud_name: config.CLOUDINARY_CLOUD_NAME, // Antes: process.env.CLOUDINARY_CLOUD_NAME
+api_key: config.CLOUDINARY_API_KEY,    // Antes: process.env.CLOUDINARY_API_KEY
+api_secret: config.CLOUDINARY_API_SECRET, // Antes: process.env.CLOUDINARY_API_SECRET
 secure: true,
 })
 
+
 /**
- * 🟢 NOVIDADE: Extrai o Public ID de uma URL completa do Cloudinary.
+ * Extrai o Public ID de uma URL completa do Cloudinary.
  * O Public ID é o que o Cloudinary usa para referenciar e deletar o arquivo.
- * Exemplo de URL: https://res.cloudinary.com/wlc/image/upload/v1600000000/profile_photos/xyz123.jpg
- * Public ID: profile_photos/xyz123
  * @param url A URL completa da imagem.
  * @returns O Public ID ou null se a URL for inválida ou não for do Cloudinary.
  */
@@ -86,7 +89,7 @@ if (!file?.data) {
 
 
 /**
- * 🟢 NOVIDADE: Deleta uma imagem do Cloudinary.
+ * Deleta uma imagem do Cloudinary.
  * @param url A URL completa da imagem do Cloudinary.
  * @returns O resultado da destruição do recurso.
  */
