@@ -1,4 +1,4 @@
-// /components/Registro/ImageEditor.vue - V2.28 - Ajustes Mobile: Solução 'touch-action: none' na área de edição para evitar scroll.
+// /components/Registro/ImageEditor.vue - V2.30 - Implementação da compressão client-side (imageCompressor.ts) e ajuste das APIs para aceitarem File.
 
 <template>
 <div class="bg-gray-100 p-4 sm:p-8"> <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-lg p-6">
@@ -114,17 +114,17 @@ class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded tran
 </div>
 
 <ClientOnly>
-    <div class="image-editor-touch-control"> 
-        <ImageEditorComponent 
-            ref="imageEditorRef"
-            :initial-image-url="editingFileUrl"
-            :image-type="imageType"
-            :initial-is-private="false" 
-            @saveEditedImage="handleSaveEditedNewImage"
-            @error="handleEditorError"
-            @rotate="handleImageRotate"
-        />
-    </div>
+  <div class="image-editor-touch-control"> 
+    <ImageEditorComponent 
+      ref="imageEditorRef"
+      :initial-image-url="editingFileUrl"
+      :image-type="imageType"
+      :initial-is-private="false" 
+      @saveEditedImage="handleSaveEditedNewImage"
+      @error="handleEditorError"
+      @rotate="handleImageRotate"
+    />
+  </div>
 </ClientOnly>
 </div>
 </div>
@@ -138,6 +138,7 @@ import ImageEditorComponent from '~/components/ImageEditorComponent.vue';
 import { useTempFiles, addTempFile, removeTempFile } from '~/composables/useTempFiles';
 
 import { v4 as uuidv4 } from 'uuid';
+import { compressImage } from '~/utils/imageCompressor'; // Importa o utilitário de compressão
 
 const emit = defineEmits(['close']);
 
@@ -160,9 +161,9 @@ type: string;
 
 /**
 * Função utilitária para chamar a API de salvamento temporário (edited_files).
-* O Backend (temp_upload.post.ts) decide qual Blob usar e salva na edited_files.
+* 🚨 ALTERAÇÃO: Assinatura mudada para aceitar objetos File (comprimidos) em vez de Blobs.
 */
-const tempUploadApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean): Promise<TempUploadResponse> => {
+const tempUploadApiCall = async (editedFile: File, originalFile: File, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean): Promise<TempUploadResponse> => {
 const token = authStore.token;
 if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
 
@@ -171,9 +172,9 @@ formData.append('type', type);
 formData.append('isPrivate', isPrivate ? 'true' : 'false');
 formData.append('isEdited', isEdited ? 'true' : 'false');
 
-// Envia AMBOS os blobs. O backend decide qual salvar no Cloudinary.
-formData.append('editedFile', editedBlob, 'edited.png');
-formData.append('originalFile', originalBlob, 'original.png');
+// Envia AMBOS os Files. O nome do arquivo é importante aqui.
+formData.append('editedFile', editedFile, editedFile.name); 
+formData.append('originalFile', originalFile, originalFile.name); 
 
 const response = await $fetch<TempUploadResponse>('/api/images/temp_upload', {
 method: 'POST',
@@ -186,9 +187,9 @@ return response;
 
 /**
 * Função utilitária para chamar a API de salvamento permanente (Cloudinary upload + edited DB).
-* Usada APENAS para o fluxo de "Baixar Imagem" (Download Forçado) E o salvamento condicional de imagens editadas.
+* 🚨 ALTERAÇÃO: Assinatura mudada para aceitar objetos File (comprimidos) em vez de Blobs.
 */
-const permanentSaveApiCall = async (editedBlob: Blob, originalBlob: Blob, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean, forceSave: boolean = false): Promise<{ id: string, type: string, fileId: string }> => {
+const permanentSaveApiCall = async (editedFile: File, originalFile: File, isPrivate: boolean, type: 'photo' | 'forma', isEdited: boolean, forceSave: boolean = false): Promise<{ id: string, type: string, fileId: string }> => {
 const token = authStore.token;
 if (!token) throw new Error('Token de autenticação ausente. Não é possível salvar a imagem.');
 
@@ -198,8 +199,8 @@ formData.append('isPrivate', isPrivate ? 'true' : 'false');
 formData.append('isEdited', isEdited ? 'true' : 'false');
 formData.append('forceSave', forceSave ? 'true' : 'false'); 
 
-formData.append('editedFile', editedBlob, 'edited.png');
-formData.append('originalFile', originalBlob, 'original.png');
+formData.append('editedFile', editedFile, editedFile.name); 
+formData.append('originalFile', originalFile, originalFile.name); 
 
 const response = await $fetch<{ id: string, type: string, fileId: string }>('/api/images/permanent_save', {
 method: 'POST',
@@ -251,8 +252,13 @@ const { editedBlob, originalBlob } = await imageEditorRef.value.generateBlobs();
 const isPrivate = imageEditorRef.value.isPrivateLocal.value; 
 const isEdited = imageEditorRef.value.isEdited.value; 
 
+// 🚨 IMPLEMENTAÇÃO DA COMPRESSÃO (Client-Side)
+const compressedEditedFile = await compressImage(editedBlob, 1500, 0.75, 'edited_compressed.jpg');
+const compressedOriginalFile = await compressImage(originalBlob, 1500, 0.75, 'original_compressed.jpg');
+
 // 2. CHAMA ENDPOINT PERMANENTE: Salva no edited DB e Cloudinary (forceSave: true)
-await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, imageType.value, isEdited, true); 
+// 🚨 ALTERAÇÃO: Passando o objeto File COMPRIMIDO.
+await permanentSaveApiCall(compressedEditedFile, compressedOriginalFile, isPrivate, imageType.value, isEdited, true); 
 
 // 3. Executa o download local
 imageEditorRef.value.downloadEditedImage();
@@ -286,28 +292,39 @@ return;
 if (isEditing.value) {
 uploadError.value = null;
 
- // 1. SALVAMENTO PERMANENTE CONDICIONAL (REQUISITO 3: "SE EDITADA, a imagem DEVE SER enviada para a tabela edited")
- if (isEdited) {
-  console.log(`[FLOW] Imagem editada. Chamando /api/images/permanent_save (tabela 'edited')...`);
-  
-  try {
-   // isEdited: true, forceSave: false. Ele será salvo porque isEdited é true.
-   await permanentSaveApiCall(editedBlob, originalBlob, isPrivate, type, true, false); 
-  } catch (permanentErr: any) {
-   console.error('Falha no salvamento permanente condicional (edited):', permanentErr);
-   // O erro neste passo NÃO deve interromper o salvamento temporário.
-  }
- }
+    // 🚨 IMPLEMENTAÇÃO DA COMPRESSÃO (Client-Side)
+    console.log(`[COMPRESS] Iniciando compressão. Original Edited Blob Size: ${editedBlob.size} bytes`);
+    
+    // Convertendo Blobs para Files comprimidos
+    const compressedEditedFile = await compressImage(editedBlob, 1500, 0.75, 'edited_compressed.jpg');
+    const compressedOriginalFile = await compressImage(originalBlob, 1500, 0.75, 'original_compressed.jpg');
+    
+    console.log(`[COMPRESS] Edited File Size após compressão: ${compressedEditedFile.size} bytes`);
 
- // 2. SALVAMENTO TEMPORÁRIO OBRIGATÓRIO (REQUISITO 2: Todas as imagens vão para edited_files)
- console.log(`[FLOW] Imagem (Editada: ${isEdited}). Chamando /api/images/temp_upload (tabela 'edited_files')...`);
+// 1. SALVAMENTO PERMANENTE CONDICIONAL (REQUISITO 3: "SE EDITADA, a imagem DEVE SER enviada para a tabela edited")
+if (isEdited) {
+ console.log(`[FLOW] Imagem editada. Chamando /api/images/permanent_save (tabela 'edited')...`);
  
- // O tempUploadApiCall lida com a lógica de qual Blob salvar na edited_files.
- const response = await tempUploadApiCall(editedBlob, originalBlob, isPrivate, type, isEdited); 
+ try {
+ // isEdited: true, forceSave: false. Ele será salvo porque isEdited é true.
+ // 🚨 ALTERAÇÃO: USANDO FILES COMPRIMIDOS
+ await permanentSaveApiCall(compressedEditedFile, compressedOriginalFile, isPrivate, type, true, false); 
+ } catch (permanentErr: any) {
+ console.error('Falha no salvamento permanente condicional (edited):', permanentErr);
+ // O erro neste passo NÃO deve interromper o salvamento temporário.
+ }
+}
 
- // O ID temporário é o UUID retornado pelo backend
- tempFileId = response.fileId; 
- console.log(`[FLOW] fileId retornado pelo backend: ${tempFileId}`);
+// 2. SALVAMENTO TEMPORÁRIO OBRIGATÓRIO (REQUISITO 2: Todas as imagens vão para edited_files)
+console.log(`[FLOW] Imagem (Editada: ${isEdited}). Chamando /api/images/temp_upload (tabela 'edited_files')...`);
+
+// O tempUploadApiCall lida com a lógica de qual File salvar na edited_files.
+// 🚨 ALTERAÇÃO: USANDO FILES COMPRIMIDOS
+const response = await tempUploadApiCall(compressedEditedFile, compressedOriginalFile, isPrivate, type, isEdited); 
+
+// O ID temporário é o UUID retornado pelo backend
+tempFileId = response.fileId; 
+console.log(`[FLOW] fileId retornado pelo backend: ${tempFileId}`);
 
 // 3. Adiciona à lista temporária (Fluxo Comum)
 const newFileObject = { 
@@ -349,14 +366,14 @@ syncFromSession();
 
 <style scoped>
 /*
- * Ajuste essencial para mobile: 
- * Impede que o touch event na área do editor seja interpretado pelo navegador 
- * como evento de scroll/arrastar, permitindo a interação com o canvas.
- */
+* Ajuste essencial para mobile: 
+* Impede que o touch event na área do editor seja interpretado pelo navegador 
+* como evento de scroll/arrastar, permitindo a interação com o canvas.
+*/
 .image-editor-touch-control {
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none; /* Para navegadores WebKit (iOS/Safari) */
-    -webkit-user-drag: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none; /* Para navegadores WebKit (iOS/Safari) */
+  -webkit-user-drag: none;
 }
 </style>
