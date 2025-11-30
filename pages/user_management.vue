@@ -88,38 +88,40 @@
              <p class="col-span-1"><strong>Data de Nascimento:</strong> {{ formatBirthDate(selectedUser.birthdate) }}</p>
              <p class="col-span-1"><strong>Sexo:</strong> {{ formatSexo(selectedUser.sexo) }}</p>
 
-             <p class="col-span-1"><strong>Peso Inicial:</strong> {{ formatWeight(selectedUser.initial_weight_kg) }}</p>
-             <p class="col-span-1"><strong>Altura:</strong> {{ selectedUser.height_cm ? selectedUser.height_cm + ' cm' : 'Não registrado' }}</p>
+             <p class="col-span-1"><strong>Peso Inicial:</strong> {{ formatWeight(selectedUser.initialWeight) }}</p>
+             <p class="col-span-1"><strong>Altura:</strong> {{ selectedUser.heightCm ? selectedUser.heightCm + ' cm' : 'Não registrado' }}</p>
 
-             <p class="col-span-1 sm:col-span-2"><strong>Cargo:</strong>
+             <p class="col-span-1 sm:col-span-2"><strong>Perfil:</strong>
               <span :class="roleBadgeClass(selectedUser.role)">{{ selectedUser.role }}</span>
               </p>
             </div>
             
-                        <div v-if="['admin', 'owner'].includes(selectedUser.role) && selectedUser.professional" class="mt-6 p-4 border rounded-lg" :class="selectedUser.professional.is_active ? 'border-indigo-400 bg-indigo-50' : 'border-gray-400 bg-gray-100'">
-             <p class="font-semibold text-indigo-700 mb-2 border-b border-indigo-200 pb-1 flex justify-between items-center">
-              <span>Dados Profissionais</span>
-              <span v-if="!selectedUser.professional.is_active" class="text-xs text-red-600 font-medium">(Inativo)</span>
-             </p>
-             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-700">
-              <p class="col-span-1 sm:col-span-2">
-               <strong>Título/Cargo:</strong> {{ selectedUser.professional.job_title || 'Não informado' }}
-              </p>
-              <p class="col-span-1 sm:col-span-2">
-              <strong>Registro:</strong> {{ selectedUser.professional.registro_conselho || 'Não informado' }}
-              </p>
-              <p class="col-span-1 sm:col-span-2">
-               <strong>Especialidades:</strong>
-               <span v-if="selectedUser.professional.professionals_specialties && selectedUser.professional.professionals_specialties.length > 0" class="font-medium">
-                {{ formatSpecialties(selectedUser.professional.professionals_specialties) }}
-               </span>
-               <span v-else class="text-gray-500">Nenhuma especialidade registrada.</span>
-              </p>
-              <p class="col-span-1 sm:col-span-2">
-               <strong>Endereço:</strong> {{ formatAddress(selectedUser.professional) }}
-              </p>
-             </div>
-            </div>
+            <div v-if="['admin', 'owner'].includes(selectedUser.role) && selectedUser.professional && selectedUser.professional.length > 0" 
+  class="mt-6 p-4 border rounded-lg" 
+  :class="selectedUser.professional[0].is_active ? 'border-indigo-400 bg-indigo-50' : 'border-gray-400 bg-gray-100'">
+      <p class="font-semibold text-indigo-700 mb-2 border-b border-indigo-200 pb-1 flex justify-between items-center">
+       <span>Dados Profissionais</span>
+              <span v-if="!selectedUser.professional[0].is_active" class="text-xs text-red-600 font-medium">(Inativo)</span>
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-700">
+       <p class="col-span-1 sm:col-span-2">
+              <strong>Título/Cargo:</strong> {{ selectedUser.professional[0].job_title || 'Não informado' }}
+       </p>
+       <p class="col-span-1 sm:col-span-2">
+              <strong>Registro:</strong> {{ selectedUser.professional[0].registro_conselho || 'Não informado' }}
+       </p>
+       <p class="col-span-1 sm:col-span-2">
+       <strong>Especialidades:</strong>
+              <span v-if="selectedUser.professional[0].professionals_specialties && selectedUser.professional[0].professionals_specialties.length > 0" class="font-medium">
+                {{ formatSpecialties(selectedUser.professional[0].professionals_specialties) }}
+       </span>
+       <span v-else class="text-gray-500">Nenhuma especialidade registrada.</span>
+       </p>
+       <p class="col-span-1 sm:col-span-2">
+              <strong>Endereço:</strong> {{ formatAddress(selectedUser.professional[0]) }}
+       </p>
+      </div>
+</div>
 
         		<div class="mt-6 w-full p-3 border rounded-lg bg-gray-100">
              <p class="font-semibold text-gray-700 mb-1 border-b pb-1">Medidas Corporais Atuais:</p>

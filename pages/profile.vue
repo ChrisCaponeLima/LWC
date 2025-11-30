@@ -8,7 +8,7 @@ import ProfileGallery from '~/components/ProfileGallery.vue'; // 🛑 NOVO: Impo
 // 🛑 Desativa o layout padrão para esta página.
 definePageMeta({
 layout: true,
-middleware: ['admin-auth'],
+middleware: ['auth'],
 });
 
 const authStore = useAuthStore();
