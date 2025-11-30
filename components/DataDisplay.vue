@@ -1,4 +1,4 @@
-// /components/DataDisplay.vue - V2.5 - Correção da exibição da galeria de tratamentos: o componente TreatmentGallery é movido para o final do fluxo do DataDisplay (abaixo dos gráficos) para restaurar a visualização.
+// /components/DataDisplay.vue - V2.7 - INCLUSÃO DE from=dashboard nos links do editor
 <template>
 <div>
 <div class="mt-8 space-y-4">
@@ -18,13 +18,13 @@ Registros (Fotos de Evolução - {{ photoUrls.length }})
 <NuxtLink 
 v-for="photo in photoUrls" 
 :key="photo.url + '-' + photo.fileId" 
-:to="`/editor/${photo.fileId}?type=${photo.type}&recordId=${photo.recordId}`" 
+:to="`/editor/${photo.fileId}?type=${photo.type}&recordId=${photo.recordId}&from=dashboard`" 
 class="relative pb-[100%] cursor-pointer group block"
 >
 <img 
 :src="photo.url" 
 :alt="`Foto de Evolução (${formatDate(photo.date)})`" 
-class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-hover:opacity-75 transition-opacity"
+class="absolute inset-0 w-full h-full object-contain rounded-md shadow-md group-hover:opacity-75 transition-opacity"
 >
 
 <div v-if="photo.isPrivate" class="absolute top-2 right-2 p-1 bg-black/80 rounded-full text-white text-sm z-50 flex items-center justify-center" aria-hidden="true">
@@ -58,13 +58,13 @@ Forma (Fotos de Forma - {{ formaUrls.length }})
 <NuxtLink 
 v-for="forma in formaUrls" 
 :key="forma.url + '-' + forma.fileId" 
-:to="`/editor/${forma.fileId}?type=${forma.type}&recordId=${forma.recordId}`" 
+:to="`/editor/${forma.fileId}?type=${forma.type}&recordId=${forma.recordId}&from=dashboard`" 
 class="relative pb-[100%] cursor-pointer group block"
 >
 <img 
 :src="forma.url" 
 :alt="`Foto de Forma (${formatDate(forma.date)})`" 
-class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-hover:opacity-75 transition-opacity"
+class="absolute inset-0 w-full h-full object-contain rounded-md shadow-md group-hover:opacity-75 transition-opacity"
 >
 
 <div v-if="forma.isPrivate" class="absolute top-2 right-2 p-1 bg-black/80 rounded-full text-white text-sm z-50 flex items-center justify-center" aria-hidden="true">
@@ -81,7 +81,8 @@ class="absolute inset-0 w-full h-full object-cover rounded-md shadow-md group-ho
 </template>
 <p v-else class="text-gray-500 col-span-full text-center py-4">Nenhuma foto de forma registrada.</p>
 </div>
-</div> <div class="section-header mt-12">
+</div> 
+<div class="section-header mt-12">
 <h2 class="text-2xl font-bold text-gray-800">Gráficos de Evolução</h2>
 </div>
 
@@ -114,7 +115,7 @@ import { ref, computed } from 'vue';
 import LineChart from './LineChart.vue';
 import TreatmentGallery from './TreatmentGallery.vue'; 
 
-// Interfaces para a galeria de Tratamentos
+// Interfaces (inalteradas)
 interface TreatmentPhoto {
 id: number;
 url: string;
@@ -129,19 +130,17 @@ treatmentId: number;
 photos: TreatmentPhoto[];
 }
 
-// Interfaces para as galerias e dados de gráfico
 interface PhotoData {
 url: string;
 date: string;
 recordId: number;
-fileId: number; // 🚨 NOVO: ID do arquivo para o editor
+fileId: number; 
 isPrivate: boolean;
 type: 'registro' | 'forma';
 }
 
-// 🚨 NOVO: Interface para o arquivo completo retornado do backend V5.0
 interface FileRecord {
-id: number; // 🚨 NOVO: O ID do arquivo é essencial
+id: number; 
 url: string;
 isPrivate: boolean;
 type: 'registro' | 'forma' | 'outro';
@@ -152,15 +151,15 @@ interface RecordData {
 id: number;
 record_date: string;
 weight: number | null;
-photo_url: string | null; // Usado para gráficos/retrocompatibilidade
-forma_url: string | null; // Usado para gráficos/retrocompatibilidade
+photo_url: string | null; 
+forma_url: string | null; 
 photo_is_private: boolean; 
 forma_is_private: boolean;
 event: string | null;
 weekly_action: string | null;
 workout_days: number | null;
 observations: string | null;
-all_files?: FileRecord[]; // 🚨 NOVO: Array com todas as fotos deste registro
+all_files?: FileRecord[]; 
 }
 
 interface ChartSeries {
@@ -199,57 +198,54 @@ const filterData = (key: string) => {
 currentFilter.value = key;
 };
 
-// --- Lógica de Imagens (MUDANÇA AQUI: Agregação de todas as fotos) ---
+// --- Lógica de Imagens (inalterada, exceto pelo uso de `file.id` e `fileId: record.id` no fallback) ---
 const aggregatePhotos = (type: 'registro' | 'forma'): PhotoData[] => {
 // 1. Agrega todas as fotos de todos os registros
 const allAggregatedPhotos: PhotoData[] = [];
 
 (props.rawChartData.records || []).forEach(record => {
- if (record.all_files && Array.isArray(record.all_files)) {
- record.all_files
-  .filter(file => file.type === type)
-  .forEach(file => {
-  allAggregatedPhotos.push({
-   url: file.url,
-   date: record.record_date, // Usa a data do registro
-   recordId: record.id,
-   fileId: file.id, // 🚨 CRÍTICO: Inclui o ID do arquivo
-   isPrivate: file.isPrivate,
-   type: type
-  });
-  });
- } 
- // Lógica de fallback para manter retrocompatibilidade se 'all_files' não existir (V1.9)
- // OBS: O fallback não possui um fileId real, mas para evitar erros de tipagem, 
- // usaremos o recordId como um placeholder se o fileId não estiver presente. 
- // O backend deve tratar isso.
- else if (type === 'registro' && record.photo_url) {
- allAggregatedPhotos.push({
-  url: record.photo_url as string,
-  date: record.record_date,
-  recordId: record.id,
-  fileId: record.id, // 🚨 Fallback: Usa o ID do registro como fileId
-  isPrivate: !!record.photo_is_private,
-  type: 'registro'
- });
- }
- else if (type === 'forma' && record.forma_url) {
- allAggregatedPhotos.push({
-  url: record.forma_url as string,
-  date: record.record_date,
-  recordId: record.id,
-  fileId: record.id, // 🚨 Fallback: Usa o ID do registro como fileId
-  isPrivate: !!record.forma_is_private,
-  type: 'forma'
- });
- }
+if (record.all_files && Array.isArray(record.all_files)) {
+record.all_files
+.filter(file => file.type === type)
+.forEach(file => {
+allAggregatedPhotos.push({
+url: file.url,
+date: record.record_date, // Usa a data do registro
+recordId: record.id,
+fileId: file.id, // CRÍTICO: Inclui o ID do arquivo
+isPrivate: file.isPrivate,
+type: type
+});
+});
+} 
+// Lógica de fallback para manter retrocompatibilidade se 'all_files' não existir (V1.9)
+else if (type === 'registro' && record.photo_url) {
+allAggregatedPhotos.push({
+url: record.photo_url as string,
+date: record.record_date,
+recordId: record.id,
+fileId: record.id, // Fallback: Usa o ID do registro como fileId
+isPrivate: !!record.photo_is_private,
+type: 'registro'
+});
+}
+else if (type === 'forma' && record.forma_url) {
+allAggregatedPhotos.push({
+url: record.forma_url as string,
+date: record.record_date,
+recordId: record.id,
+fileId: record.id, // Fallback: Usa o ID do registro como fileId
+isPrivate: !!record.forma_is_private,
+type: 'forma'
+});
+}
 });
 
 // 2. Remove duplicatas e Inverte para mostrar as mais recentes primeiro
 const uniquePhotosMap = new Map<string, PhotoData>();
 allAggregatedPhotos.forEach(photo => {
- // Usa a URL e o fileId (que agora é único) como chave de unicidade
- uniquePhotosMap.set(`${photo.url}-${photo.fileId}`, photo);
+// Usa a URL e o fileId (que agora é único) como chave de unicidade
+uniquePhotosMap.set(`${photo.url}-${photo.fileId}`, photo);
 });
 
 return Array.from(uniquePhotosMap.values()).reverse();

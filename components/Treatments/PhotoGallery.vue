@@ -1,4 +1,4 @@
-// /components/Treatments/PhotoGallery.vue - V3.1 - Alteração do título principal para 'Imagens' e garantia de que a renderização dos títulos de grupo esteja correta.
+// /components/Treatments/PhotoGallery.vue - V3.2 - Ajuste na visualização do thumbnail: object-cover alterado para object-contain para exibir a foto inteira.
 <template>
 <div class="space-y-6">
 <h3 class="text-xl font-bold text-gray-800 flex items-center mb-4">
@@ -102,12 +102,12 @@ class="max-h-96 w-full object-contain block mx-auto"/>
 <div v-if="photos.length > 0" class="space-y-6">
 <div v-for="(group, name) in groupedPhotosByTreatment" :key="name" class="bg-white p-6 rounded-lg shadow-lg border">
 <h4 class="text-lg font-bold mb-4 text-indigo-700 border-b pb-2">
- <i class="fas fa-notes-medical mr-2"></i> Tratamento: {{ name }} ({{ group.length }} fotos)
+<i class="fas fa-notes-medical mr-2"></i> Tratamento: {{ name }} ({{ group.length }} fotos)
 </h4>
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 <div v-for="photo in group" :key="photo.id" class="border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition cursor-pointer"
- @click="showFullImage(photo)">
-<img :src="photo.url" :alt="photo.photoType" class="w-full h-40 object-cover"/>
+@click="showFullImage(photo)">
+<img :src="photo.url" :alt="photo.photoType" class="w-full h-40 object-contain"/> 
 <div class="p-2 text-xs">
 <p class="font-semibold text-gray-800">{{ photo.photoType }}</p>
 <p class="text-gray-600">{{ formatDateTime(photo.createdAt) }}</p>
@@ -145,7 +145,7 @@ class="w-full h-full border border-gray-300 rounded block mx-auto" />
 </template>
 
 <script setup>
-// /components/Treatments/PhotoGallery.vue - V3.1 - Alteração do título principal e verificação dos grupos.
+// /components/Treatments/PhotoGallery.vue - V3.2 - Ajuste na visualização do thumbnail: object-cover alterado para object-contain para exibir a foto inteira.
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import AnnotationViewer from '~/components/Shared/AnnotationViewer.vue' 
@@ -219,7 +219,7 @@ return;
 
 if (photoB.value && photoB.value.photoType && photoB.value.photoType !== newPhotoA.photoType) {
 selectedPhotoBId.value = null;
-console.log(`DEBUG (V3.1) - Foto B limpa: O tipo (${photoB.value.photoType}) não corresponde mais ao tipo da Foto A (${newPhotoA.photoType}).`);
+console.log(`DEBUG (V3.2) - Foto B limpa: O tipo (${photoB.value.photoType}) não corresponde mais ao tipo da Foto A (${newPhotoA.photoType}).`);
 }
 });
 
@@ -273,11 +273,11 @@ photos.value = response.photos || [];
 if (photos.value.length >= 2) {
 photos.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 if (photos.value[0].photoType === photos.value[1].photoType) {
- selectedPhotoAId.value = photos.value[1].id; 
- selectedPhotoBId.value = photos.value[0].id; 
+selectedPhotoAId.value = photos.value[1].id; 
+selectedPhotoBId.value = photos.value[0].id; 
 } else {
- selectedPhotoAId.value = null;
- selectedPhotoBId.value = null;
+selectedPhotoAId.value = null;
+selectedPhotoBId.value = null;
 }
 } else {
 selectedPhotoAId.value = null;

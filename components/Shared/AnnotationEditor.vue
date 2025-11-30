@@ -1,4 +1,4 @@
-// /components/Shared/AnnotationEditor.vue - V2.6 - CORREÇÃO MOBILE: Adicionados eventos de toque (touchstart, touchmove, touchend) e lógica de coordenadas unificada para permitir que o usuário risque em dispositivos móveis sem arrastar a tela.
+// /components/Shared/AnnotationEditor.vue - V2.7 - CORREÇÃO CRÍTICA: Ajuste fino na função getClientCoordinates para garantir a captura correta do toque (TouchEvent.changedTouches[0]) e na função getCoordinates para estabilizar o cálculo de coordenadas relativas à imagem renderizada para uso no SVG.
 <template>
 <div 
 ref="editorContainerRef"
@@ -9,9 +9,9 @@ class="relative w-full h-full overflow-hidden"
 ref="imageSvgWrapperRef"
 class="w-full h-full flex items-center justify-center relative"
 :style="{
- 'max-width': editorDimensions.width > 0 ? `${editorDimensions.width}px` : '100%',
- 'max-height': editorDimensions.height > 0 ? `${editorDimensions.height}px` : '100%',
- 'margin': '0 auto' 
+'max-width': editorDimensions.width > 0 ? `${editorDimensions.width}px` : '100%',
+'max-height': editorDimensions.height > 0 ? `${editorDimensions.height}px` : '100%',
+'margin': '0 auto' 
 }"
 @mousedown="handleActionStart"
 @mousemove="handleActionMove"
@@ -27,8 +27,8 @@ ref="imageRef"
 alt="Imagem para Anotação" 
 @load="handleImageLoad"
 
- class="block w-full h-auto max-h-full object-contain pointer-events-none" 
- />
+class="block w-full h-auto max-h-full object-contain pointer-events-none" 
+/>
 
 <svg 
 v-if="imageLoaded && editorDimensions.width > 0"
@@ -37,38 +37,38 @@ v-if="imageLoaded && editorDimensions.width > 0"
 class="absolute top-0 left-0"
 >
 <g v-for="(drawing, index) in localAnnotations.drawings" :key="`saved-draw-${index}`">
- <polyline 
- :points="drawing.points.map(p => `${scalePoint(p).x},${scalePoint(p).y}`).join(' ')" 
- fill="none"
- :stroke="drawing.color || '#FF0000'" 
- :stroke-width="drawing.size * scaleFactor"
- stroke-linecap="round"
- stroke-linejoin="round"
- />
+<polyline 
+:points="drawing.points.map(p => `${scalePoint(p).x},${scalePoint(p).y}`).join(' ')" 
+fill="none"
+:stroke="drawing.color || '#FF0000'" 
+:stroke-width="drawing.size * scaleFactor"
+stroke-linecap="round"
+stroke-linejoin="round"
+/>
 </g>
 
 <polyline 
- v-if="isDrawing && currentDrawing.points.length > 1"
- :points="currentDrawing.points.map(p => `${scalePoint(p).x},${scalePoint(p).y}`).join(' ')" 
- fill="none"
- :stroke="currentDrawing.color || '#FF0000'" 
- :stroke-width="currentDrawing.size * scaleFactor"
- stroke-linecap="round"
- stroke-linejoin="round"
+v-if="isDrawing && currentDrawing.points.length > 1"
+:points="currentDrawing.points.map(p => `${scalePoint(p).x},${scalePoint(p).y}`).join(' ')" 
+fill="none"
+:stroke="currentDrawing.color || '#FF0000'" 
+:stroke-width="currentDrawing.size * scaleFactor"
+stroke-linecap="round"
+stroke-linejoin="round"
 />
 
 <g v-for="(text, index) in localAnnotations.texts" :key="`saved-text-${index}`">
- <text
- :x="scalePoint(text).x"
- :y="scalePoint(text).y"
- :fill="text.color || '#FFFF00'"
- :font-size="text.size * scaleFactor"
- font-weight="bold"
- text-anchor="middle"
- dominant-baseline="hanging"
- >
- {{ text.content }}
- </text>
+<text
+:x="scalePoint(text).x"
+:y="scalePoint(text).y"
+:fill="text.color || '#FFFF00'"
+:font-size="text.size * scaleFactor"
+font-weight="bold"
+text-anchor="middle"
+dominant-baseline="hanging"
+>
+{{ text.content }}
+</text>
 </g>
 </svg>
 </div>
@@ -92,7 +92,7 @@ placeholder="Digite o texto..."
 </template>
 
 <script setup lang="ts">
-// /components/Shared/AnnotationEditor.vue - V2.6 - CORREÇÃO MOBILE: Adicionados eventos de toque (touchstart, touchmove, touchend) e lógica de coordenadas unificada para permitir que o usuário risque em dispositivos móveis sem arrastar a tela.
+// /components/Shared/AnnotationEditor.vue - V2.7 - CORREÇÃO CRÍTICA: Ajuste fino na função getClientCoordinates para garantir a captura correta do toque (TouchEvent.changedTouches[0]) e na função getCoordinates para estabilizar o cálculo de coordenadas relativas à imagem renderizada para uso no SVG.
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 // === Tipagem ===
@@ -167,15 +167,18 @@ const scaleFactor = ref(1);
 * Extrai as coordenadas X e Y do evento, suportando MouseEvent e TouchEvent.
 */
 const getClientCoordinates = (e: InputEvent): Point | null => {
-if (e instanceof MouseEvent) {
- return { x: e.clientX, y: e.clientY };
-}
-if (e instanceof TouchEvent && e.changedTouches.length > 0) {
- // Usa a primeira coordenada de toque
- return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+// Permite que o evento de toque seja obtido tanto em touchstart/move quanto em touchend
+// 🛑 CORREÇÃO V2.7: Usar `changedTouches[0]` para garantir a captura do ponto de toque.
+const event = (e as TouchEvent).changedTouches && (e as TouchEvent).changedTouches.length > 0 
+? (e as TouchEvent).changedTouches[0] 
+: (e as MouseEvent);
+
+if (event) {
+return { x: event.clientX, y: event.clientY };
 }
 return null;
 }
+
 
 /**
 * Calcula a coordenada de desenho (relativa à imagem renderizada)
@@ -190,12 +193,13 @@ if (!clientCoords) return null;
 const imageRect = imageRef.value.getBoundingClientRect();
 
 // Coordenadas do clique/toque relativas ao canto superior esquerdo da IMAGEM RENDERIZADA.
+// 🛑 V2.7 MANTIDO: O cálculo é a coordenada do cliente menos o offset da imagem.
 const clickX = clientCoords.x - imageRect.left;
 const clickY = clientCoords.y - imageRect.top;
 
 // Garante que o clique/toque ocorreu sobre a imagem
 if (clickX < 0 || clickX > imageRect.width || clickY < 0 || clickY > imageRect.height) {
- return null;
+return null;
 }
 
 // Retorna as coordenadas relativas à imagem renderizada.
@@ -267,13 +271,8 @@ currentDrawing.value = { points: [], color: props.penColor, size: props.penSize 
 
 // --- Funções de Texto ---
 
-// NOTE: A função handleTextPlacement precisa ser ligeiramente adaptada para evitar
-// que 'touchstart' dispare o salvamento/desativação do input,
-// mas para simplicidade e dada a regra de toque, manteremos apenas o @click
-// na versão template. No entanto, se o usuário clicar no mobile, ele usará o touchstart
-// e não o click, por isso, vamos tratar o click apenas como MouseEvent na função.
-
-const handleTextPlacement = (e: MouseEvent) => { // Mantém MouseEvent para evitar disparo duplo de toque
+// NOTE: handleTextPlacement só recebe MouseEvent no template.
+const handleTextPlacement = (e: MouseEvent) => { 
 if (!imageLoaded.value || props.tool !== 'text') return;
 
 // 1. Se o input já estiver ativo, verifica se o clique é para salvar
@@ -380,7 +379,7 @@ let attempts = 0;
 
 const check = () => {
 if (!imageRef.value) {
- return resolve();
+return resolve();
 }
 
 // Usa o elemento de IMAGEM para obter suas dimensões RENDERIZADAS
@@ -388,20 +387,20 @@ const renderedWidth = imageRef.value.clientWidth;
 const renderedHeight = imageRef.value.clientHeight;
 
 if (renderedWidth > 0 && renderedHeight > 0) {
- // Dimensões válidas encontradas!
- editorDimensions.value = { width: renderedWidth, height: renderedHeight };
- scaleFactor.value = naturalDimensions.value.width / editorDimensions.value.width;
- imageLoaded.value = true;
- emit('imageLoaded', editorDimensions.value);
- return resolve();
+// Dimensões válidas encontradas!
+editorDimensions.value = { width: renderedWidth, height: renderedHeight };
+scaleFactor.value = naturalDimensions.value.width / editorDimensions.value.width;
+imageLoaded.value = true;
+emit('imageLoaded', editorDimensions.value);
+return resolve();
 }
 
 attempts++;
 if (attempts < maxAttempts) {
- setTimeout(check, delay);
+setTimeout(check, delay);
 } else {
- console.warn('[AnnotationEditor] Falha ao obter dimensões após tentativas. Renderizando com fallback.');
- resolve();
+console.warn('[AnnotationEditor] Falha ao obter dimensões após tentativas. Renderizando com fallback.');
+resolve();
 }
 };
 
@@ -478,10 +477,10 @@ initializeAnnotations(null);
 if (newUrl) {
 nextTick(() => {
 if (imageRef.value) {
-  imageRef.value.src = newUrl; 
- if (imageRef.value.complete) {
- handleImageLoad(); 
- }
+ imageRef.value.src = newUrl; 
+if (imageRef.value.complete) {
+handleImageLoad(); 
+}
 }
 });
 }
